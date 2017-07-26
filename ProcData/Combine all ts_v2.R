@@ -1,9 +1,10 @@
-#What will happen when I put ALL THE DATA TOGETHER???
-setwd("~/Dropbox/Chapter 3 - Sardine Anchovy/R files")
+# Combine all data from RAM, FAO, Barange et al.
+# The resulting dataset is "allsardineanchovy.RData" which is used in all subsequent analyses.
+setwd("~/Dropbox/Chapter3-SardineAnchovy/R files")
 
-load("~/Dropbox/Chapter 3 - Sardine Anchovy/All Datasets/RAM/RAM.RData")      #RAM
-load("~/Dropbox/Chapter 3 - Sardine Anchovy/All Datasets/FAO/FAO.RData")      #FAO
-load("~/Dropbox/Chapter 3 - Sardine Anchovy/All Datasets/Barange/Barange_mystocks.RData")   #barange_noNAs
+load("~/Dropbox/Chapter3-SardineAnchovy/All Datasets/RAM/RAM.RData")      #RAM
+load("~/Dropbox/Chapter3-SardineAnchovy/All Datasets/FAO/FAO.RData")      #FAO
+load("~/Dropbox/Chapter3-SardineAnchovy/All Datasets/Barange/Barange_mystocks.RData")   #barange_noNAs
 b <- which(colnames(barange_noNAs)=='b')
 colnames(barange_noNAs)[b] <- 'sp'
 library(plyr)
