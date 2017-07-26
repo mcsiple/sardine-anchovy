@@ -6,7 +6,7 @@
 data.proc <- function(data,fish.or.rec){   # fish.rec determines whether function is for landings/mortality or SSB/recruitment
   years <- round(data[,3])
   vars <- data[,4]
-  print(cbind(years, vars))
+  #print(cbind(years, vars))
   # Need to make sure missing years are really missing - expand ts but save NAs
   allyrs <- min(years,na.rm=T):max(years,na.rm=T)
   var.new <- vector(length=length(allyrs))
@@ -16,11 +16,14 @@ data.proc <- function(data,fish.or.rec){   # fish.rec determines whether functio
           var.new[y] <- vars[yr]
     }else(var.new[y] <- NA)
     }
-  new.data <- cbind(allyrs,var.new)
+  new.data <- as.data.frame(cbind(allyrs,var.new))
   if (fish.or.rec == "fish")  colnames(new.data) <- c("FYear","Mf")
   else (colnames(new.data) <- c("RYear","Recruitment"))
+  
   return(new.data)
 }
+
+#data.proc(data1,fish.or.rec = "fish")
 
 data.int <- function(data,fish.or.rec){ # May need to fix this one
   years <- round(data[,3])
