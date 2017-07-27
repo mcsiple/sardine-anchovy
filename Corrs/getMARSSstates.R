@@ -63,7 +63,7 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "Benguela", scal
   
   # One correlation method: use MARSS to find covariance --------------------------------------------
   if(MARSS.cov == TRUE){
-    source("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/R files/Fill_NAs_SA.R")
+    source("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/Fill_NAs_SA.R")
     sard.mars <- FillNAs.ts(cbind(dom.s.ts$year,sar),
                             startyear=min(c(dom.s.ts$year,dom.a.ts$year)),
                             endyear=max(c(dom.s.ts$year,dom.a.ts$year)))
@@ -90,7 +90,7 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "Benguela", scal
   }
   
   # This is where this function diverges from the cor() function; return MARSS states
-  source("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/R files/Fill_NAs_SA.R")
+  source("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/Fill_NAs_SA.R")
   sard.mars <- FillNAs.ts(cbind(dom.s.ts$year,sar),
                           startyear=min(c(dom.s.ts$year,dom.a.ts$year)),
                           endyear=max(c(dom.s.ts$year,dom.a.ts$year)))
@@ -115,13 +115,13 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "Benguela", scal
 }  #End getMARSSstates function
 
 
-
-plot(output$Year,output$Sardine.est,type='l')
-lines(output$Year,output$Anchovy.est,col="red")
-x = output$Year
-y = output[,-1]
-w = mvcwt(x, y, min.scale = 0.25, max.scale = 4)
-mr = wmr(w)
-image(mr, reset.par = FALSE)
-contour(mr, bound = NA, add = TRUE)
+# 
+# plot(output$Year,output$Sardine.est,type='l')
+# lines(output$Year,output$Anchovy.est,col="red")
+# x = output$Year
+# y = output[,-1]
+# w = mvcwt(x, y, min.scale = 0.25, max.scale = 4)
+# mr = wmr(w)
+# image(mr, reset.par = FALSE)
+# contour(mr, bound = NA, add = TRUE)
 
