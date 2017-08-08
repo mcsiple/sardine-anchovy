@@ -109,7 +109,7 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "Benguela", scal
   sard.estimates <- exp(kem.sa$states[1,])
   anch.estimates <- exp(kem.sa$states[2,])
   
-  output <- data.frame(Year = sard.mars[1,],Sardine.est = sard.estimates, Anchovy.est = anch.estimates)
+  output <- data.frame(Year = sard.mars[1,],Sardine.est = sard.estimates, Anchovy.est = anch.estimates,region = region_or_subregion, datasource = data_source, variable = variable)
   
   return(output)
 }  #End getMARSSstates function
