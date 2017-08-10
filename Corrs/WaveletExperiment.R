@@ -57,7 +57,7 @@ load("BarangeStates.RData")
 load("RAMStates.RData")
 
 
-      data.points <- subset(Barange, region == "Benguela" & variable == "landings")
+      data.points <- subset(RAM, region == "California" & variable == "ssb")
       # RAM only has both sardine and anchovy for any of the variables (e.g.,ss, rec) for Humboldt. 
       
       x = data.points$Year       # Time series sampling points (day of year in this case)
@@ -70,34 +70,40 @@ load("RAMStates.RData")
       contour(mr, bound = NA, add = TRUE)
       
 
-      par(mfrow=c(4,1))
+      # If using simulated data (but need starting values)
+      subyrs <- 1:100 #1:nrow(response.ts)
+      x <- subyrs 
+      y <- response.ts[subyrs,1:2]
+      w = mvcwt(x, y, min.scale = 1, max.scale = 20)
+      mr = wmr(w)
       
+      # Plots
+      par(mfrow=c(4,1),mar = c(2,2,1,3))
       plot(1:nrow(y),y[,1],type='l',ylim=c(-2,max(c(y[,1],y[,2]))))
       lines(1:nrow(y),y[,2],col='red')
-  
+      
+      tx <- 0.2
       # Scale: <5 yr    
       mr$z[mr$z>0.95] <- NA
       ind <- which(mr$y < 5)
       trim.z <- mr$z[nrow(mr$z)-ind,,1]
-      hist(trim.z,xlim=c(0,1),col="lightblue",probability = T,main='')
-      text(0.8,1,"<5 yr")
+      hist(trim.z,xlim=c(0,1),col="lightblue",probability = T,main='',xaxt='n') #
+      text(tx,1,"<5 yr")
       
       # Scale: 5-10 yr
       ind2 <- which(mr$y > 5 & mr$y < 10)
       trim.z2 <- mr$z[nrow(mr$z)-ind2,,1]
-      hist(trim.z2,xlim=c(0,1),col="lightblue",probability = T,main='')
-      text(0.8,1,"5-10 yr")
+      hist(trim.z2,xlim=c(0,1),col="lightblue",probability = T,main='',xaxt='n')
+      text(tx,1,"5-10 yr")
       
       #Scale: 10+ yr
       ind3 <- which(mr$y > 10)
       trim.z3 <- mr$z[nrow(mr$z)-ind3,,1]
-      hist(trim.z3,xlim=c(0,1),col="lightblue",probability = T,main='',xlab="Degree of synchrony")
-      text(0.8,1,"10+ yr")
+      hist(trim.z3,xlim=c(0,1),col="lightblue",probability = T,main='',xlab="Degree of synchrony",xaxt='n')
+      text(tx,1,"10+ yr")
+      axis(1,at=c(0,0.5,1.0), labels=c(0,0.5,1.0))
       
-      
-      plot(response.ts[,1],type='l')
-      lines(response.ts[,2],type='l',col='red')
-      subyrs <- 1:30 #1:nrow(response.ts)
-      x <- subyrs 
-      y <- response.ts[subyrs,1:2]
+      # plot(response.ts[,1],type='l')
+      # lines(response.ts[,2],type='l',col='red')
+       
       
