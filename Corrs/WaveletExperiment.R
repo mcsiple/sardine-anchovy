@@ -62,15 +62,34 @@ save(RB,file="RAM_Barange_States.RData")
 ###########################################################################
 ###########################################################################
 
+# Plot preparations
+#devtools::install_github("dill/beyonce") # David Lawrence Miller's Beyoncé palettes
+library(beyonce)
+print(beyonce_palette(40))
+
+var.colors <- data.frame(var = c("landings","ssb","rec"),
+                         col = beyonce_palette(40)[c(1,4,7)])
+
+
+
+# Load data etc.
 load("RAM_Barange_States.RData") # data frame RB
 
       variables = c("landings","ssb","rec")
       regions = c("Benguela", "California","Humboldt", "Kuroshio-Oyashio", "NE Atlantic")
       dsources = c("RAM","Barange")
-      v <- 1 
-      r <- 1
-      d <- 1
-      data.points <- subset(RB,datasource==dsources[d], region == regions[r] & variable == variables[v])
+      
+
+      #Cycle thru variables
+      d <- 2
+      for(r in 1:length(regions)){
+        par(mfcol=c(4,3),mar=c(2, 4, 1, 2) + 0.1)
+      for(v in 1:3){
+      var.color <- as.character(var.colors$col[v])
+      tx <- 0.2 # Where text should be placed on histogram
+      data.points <- subset(RB,datasource == dsources[d] & region == regions[r] & variable == variables[v])
+      if(nrow(data.points)==0 | length(unique(data.points$Sardine.est))==1 |
+         length(unique(data.points$Anchovy.est))==1) {plot.new()} else{
       # RAM only has both sardine and anchovy for any of the variables (e.g., ssb, rec) for Humboldt. 
       
       x = data.points$Year       # Time series sampling points (day of year in this case)
@@ -79,10 +98,9 @@ load("RAM_Barange_States.RData") # data frame RB
       w = mvcwt(x, y, min.scale = 1, max.scale = 20)
       mr = wmr(w)
       #mr.boot = wmr.boot(w, smoothing = 1, reps = 1000, mr.func = "wmr")
-      image(mr, reset.par = FALSE)
-      contour(mr, bound = NA, add = TRUE)
+      #image(mr, reset.par = FALSE)
+      #contour(mr, bound = NA, add = TRUE)
       
-
       # If using simulated data (NOTE: need starting values)
       # subyrs <- 1:100 #1:nrow(response.ts)
       # x <- subyrs 
@@ -92,44 +110,39 @@ load("RAM_Barange_States.RData") # data frame RB
       # 
       
       # Plots
-      #devtools::install_github("dill/beyonce") # David Lawrence Miller's Beyoncé palettes
-      library(beyonce)
-      print(beyonce_palette(40))
-      
-      var.colors <- data.frame(var = c("landings","ssb","rec"),
-                               col = beyonce_palette(40)[c(1,4,7)])
-      
-      par(mfrow=c(4,1),mar = c(2,2,1,3))
-      var.color <- var.colors$col[v]
-      tx <- 0.2 # Where text should be placed on histogram
-      
-      plot(1:nrow(y),y[,1],type='l',ylim=c(-2,max(c(y[,1],y[,2]))))
+      plot(1:nrow(y),y[,1],type='l',ylim=c(-2,max(c(y[,1],y[,2]))),
+           xlab="Year",ylab="",main=paste(regions[r]))
       lines(1:nrow(y),y[,2],col='red')
       
-      # Scale: <5 yr    
       mr$z[mr$z>0.95] <- NA
+      
+      # Scale: <5 yr    
       ind <- which(mr$y < 5)
       trim.z <- mr$z[nrow(mr$z)-ind,,1]
-      hist(trim.z,xlim=c(0,1),col=var.color,
-           probability = T,main='',xaxt='n') 
+      hist(trim.z,xlim=c(0,1),col=var.color,border=var.color,
+           probability = T,main='',xaxt='n',xlab="",ylab="") 
       text(tx,1,"<5 yr")
       
       # Scale: 5-10 yr
       ind2 <- which(mr$y > 5 & mr$y < 10)
       trim.z2 <- mr$z[nrow(mr$z)-ind2,,1]
-      hist(trim.z2,xlim=c(0,1),col=var.color,
-           probability = T,main='',xaxt='n')
+      hist(trim.z2,xlim=c(0,1),col=var.color,border=var.color,
+           probability = T,main='',xaxt='n',xlab="")
       text(tx,1,"5-10 yr")
       
       #Scale: 10+ yr
       ind3 <- which(mr$y > 10)
       trim.z3 <- mr$z[nrow(mr$z)-ind3,,1]
-      hist(trim.z3,xlim=c(0,1),col=var.color,
+      if(all(is.na(trim.z3))){plot.new()}else{
+      hist(trim.z3,xlim=c(0,1),col=var.color,border=var.color,
            probability = T,main='',
-           xlab="Degree of synchrony",xaxt='n')
+           xlab="Degree of synchrony",xaxt='n',ylab="")
       text(tx,1,"10+ yr")
-      axis(1,at=c(0,0.5,1.0), labels=c(0,0.5,1.0))
+      axis(1,at=c(0,0.5,1.0), labels=c(0,0.5,1.0))}
       
+      }
+        } # end variables loop
+        } #end regions loop
       # plot(response.ts[,1],type='l')
       # lines(response.ts[,2],type='l',col='red')
        
