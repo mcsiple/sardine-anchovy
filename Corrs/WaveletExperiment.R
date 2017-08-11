@@ -1,7 +1,9 @@
+# SKIP TO LINE 60 IF NO ADD'L DATA PROCESSING NEEDED
 # install.packages("mvcwt")
 library(mvcwt)
 
 # Example from vignette ---------------------------------------------------
+# With sample data from mvcwt
 data(lrlake)
 x = subset(lrlake, Basin == "Treatment", LRL.Day) / 365.25 # Time series sampling points (day of year in this case)
 y = subset(lrlake, Basin == "Treatment", -(1:8)) # Time series only (each column = one species)
@@ -11,12 +13,13 @@ mr = wmr(w)
 image(mr, reset.par = FALSE)
 contour(mr, bound = NA, add = TRUE)
 
-
 plot(1:nrow(y),y[,1],type='l')
 lines(1:nrow(y),y[,2],col='red')
 
 
 # Try with MARSS states from sardine and anchovy time series --------------
+# In order to get numbers for all years for patchy data sets, use MARSS to get states. 
+# This is a simple way to fill in a few spaces, most datasets do not have a lot of NAs.
 # Five LMEs: NE Atlantic, Benguela, California, Kuroshio-Oyashio, Humboldt
 load("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/R files/allsardineanchovy.RData")
 source("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/Corrs/getMARSSstates.R")
@@ -24,8 +27,7 @@ data.list <- list()
 region.list <- list()
 regions <- unique(alldat$region)
 dsources <- unique(alldat$datasource)
-d=2 # Start with 
-#for (d in 1:length(dsources)){
+d=1 
  for(r in 1:length(regions)){
 # Need to fix FAO data before using this function on them.
       var.list <- list()
@@ -47,18 +49,29 @@ d=2 # Start with
 
 Barange <- do.call(rbind,region.list)
 RAM <- do.call(rbind,region.list[1:3])
-save(Barange,file = "BarangeStates.RData")
-save(RAM, file = "RAMStates.RData")
+RB <- rbind(Barange,RAM)
+save(RB,file="RAM_Barange_States.RData")
+# save(Barange,file = "BarangeStates.RData")
+# save(RAM, file = "RAMStates.RData")
 
 
-
+###########################################################################
+###########################################################################
+###########################################################################
 # Start here if you don’t need to re-process anything! --------------------
-load("BarangeStates.RData")
-load("RAMStates.RData")
+###########################################################################
+###########################################################################
 
+load("RAM_Barange_States.RData") # data frame RB
 
-      data.points <- subset(RAM, region == "California" & variable == "ssb")
-      # RAM only has both sardine and anchovy for any of the variables (e.g.,ss, rec) for Humboldt. 
+      variables = c("landings","ssb","rec")
+      regions = c("Benguela", "California","Humboldt", "Kuroshio-Oyashio", "NE Atlantic")
+      dsources = c("RAM","Barange")
+      v <- 1 
+      r <- 1
+      d <- 1
+      data.points <- subset(RB,datasource==dsources[d], region == regions[r] & variable == variables[v])
+      # RAM only has both sardine and anchovy for any of the variables (e.g., ssb, rec) for Humboldt. 
       
       x = data.points$Year       # Time series sampling points (day of year in this case)
       y = data.points[,c("Sardine.est","Anchovy.est")] # Time series only (each column = one species)
@@ -70,36 +83,50 @@ load("RAMStates.RData")
       contour(mr, bound = NA, add = TRUE)
       
 
-      # If using simulated data (but need starting values)
-      subyrs <- 1:100 #1:nrow(response.ts)
-      x <- subyrs 
-      y <- response.ts[subyrs,1:2]
-      w = mvcwt(x, y, min.scale = 1, max.scale = 20)
-      mr = wmr(w)
+      # If using simulated data (NOTE: need starting values)
+      # subyrs <- 1:100 #1:nrow(response.ts)
+      # x <- subyrs 
+      # y <- response.ts[subyrs,1:2]
+      # w = mvcwt(x, y, min.scale = 1, max.scale = 20)
+      # mr = wmr(w)
+      # 
       
       # Plots
+      #devtools::install_github("dill/beyonce") # David Lawrence Miller's Beyoncé palettes
+      library(beyonce)
+      print(beyonce_palette(40))
+      
+      var.colors <- data.frame(var = c("landings","ssb","rec"),
+                               col = beyonce_palette(40)[c(1,4,7)])
+      
       par(mfrow=c(4,1),mar = c(2,2,1,3))
+      var.color <- var.colors$col[v]
+      tx <- 0.2 # Where text should be placed on histogram
+      
       plot(1:nrow(y),y[,1],type='l',ylim=c(-2,max(c(y[,1],y[,2]))))
       lines(1:nrow(y),y[,2],col='red')
       
-      tx <- 0.2
       # Scale: <5 yr    
       mr$z[mr$z>0.95] <- NA
       ind <- which(mr$y < 5)
       trim.z <- mr$z[nrow(mr$z)-ind,,1]
-      hist(trim.z,xlim=c(0,1),col="lightblue",probability = T,main='',xaxt='n') #
+      hist(trim.z,xlim=c(0,1),col=var.color,
+           probability = T,main='',xaxt='n') 
       text(tx,1,"<5 yr")
       
       # Scale: 5-10 yr
       ind2 <- which(mr$y > 5 & mr$y < 10)
       trim.z2 <- mr$z[nrow(mr$z)-ind2,,1]
-      hist(trim.z2,xlim=c(0,1),col="lightblue",probability = T,main='',xaxt='n')
+      hist(trim.z2,xlim=c(0,1),col=var.color,
+           probability = T,main='',xaxt='n')
       text(tx,1,"5-10 yr")
       
       #Scale: 10+ yr
       ind3 <- which(mr$y > 10)
       trim.z3 <- mr$z[nrow(mr$z)-ind3,,1]
-      hist(trim.z3,xlim=c(0,1),col="lightblue",probability = T,main='',xlab="Degree of synchrony",xaxt='n')
+      hist(trim.z3,xlim=c(0,1),col=var.color,
+           probability = T,main='',
+           xlab="Degree of synchrony",xaxt='n')
       text(tx,1,"10+ yr")
       axis(1,at=c(0,0.5,1.0), labels=c(0,0.5,1.0))
       
