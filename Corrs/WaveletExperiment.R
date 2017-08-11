@@ -111,7 +111,7 @@ load("RAM_Barange_States.RData") # data frame RB
       
       # Plots
       plot(1:nrow(y),y[,1],type='l',ylim=c(-2,max(c(y[,1],y[,2]))),
-           xlab="Year",ylab="",main=paste(regions[r]))
+           xlab="Year",ylab="",main=paste(regions[r]," - ",variables[v]))
       lines(1:nrow(y),y[,2],col='red')
       
       mr$z[mr$z>0.95] <- NA
