@@ -1,12 +1,12 @@
 require(MASS)
 require(MASS)
 #matrix of autocorrelation terms 
-rho <- matrix(c(0.8,0,0,0.8),nrow=2,byrow=T)
+rho <- matrix(c(0.8,0,0,0.8),nrow=2,byrow=T) # used to be 0.8 and 0.8
 # Create variance covariance matrix
 Sigma <- matrix(0, nrow=2, ncol =2)
-diag(Sigma)<- c(0.8,0.7)
+diag(Sigma)<- c(0.8,0.7) #c(0.8,0.7)
 
-Sigma[1,2]<--0.75 * Sigma[1,1]
+Sigma[1,2]<- -0.75 * Sigma[1,1]  # what does this step do??
 Sigma[2,1]<- -0.75 * Sigma[1,1]
 
 # calculate variance of AR(1)
