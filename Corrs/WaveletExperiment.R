@@ -62,6 +62,18 @@ save(RB,file="RAM_Barange_States.RData")
 ###########################################################################
 ###########################################################################
 
+
+# Test to double check that MARSS states didn’t lose any info (i.e --------
+# If the model didn't converge, there might be bad estimates in the dataset RB,
+# but we should still be able to use the data.
+summary(alldat)
+head(alldat)
+m <- melt(alldat,id.vars=c("datasource","scientificname","year"))
+ggplot(alldat,aes(x=year,y=ssb,colour=subregion)) + geom_point() + facet_wrap(~region)
+
+#Need to be able to subset to just the dominant stock for each type/region
+
+
 # Plot preparations
 #devtools::install_github("dill/beyonce") # David Lawrence Miller's Beyoncé palettes
 library(beyonce)
@@ -73,7 +85,7 @@ var.colors <- data.frame(var = c("landings","ssb","rec"),
 
 
 # Load data etc.
-load("RAM_Barange_States.RData") # data frame RB
+load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Barange_States.RData") # data frame RB
 
       variables = c("landings","ssb","rec")
       regions = c("Benguela", "California","Humboldt", "Kuroshio-Oyashio", "NE Atlantic")
@@ -81,7 +93,7 @@ load("RAM_Barange_States.RData") # data frame RB
       
 
       #Cycle thru variables
-      d <- 2
+      d <- 1 
       for(r in 1:length(regions)){
         par(mfcol=c(4,3),mar=c(2, 4, 1, 2) + 0.1)
       for(v in 1:3){
@@ -146,4 +158,3 @@ load("RAM_Barange_States.RData") # data frame RB
       # plot(response.ts[,1],type='l')
       # lines(response.ts[,2],type='l',col='red')
        
-      
