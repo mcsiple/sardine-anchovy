@@ -93,7 +93,8 @@ load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Bar
       
 
       #Cycle thru variables
-      d <- 1 
+      d <- 2 
+      r <- 2
       for(r in 1:length(regions)){
         par(mfcol=c(4,3),mar=c(2, 4, 1, 2) + 0.1)
       for(v in 1:3){
@@ -106,7 +107,10 @@ load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Bar
       
       x = data.points$Year       # Time series sampling points (day of year in this case)
       y = data.points[,c("Sardine.est","Anchovy.est")] # Time series only (each column = one species)
-    
+      
+      # If using surrogate time series:
+      x = 1:length(anchovy_phase)
+      y = cbind(as.numeric(anchovy_phase),as.numeric(sardine_phase))
       w = mvcwt(x, y, min.scale = 1, max.scale = 20)
       mr = wmr(w)
       #mr.boot = wmr.boot(w, smoothing = 1, reps = 1000, mr.func = "wmr")
@@ -123,7 +127,9 @@ load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Bar
       
       # Plots
       plot(1:nrow(y),y[,1],type='l',ylim=c(-2,max(c(y[,1],y[,2]))),
-           xlab="Year",ylab="",main=paste(regions[r]," - ",variables[v]))
+           xlab="Year",ylab="",
+           main=paste(regions[r]," - ",
+                      variables[v]))
       lines(1:nrow(y),y[,2],col='red')
       
       mr$z[mr$z>0.95] <- NA
@@ -132,14 +138,16 @@ load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Bar
       ind <- which(mr$y < 5)
       trim.z <- mr$z[nrow(mr$z)-ind,,1]
       hist(trim.z,xlim=c(0,1),col=var.color,border=var.color,
-           probability = T,main='',xaxt='n',xlab="",ylab="") 
+           probability = T,main='',
+           xaxt='n',xlab="",ylab="") 
       text(tx,1,"<5 yr")
       
       # Scale: 5-10 yr
       ind2 <- which(mr$y > 5 & mr$y < 10)
       trim.z2 <- mr$z[nrow(mr$z)-ind2,,1]
       hist(trim.z2,xlim=c(0,1),col=var.color,border=var.color,
-           probability = T,main='',xaxt='n',xlab="")
+           probability = T,main='',
+           xaxt='n',xlab="")
       text(tx,1,"5-10 yr")
       
       #Scale: 10+ yr
@@ -148,7 +156,8 @@ load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Bar
       if(all(is.na(trim.z3))){plot.new()}else{
       hist(trim.z3,xlim=c(0,1),col=var.color,border=var.color,
            probability = T,main='',
-           xlab="Degree of synchrony",xaxt='n',ylab="")
+           xlab="Degree of synchrony",
+           xaxt='n',ylab="")
       text(tx,1,"10+ yr")
       axis(1,at=c(0,0.5,1.0), labels=c(0,0.5,1.0))}
       
