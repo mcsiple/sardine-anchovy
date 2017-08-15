@@ -1,5 +1,5 @@
 #install.packages(c("fractal","DescTools","biwavelet"))
-library(fractal)
+library(fractal) # contains surrogate function
 library(ggplot2)
 library(plyr)
 library(dplyr)
@@ -31,19 +31,20 @@ names(ann_mei)[1] <- "year"
 # Make surrogate time series with same properties
 sardine_phase <- surrogate(data.points$Sardine.est,method = "phase")
 std_sardine <- data.points$Sardine.est - mean(data.points$Sardine.est)
-plot(1:length(sardine_phase),sardine_phase,type='l',ylim=range(c(sardine_phase,std_sardine)))
-lines(1:nrow(data.points),std_sardine,col='red')
+#plot(1:length(sardine_phase),sardine_phase,type='l',ylim=range(c(sardine_phase,std_sardine)))
+#lines(1:nrow(data.points),std_sardine,col='red')
 
 anchovy_phase <- surrogate(data.points$Anchovy.est,method = 'phase')
 std_anchovy <- data.points$Anchovy.est - mean(data.points$Anchovy.est)
-plot(1:length(anchovy_phase),anchovy_phase,type='l',ylim=range(c(anchovy_phase,std_anchovy)))
-lines(1:nrow(data.points),std_anchovy,col='red')
+#plot(1:length(anchovy_phase),anchovy_phase,type='l',ylim=range(c(anchovy_phase,std_anchovy)))
+#lines(1:nrow(data.points),std_anchovy,col='red')
 
 sa.col <- c("#ef8a62","#67a9cf")
 plot(1:56,anchovy_phase,type='l',col=sa.col[1],lwd=2,
      ylim=range(c(anchovy_phase,sardine_phase)),
-     ylab="Simulated Abundance",y="Year")
+     ylab="Simulated Abundance",xlab="Year")
 lines(1:56,sardine_phase,col=sa.col[2],lwd=2)
+
 ## create surrogate data sets using circulant 
 ## embedding method 
 # surr <- surrogate(ann_mei$mean_val, method="ce")
