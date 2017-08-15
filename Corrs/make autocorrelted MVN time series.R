@@ -76,39 +76,51 @@ generate.sa <- function(diag.sigma = c(0.6,0.6),
   return(y)
 }
 
-true.covar.vec <- c(-0.9,-0.5,0,0.5,0.9)
-tslength.vec <- 10:40
-results.mat <- matrix(NA,nrow=length(true.covar.vec),ncol=length(tslength.vec))
 
-for (c in 1:length(true.covar.vec)){
-  for(t in 1:length(tslength.vec)){
-  test <- generate.sa(true.covar = true.covar.vec[c])
-  test <- test[1:tslength.vec[t],] 
-  # MAR.obj <- rbind(test[,1],test[,2])  
-  # model.sa=list()
-  # model.sa$Q="unconstrained"
-  # kem.sa = MARSS(MAR.obj, model=model.sa, control=list(maxit=1000),silent = TRUE) 
-  # covariance = kem.sa$par$Q[2]
-  # correlation = covariance / (sqrt(kem.sa$par$Q[3]) * sqrt(kem.sa$par$Q[1]))
-  # results.mat[c,t] <- correlation
-  
-  
-  }}
-
-library(beyonce)
-print(beyonce_palette(11))
-pal <- beyonce_palette(11)
-pdf("TSLength_MARSS.pdf",width=11,height=10,useDingbats = FALSE)
-plot(tslength.vec,results.mat[1,],ylim=c(-1,1),type='l',col=pal[1],lwd=1.5)
-for(i in 2:nrow(results.mat)){
-  lines(tslength.vec,results.mat[i,],col=pal[i-1],lwd=1.5)
-}
-
-# For determining the chances of a spurious correlation when actua --------
+# What are chances of spurious correlation? --------
+# Need wavelet way to detect negative correlation because covariance can be detected at really short time scales (<10 years). That makes sense.
+par(mfrow=c(1,2))
 
 
 
 
+# Wavelet test ------------------------------------------------------------
+x <- 1:nrow(test)
+y <- test
+w = mvcwt(x, y, min.scale = 1, max.scale = 20)
+mr = wmr(w)
+
+image(mr, reset.par = FALSE)
+contour(mr, bound = NA, add = TRUE)
+
+par(mfrow=c(3,1))
+# Scale: <5 yr    
+ind <- which(mr$y < 5)
+trim.z <- mr$z[nrow(mr$z)-ind,,1]
+hist(trim.z,xlim=c(0,1),col=var.color,border=var.color,
+     probability = T,main='',xaxt='n',xlab="",ylab="") 
+text(tx,1,"<5 yr")
+
+# Scale: 5-10 yr
+ind2 <- which(mr$y > 5 & mr$y < 10)
+trim.z2 <- mr$z[nrow(mr$z)-ind2,,1]
+hist(trim.z2,xlim=c(0,1),col=var.color,border=var.color,
+     probability = T,main='',xaxt='n',xlab="")
+text(tx,1,"5-10 yr")
+
+#Scale: 10+ yr
+ind3 <- which(mr$y > 10)
+trim.z3 <- mr$z[nrow(mr$z)-ind3,,1]
+if(all(is.na(trim.z3))){plot.new()}else{
+  hist(trim.z3,xlim=c(0,1),col=var.color,border=var.color,
+       probability = T,main='',
+       xlab="Degree of synchrony",xaxt='n',ylab="")
+  text(tx,1,"10+ yr")
+  axis(1,at=c(0,0.5,1.0), labels=c(0,0.5,1.0))}
+
+# See if KS test works for detecting differences between asynchronous time series and real ones.
+ks.test(x = trim.z3, # this is asynchrony at 10+ years, SIM'D from Tim code!
+        y = trim.z3b) # this is asynchrony from the real S/A time series
 
 
 # Figure out which method to use for detecting “power" --------------------
@@ -165,7 +177,7 @@ for(c in 1:20){  #loop thru true covariances
   }
 }
 
-# It looks like within and between are similar, so we can use either method for simulating...
+# It looks like within and between are similar, so we can use either method for simulating.
 # MARSS covariance --------------------------------------------------------
 # Test whether CIs for variance should be from within the same time series or between different ones.
 
@@ -188,15 +200,15 @@ for(c in 1:20){  #loop thru true covariances
                   byrow = F)
   # Loop through sims
   for(sim in 1:100){
-  y <- matrix(NA, nrow = 100, ncol=2)
+    y <- matrix(NA, nrow = 100, ncol=2)
     for (i in 1:2) y[1,i] <- rnorm(1,0,Omega)
     eps <- mvrnorm(n = 100,mu = c(0,0), Sigma = Sigma)
-      # loop through years
-      for (i in 2:100) {
-        eta.t1 <- y[i-1,]
-        eta.t <- diag(rho) * eta.t1 + eps[i,]
-        y[i,]<- eta.t
-      }
+    # loop through years
+    for (i in 2:100) {
+      eta.t1 <- y[i-1,]
+      eta.t <- diag(rho) * eta.t1 + eps[i,]
+      y[i,]<- eta.t
+    }
     test <- y[1:years.of.data,] 
     MAR.obj <- rbind(test[,1],test[,2])  
     model.sa=list()
@@ -208,8 +220,8 @@ for(c in 1:20){  #loop thru true covariances
   }
 }
 
-
 # Figure  -----------------------------------------------------------------
+# Clean up this code later if worth it
 setwd("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData")
 #save(between,file = "Between_Var.RData")
 load("Within_Var.RData")
@@ -230,43 +242,32 @@ points(true.covar+0.02,meds, ylim=range(c(loCIs2, hiCIs2)),type='b',bg='white',p
 
 legend("topleft",legend = c("Between simulations","Within simulations"),pch=c(19,1))
 
-
 #kem.sa.CIs = MARSSparamCIs(kem.sa,method="parametric",nboot=200) # if you want confidence intervals for covariance estimates
 #print(kem.sa.CIs)
 
+true.covar.vec <- c(-0.9,-0.5,0,0.5,0.9)
+tslength.vec <- 10:40
+results.mat <- matrix(NA,nrow=length(true.covar.vec),ncol=length(tslength.vec))
 
+for (c in 1:length(true.covar.vec)){
+  for(t in 1:length(tslength.vec)){
+    test <- generate.sa(true.covar = true.covar.vec[c])
+    test <- test[1:tslength.vec[t],] 
+    # MAR.obj <- rbind(test[,1],test[,2])  
+    # model.sa=list()
+    # model.sa$Q="unconstrained"
+    # kem.sa = MARSS(MAR.obj, model=model.sa, control=list(maxit=1000),silent = TRUE) 
+    # covariance = kem.sa$par$Q[2]
+    # correlation = covariance / (sqrt(kem.sa$par$Q[3]) * sqrt(kem.sa$par$Q[1]))
+    # results.mat[c,t] <- correlation
+  }}
 
-# Wavelet test ------------------------------------------------------------
-# Currently this doesn't work for the simulated time series-- not sure why yet
-x <- test[,1]
-y <- test[,2]
-w = mvcwt(x, y, min.scale = 1, max.scale = 20)
-mr = wmr(w)
-
-image(mr, reset.par = FALSE)
-contour(mr, bound = NA, add = TRUE)
-
-# Scale: <5 yr    
-ind <- which(mr$y < 5)
-trim.z <- mr$z[nrow(mr$z)-ind,,1]
-hist(trim.z,xlim=c(0,1),col=var.color,border=var.color,
-     probability = T,main='',xaxt='n',xlab="",ylab="") 
-text(tx,1,"<5 yr")
-
-# Scale: 5-10 yr
-ind2 <- which(mr$y > 5 & mr$y < 10)
-trim.z2 <- mr$z[nrow(mr$z)-ind2,,1]
-hist(trim.z2,xlim=c(0,1),col=var.color,border=var.color,
-     probability = T,main='',xaxt='n',xlab="")
-text(tx,1,"5-10 yr")
-
-#Scale: 10+ yr
-ind3 <- which(mr$y > 10)
-trim.z3 <- mr$z[nrow(mr$z)-ind3,,1]
-if(all(is.na(trim.z3))){plot.new()}else{
-  hist(trim.z3,xlim=c(0,1),col=var.color,border=var.color,
-       probability = T,main='',
-       xlab="Degree of synchrony",xaxt='n',ylab="")
-  text(tx,1,"10+ yr")
-  axis(1,at=c(0,0.5,1.0), labels=c(0,0.5,1.0))}
+library(beyonce)
+print(beyonce_palette(11))
+pal <- beyonce_palette(11)
+pdf("TSLength_MARSS.pdf",width=11,height=10,useDingbats = FALSE)
+plot(tslength.vec,results.mat[1,],ylim=c(-1,1),type='l',col=pal[1],lwd=1.5)
+for(i in 2:nrow(results.mat)){
+  lines(tslength.vec,results.mat[i,],col=pal[i-1],lwd=1.5)
+}
 
