@@ -27,6 +27,9 @@ data.list <- list()
 region.list <- list()
 regions <- unique(alldat$region)
 dsources <- unique(alldat$datasource)
+
+
+
 d=1 
  for(r in 1:length(regions)){
 # Need to fix FAO data before using this function on them.
@@ -70,11 +73,10 @@ summary(alldat)
 head(alldat)
 m <- melt(alldat,id.vars=c("datasource","scientificname","year"))
 ggplot(alldat,aes(x=year,y=ssb,colour=subregion)) + geom_point() + facet_wrap(~region)
+#Need to be able to subset to just the dominant stock for each type/region **** TO DO
 
-#Need to be able to subset to just the dominant stock for each type/region
 
-
-# Plot preparations
+# Plot prefs
 #devtools::install_github("dill/beyonce") # David Lawrence Miller's Beyoncé palettes
 library(beyonce)
 print(beyonce_palette(40))
@@ -95,6 +97,7 @@ load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Bar
       #Cycle thru variables
       d <- 2 
       r <- 2
+      v <- 2
       for(r in 1:length(regions)){
         par(mfcol=c(4,3),mar=c(2, 4, 1, 2) + 0.1)
       for(v in 1:3){
@@ -109,21 +112,20 @@ load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Bar
       y = data.points[,c("Sardine.est","Anchovy.est")] # Time series only (each column = one species)
       
       # If using surrogate time series:
-      x = 1:length(anchovy_phase)
-      y = cbind(as.numeric(anchovy_phase),as.numeric(sardine_phase))
+      #x = 1:length(anchovy_phase)
+      #y = cbind(as.numeric(anchovy_phase),as.numeric(sardine_phase))
+      
+      # If using simulated data (NOTE: need starting values)
+      # subyrs <- 1:100 #1:nrow(response.ts)
+      # x <- subyrs 
+      # y <- response.ts[subyrs,1:2]
+      
       w = mvcwt(x, y, min.scale = 1, max.scale = 20)
       mr = wmr(w)
       #mr.boot = wmr.boot(w, smoothing = 1, reps = 1000, mr.func = "wmr")
       #image(mr, reset.par = FALSE)
       #contour(mr, bound = NA, add = TRUE)
       
-      # If using simulated data (NOTE: need starting values)
-      # subyrs <- 1:100 #1:nrow(response.ts)
-      # x <- subyrs 
-      # y <- response.ts[subyrs,1:2]
-      # w = mvcwt(x, y, min.scale = 1, max.scale = 20)
-      # mr = wmr(w)
-      # 
       
       # Plots
       plot(1:nrow(y),y[,1],type='l',ylim=c(-2,max(c(y[,1],y[,2]))),
