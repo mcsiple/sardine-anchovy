@@ -78,19 +78,37 @@ generate.sa <- function(diag.sigma = c(0.6,0.6),
 
 true.covar.vec <- c(-0.9,-0.5,0,0.5,0.9)
 tslength.vec <- 10:40
+results.mat <- matrix(NA,nrow=length(true.covar.vec),ncol=length(tslength.vec))
 
 for (c in 1:length(true.covar.vec)){
   for(t in 1:length(tslength.vec)){
   test <- generate.sa(true.covar = true.covar.vec[c])
-  test <- y[1:years.of.data,] 
-  MAR.obj <- rbind(test[,1],test[,2])  
-  model.sa=list()
-  model.sa$Q="unconstrained"
-  kem.sa = MARSS(MAR.obj, model=model.sa, control=list(maxit=1000),silent = TRUE) 
-  covariance = kem.sa$par$Q[2]
-  correlation = covariance / (sqrt(kem.sa$par$Q[3]) * sqrt(kem.sa$par$Q[1]))
-  results.mat[c,t] <- correlation
+  test <- test[1:tslength.vec[t],] 
+  # MAR.obj <- rbind(test[,1],test[,2])  
+  # model.sa=list()
+  # model.sa$Q="unconstrained"
+  # kem.sa = MARSS(MAR.obj, model=model.sa, control=list(maxit=1000),silent = TRUE) 
+  # covariance = kem.sa$par$Q[2]
+  # correlation = covariance / (sqrt(kem.sa$par$Q[3]) * sqrt(kem.sa$par$Q[1]))
+  # results.mat[c,t] <- correlation
+  
+  
   }}
+
+library(beyonce)
+print(beyonce_palette(11))
+pal <- beyonce_palette(11)
+pdf("TSLength_MARSS.pdf",width=11,height=10,useDingbats = FALSE)
+plot(tslength.vec,results.mat[1,],ylim=c(-1,1),type='l',col=pal[1],lwd=1.5)
+for(i in 2:nrow(results.mat)){
+  lines(tslength.vec,results.mat[i,],col=pal[i-1],lwd=1.5)
+}
+
+# For determining the chances of a spurious correlation when actua --------
+
+
+
+
 
 
 # Figure out which method to use for detecting “power" --------------------
