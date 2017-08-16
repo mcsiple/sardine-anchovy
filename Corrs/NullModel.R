@@ -18,6 +18,7 @@ load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Bar
 variables = c("landings","ssb","rec")
 regions = c("Benguela", "California","Humboldt", "Kuroshio-Oyashio", "NE Atlantic")
 dsources = c("RAM","Barange")
+pdf(file = "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures/CaliforniaCurrent.pdf",width=8,height=6.5,useDingbats = FALSE)
 par(mfcol=c(2,2))
 for(v in 1:2){
 d = 2; r = 2
@@ -68,7 +69,8 @@ sa.col <- c("#ef8a62","#67a9cf")
 
 ylabel <- c("Landings","SSB","Recruitment")
 plot(1:nyears,std_anchovy, type='l',col=sa.col[1],lwd=1.5,
-     ylim=range(c(std_anchovy,std_sardine)),ylab=paste("Standardized",ylabel[v]))
+     ylim=range(c(std_anchovy,std_sardine)),ylab=paste("Standardized",ylabel[v]),
+     xlab="Year")
 lines(1:nyears,std_sardine,type='l',col=sa.col[2],lwd=1.5)
 legend("topleft",lty=c(1,1),lwd=c(1.5,1.5),legend = c("Anchovy","Sardine"),col=sa.col)
 
@@ -90,7 +92,7 @@ quantile(yr10,probs=c(0.05,0.5,0.95))
 )
 
 pal <- beyonce_palette(11)
-plot(1:3,sp[,2],xaxt='n',ylim=c(0,1),pch=21,bg = pal[c(1,3,5)],ylab="Prob(WMR < 0.05)")
+plot(1:3,sp[,2],xaxt='n',ylim=c(0,1),pch=21,bg = pal[c(1,3,5)],ylab="Prob(WMR < 0.5)", xlab="")
 axis(1, at = c(1,2,3), labels = c("<5 yr","5-10 yr","10+ yr"))
 arrows(x0 = 1:3, x1 = 1:3,y0 = sp[,1], y1 = sp[,3],col = pal[c(1,3,5)],lwd = 1.5,length = 0.03,angle=90,code = 3)
 
@@ -117,4 +119,5 @@ true.vec[3] <- length(which(true[[3]]<0.5))/length(true[[3]])
 points(1:3 + 0.02,true.vec,pch=21, bg = "orange")
 legend("topright",pch = c(21,21),pt.bg = c("grey","orange"),legend=c("null model (no synchrony)","Observation"))
 }
+dev.off()
 # Compare to one of the runs using a K-S test? 
