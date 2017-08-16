@@ -11,17 +11,20 @@ library(dplyr)
 library(reshape2)
 library(DescTools)
 library(biwavelet)
+library(mvcwt)
+library(beyonce)
 load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Barange_States.RData") # data frame RB
-
+figwd <- "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures"
+setwd(figwd)
 
 # Subset data to use ------------------------------------------------------
 variables = c("landings","ssb","rec")
 regions = c("Benguela", "California","Humboldt", "Kuroshio-Oyashio", "NE Atlantic")
 dsources = c("RAM","Barange")
-pdf(file = "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures/CaliforniaCurrent.pdf",width=8,height=6.5,useDingbats = FALSE)
-par(mfcol=c(2,2))
-for(v in 1:2){
-d = 2; r = 2
+pdf(file = "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures/NEAtlantic.pdf",width=8,height=6.5,useDingbats = FALSE) # 2x3 dims: width=12,height=6.5
+par(mfcol=c(2,3))
+for(v in 1:3){
+d = 2; r = 5
 data.points <- subset(RB,datasource == dsources[d] & 
                         region == regions[r] & 
                         variable == variables[v])
