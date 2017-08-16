@@ -18,7 +18,9 @@ load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Bar
 variables = c("landings","ssb","rec")
 regions = c("Benguela", "California","Humboldt", "Kuroshio-Oyashio", "NE Atlantic")
 dsources = c("RAM","Barange")
-d = 2; r = 2; v = 1
+par(mfcol=c(2,2))
+for(v in 1:2){
+d = 2; r = 2
 data.points <- subset(RB,datasource == dsources[d] & 
                         region == regions[r] & 
                         variable == variables[v])
@@ -64,8 +66,11 @@ for(s in 1:nsims){
 
 sa.col <- c("#ef8a62","#67a9cf")
 
-plot(1:nyears,a.sims[,1], type='l',col=sa.col[1],lwd=1.5)
-lines(1:nyears,s.sims[,1],type='l',col=sa.col[2],lwd=1.5)
+ylabel <- c("Landings","SSB","Recruitment")
+plot(1:nyears,std_anchovy, type='l',col=sa.col[1],lwd=1.5,
+     ylim=range(c(std_anchovy,std_sardine)),ylab=paste("Standardized",ylabel[v]))
+lines(1:nyears,std_sardine,type='l',col=sa.col[2],lwd=1.5)
+legend("topleft",lty=c(1,1),lwd=c(1.5,1.5),legend = c("Anchovy","Sardine"),col=sa.col)
 
 length(which(synch.1[[1]]<0.3))/length(synch.1[[1]])
 # On average, at each time scale, what is the density below 0.5 (asynchronous)?
@@ -85,25 +90,31 @@ quantile(yr10,probs=c(0.05,0.5,0.95))
 )
 
 pal <- beyonce_palette(11)
-plot(1:3,sp[,2],xaxt='n',ylim=c(0,1),pch=21,bg = pal[c(1,3,5)])
+plot(1:3,sp[,2],xaxt='n',ylim=c(0,1),pch=21,bg = pal[c(1,3,5)],ylab="Prob(WMR < 0.05)")
 axis(1, at = c(1,2,3), labels = c("<5 yr","5-10 yr","10+ yr"))
 arrows(x0 = 1:3, x1 = 1:3,y0 = sp[,1], y1 = sp[,3],col = pal[c(1,3,5)],lwd = 1.5,length = 0.03,angle=90,code = 3)
 
 # What is this density for the true variable? i.e, calculate WMR for the real time series. Is it different from the null model? I.e., is the density below 0.5 similar to the one you would expect from random time series?
 # True wavelet form (get data to plot on the graph with the null model!)
-x <- 1:nrow(a.sims)
-y <- cbind(a.sims[,s],s.sims[,s])
-w = mvcwt(x, y, min.scale = 1, max.scale = 20)
+xx <- 1:nrow(a.sims)
+yy <- cbind(std_anchovy,std_sardine)
+w = mvcwt(xx, yy, min.scale = 1, max.scale = 20)
+true <- list() # z values for histograms of WMR
+true.vec <- vector() # to store median densities < 0.5
+
 mr = wmr(w)
 ind <- which(mr$y < 5)
-synch.1[[s]] <- mr$z[nrow(mr$z)-ind,,1] #
+true[[1]] <- mr$z[nrow(mr$z)-ind,,1] #
+true.vec[1] <- length(which(true[[1]]<0.5))/length(true[[1]])
 
 ind2 <- which(mr$y > 5 & mr$y < 10)
-synch.5[[s]] <- mr$z[nrow(mr$z)-ind2,,1] #
-
+true[[2]] <- mr$z[nrow(mr$z)-ind2,,1] #
+true.vec[2] <- length(which(true[[2]]<0.5))/length(true[[2]])
 ind3 <- which(mr$y > 10)
-synch.10[[s]] <- mr$z[nrow(mr$z)-ind3,,1] #
+true[[3]] <- mr$z[nrow(mr$z)-ind3,,1] #
+true.vec[3] <- length(which(true[[3]]<0.5))/length(true[[3]])
 
-
-
+points(1:3 + 0.02,true.vec,pch=21, bg = "orange")
+legend("topright",pch = c(21,21),pt.bg = c("grey","orange"),legend=c("null model (no synchrony)","Observation"))
+}
 # Compare to one of the runs using a K-S test? 
