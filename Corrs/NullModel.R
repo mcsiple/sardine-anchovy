@@ -119,8 +119,8 @@ true.vec <- vector() # to store median densities < 0.5
 
 mr = wmr(w)
 ind <- which(mr$y < 5)
-true[[1]] <- mr$z[nrow(mr$z)-ind,,1] #
-true.vec[1] <- length(which(true[[1]]<0.5))/length(true[[1]])
+true[[1]] <- mr$z[nrow(mr$z)-ind,,1] # subset to values at a period of <5 yrs
+true.vec[1] <- length(which(true[[1]]<0.5))/length(true[[1]]) # proportion of values at period<5 that are <0.5 (compensatory dynamics side)
 
 ind2 <- which(mr$y > 5 & mr$y < 10)
 true[[2]] <- mr$z[nrow(mr$z)-ind2,,1] #
