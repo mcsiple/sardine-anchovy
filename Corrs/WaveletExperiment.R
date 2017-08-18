@@ -29,7 +29,6 @@ regions <- unique(alldat$region)
 dsources <- unique(alldat$datasource)
 
 
-
 d=1 
  for(r in 1:length(regions)){
 # Need to fix FAO data before using this function on them.
@@ -96,7 +95,7 @@ load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Bar
 
       #Cycle thru variables
       d <- 2 
-      r <- 2
+      r <- 1
       v <- 2
       for(r in 1:length(regions)){
         par(mfcol=c(4,3),mar=c(2, 4, 1, 2) + 0.1)
@@ -131,8 +130,8 @@ load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Bar
       plot(1:nrow(y),y[,1],type='l',ylim=c(-2,max(c(y[,1],y[,2]))),
            xlab="Year",ylab="",
            main=paste(regions[r]," - ",
-                      variables[v]))
-      lines(1:nrow(y),y[,2],col='red')
+                      variables[v]),col=sa.col[2],lwd=1.5)
+      lines(1:nrow(y),y[,2],col=sa.col[1],lwd=1.5)
       
       mr$z[mr$z>0.95] <- NA
       
