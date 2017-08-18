@@ -6,8 +6,11 @@ require(MASS)
 require(mvcwt)
 require(reshape2)
 require(ggplot2)
+
+figwd = "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures"
+
 # Matrix of autocorrelation terms 
-rho <- matrix(c(0.8,0,0,0.8),nrow=2,byrow=T) # used to be 0.8 and 0.8
+rho <- matrix(c(0.9,0,0,0.9),nrow=2,byrow=T) # used to be 0.8 and 0.8
 # Create variance covariance matrix
 Sigma <- matrix(0, nrow=2, ncol=2)
 diag(Sigma) <- c(0.6,0.6) # These are the sigma values used for both anchovy and sardine in chapter 3
@@ -51,7 +54,7 @@ lines(1:100, y[,2], type = "l", lwd = 2, col = "gray")
 generate.sa <- function(diag.sigma = c(0.6,0.6),
                         true.covar = 0,
                         nyears = 100){
-  rho <- matrix(c(0.8,0,0,0.8),nrow=2,byrow=T) # used to be 0.8 and 0.8
+  rho <- matrix(c(0.8,0,0,0.8),nrow=2,byrow=T) 
   # Create variance covariance matrix
   Sigma <- matrix(0, nrow=2, ncol=2)
   diag(Sigma) <- diag.sigma # These are the sigma values used for both anchovy and sardine in chapter 3
@@ -81,82 +84,50 @@ generate.sa <- function(diag.sigma = c(0.6,0.6),
 
 #generate.sa(true.covar = -.7,nyears=150)
 
-# First: make null distribution for what you would expect at corr=0  --------
-nsims = 50
-trim.z.list = trim.z2.list = trim.z3.list <- list()
-prop1 = prop2 = prop3 = vector()
-for(i in 1:nsims){
-    ts <- generate.sa(true.covar=0,
-                      nyears = 100)
-    x <- 1:nrow(ts)
-    y <- ts
-    w = mvcwt(x, y, min.scale = 1, max.scale = 20)
-    mr = wmr(w)
-    
-    ind <- which(mr$y < 5)
-    trim.z.list[[i]] <- mr$z[nrow(mr$z)-ind,,1]
-    prop1[i] <- length(which(trim.z.list[[i]]<0.5)) / length(trim.z.list[[i]]<0.5)
-    
-    ind2 <- which(mr$y > 5 & mr$y < 10)
-    trim.z2.list[[i]] <- mr$z[nrow(mr$z)-ind2,,1]
-    prop2[i] <- length(which(trim.z2.list[[i]]<0.5)) / length(trim.z2.list[[i]]<0.5)
-    
-    ind3 <- which(mr$y > 10)
-    trim.z3.list[[i]] <- mr$z[nrow(mr$z)-ind3,,1]
-    prop3[i] <- length(which(trim.z3[[i]]<0.5)) / length(trim.z3[[i]]<0.5)
-}
 
-
-#trim.z is a list of matrices, maybe can add them all together to get null dist?
-#h1 <- matrix(unlist(trim.z.list), byrow = TRUE) # null distribution at period <5 yr (corr = 0)
-#h2 <- matrix(unlist(trim.z2.list), byrow = TRUE) # null dist at period 5-10 yr (corr = 0)
-#h3 <- matrix(unlist(trim.z3.list), byrow = TRUE) # "" 10+ yr
-
-limit1 <- quantile(prop1,probs=0.975)
-limit2 <- quantile(prop2,probs=0.975)
-limit3 <- quantile(prop3,probs=0.975)
-
-# Now cycle thru some simulations, see if quantified corr is different from null
-#nsims <- 50
-#sim.vec5 <- sim.vec510 <- sim.vec10 <- vector()
-
-    ts <- generate.sa(true.covar=0,
-                      nyears = 100)
-    x <- 1:nrow(ts)
-    y <- ts
-    w = mvcwt(x, y, min.scale = 1, max.scale = 20)
-    mr = wmr(w)
-    
-    ind <- which(mr$y < 5)
-    trim.z <- mr$z[nrow(mr$z)-ind,,1]
-    
-    #hist(trim.z)
-    #hist(h1)
-    #hist(sample(h1,size = 5400,replace = T))
-    #ks.test(trim.z,sample(h1,size = 5400,replace = T)) ### *** need another way to compare to null distribution to observed one
-           
-    ind2 <- which(mr$y > 5 & mr$y < 10)
-    trim.z2 <- mr$z[nrow(mr$z)-ind2,,1]
-    
-    ind3 <- which(mr$y > 10)
-    trim.z3 <- mr$z[nrow(mr$z)-ind3,,1]
-    
-    
-    
 
 # What are chances of spurious correlation? --------
 # See "NullModel.R" for simulations with similar spectral characteristics (null expectation for amount of asynchrony observed)
-
 # See how hard it is to detect asynchrony at different lengths of time series --------
 # NOTE: THis one is a bust because the metric isn't sensitive enough. SO the new plan is to generate the null expectations for 0 correlation, then use K-S test to detect asynchrony in a series of simulations.
 result.df <- data.frame(true.covar = rep(c(-0.99,-0.75,-0.5,0,0.5,0.75,0.99),each=8),ts.length = rep(c(10,20,30,40,50,100,150,200)),d5 = NA,d510 = NA,d10=NA) #, d5loCI=NA,d5hiCI=NA,d510loCI=NA,d510hiCI=NA,d10loCI=NA,d10hiCI=NA 
 
-nsims <- 50
+nsims <- 1000
 sim.vec5 <- sim.vec510 <- sim.vec10 <- vector()
-for(i in 1:nrow(result.df)){ 
+for(d in 1:nrow(result.df)){ 
+  # First: make null distribution for what you would expect at corr=0  --------
+  trim.z.list = trim.z2.list = trim.z3.list <- list()
+  prop1 = prop2 = prop3 = vector()
+  for(i in 1:nsims){
+    ts <- generate.sa(true.covar=0,
+                      nyears = result.df$ts.length[d]) #Generate null expectation based on length of ts
+    x <- 1:nrow(ts)
+    y <- ts
+    w = mvcwt(x, y, min.scale = 1, max.scale = 20)
+    mr = wmr(w)
+    
+    ind <- which(mr$y < 5)
+    trim.z.list <- mr$z[nrow(mr$z)-ind,,1]
+    prop1[i] <- length(which(trim.z.list<0.5)) / length(trim.z.list<0.5)
+    
+    ind2 <- which(mr$y > 5 & mr$y < 10)
+    trim.z2.list <- mr$z[nrow(mr$z)-ind2,,1]
+    prop2[i] <- length(which(trim.z2.list<0.5)) / length(trim.z2.list<0.5)
+    
+    ind3 <- which(mr$y > 10)
+    trim.z3.list <- mr$z[nrow(mr$z)-ind3,,1]
+    prop3[i] <- length(which(trim.z3<0.5)) / length(trim.z3<0.5)
+  }
+  
+  # Get upper limits based on that ts length
+  limit1 <- quantile(prop1,probs=0.975)
+  limit2 <- quantile(prop2,probs=0.975)
+  limit3 <- quantile(prop3,probs=0.975)
+  
+  # 
   for(s in 1:nsims){
-  ts <- generate.sa(true.covar=result.df$true.covar[i],
-                    nyears = result.df$ts.length[i])
+  ts <- generate.sa(true.covar=result.df$true.covar[d],
+                    nyears = result.df$ts.length[d])
   x <- 1:nrow(ts)
   y <- ts
   w = mvcwt(x, y, min.scale = 1, max.scale = 20)
@@ -175,30 +146,27 @@ for(i in 1:nrow(result.df)){
   sim.vec510[s] <- length(which(trim.z2<0.5)) / length(trim.z2<0.5)
   sim.vec10[s] <- length(which(trim.z3<0.5)) / length(trim.z3<0.5)
   }
-  # result.df$d5[i] <- median(sim.vec5)
-  # result.df$d510[i] <- median(sim.vec510)
-  # result.df$d10[i] <- median(sim.vec10)
   
-  result.df$d5[i] <- length(which(sim.vec5>limit1))
-  result.df$d510[i] <- length(which(sim.vec510>limit2))
-  result.df$d10[i] <- length(which(sim.vec10>limit3))
-  
-  # result.df$d5loCI[i] <- quantile(sim.vec5,probs = c(0.05,0.95))[1]
-  # result.df$d5hiCI[i] <- quantile(sim.vec5,probs = c(0.05,0.95))[2]
-  # result.df$d510loCI[i] <- quantile(sim.vec510,probs = c(0.05,0.95))[1]
-  # result.df$d510hiCI[i] <- quantile(sim.vec510,probs = c(0.05,0.95))[2]
-  # result.df$d10loCI[i] <- quantile(sim.vec10,probs = c(0.05,0.95))[1]
-  # result.df$d10hiCI[i] <- quantile(sim.vec10,probs = c(0.05,0.95))[2]
+  result.df$d5[d] <- length(which(sim.vec5>limit1))
+  result.df$d510[d] <- length(which(sim.vec510>limit2))
+  result.df$d10[d] <- length(which(sim.vec10>limit3))
 }
 
 head(result.df)
 
 
 # Figure with detections --------------------------------------------------
-mdf <- melt(result.df,id.vars=c("true.covar","ts.length","d5loCI", "d5hiCI",  "d510loCI", "d510hiCI", "d10loCI", "d10hiCI"))
-ggplot(mdf,aes(x=ts.length,y=value)) + 
-geom_point() +geom_linerange(aes(x=ts.length,ymin=d5loCI,ymax=d5hiCI)) + facet_grid(true.covar~variable) 
-ggplot(result.df, aes(x=ts.length,y=d5,colour=true.covar))+ geom_point()
+mdf <- melt(result.df,id.vars=c("true.covar","ts.length"))
+levels(mdf$variable) <- c("< 5 yr","5-10 yr","10+ yr")
+setwd(figwd)
+pdf("Power_08.pdf",width=8,height=3,useDingbats = FALSE)
+ggplot(mdf,aes(x=ts.length,y=value/50,colour=as.factor(true.covar),group=true.covar)) +
+  geom_line(lwd=1) + facet_grid(~variable) +
+  scale_color_brewer("True amount of \n asynchrony",palette = 7,type = "div") + theme_classic(base_size=14) +
+  xlab("Time series length") + ylab("Probability of \n detecting asynchrony")
+dev.off()
+
+#ggplot(result.df, aes(x=ts.length,y=d5,colour=true.covar))+ geom_point()
 
 
 
