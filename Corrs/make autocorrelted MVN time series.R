@@ -78,8 +78,46 @@ generate.sa <- function(diag.sigma = c(0.6,0.6),
 
 
 # What are chances of spurious correlation? --------
-# Need wavelet way to detect negative correlation because covariance can be detected at really short time scales (<10 years). That makes sense.
-par(mfrow=c(1,2))
+# See "NullModel.R" for simulations with similar spectral characteristics (null expectation for amount of asynchrony observed)
+
+# See how hard it is to detect asynchrony at different lengths of time series --------
+result.df <- data.frame(true.covar = rep(c(-0.99,-0.75,-0.5,0,0.5,0.75,0.99),each=8),ts.length = rep(c(10,20,30,40,50,100,150,200)),d5 = NA,d510 = NA,d10=NA )
+
+nsims <- 50
+sim.vec5 <- sim.vec510 <- sim.vec10 <- vector()
+for(i in 1:nrow(result.df)){ 
+  for(s in 1:nsims){
+  ts <- generate.sa(true.covar=result.df$true.covar[i],
+                    nyears = result.df$ts.length[i])
+  x <- 1:nrow(ts)
+  y <- ts
+  w = mvcwt(x, y, min.scale = 1, max.scale = 20)
+  mr = wmr(w)
+  
+  ind <- which(mr$y < 5)
+  trim.z <- mr$z[nrow(mr$z)-ind,,1]
+  
+  ind2 <- which(mr$y > 5 & mr$y < 10)
+  trim.z2 <- mr$z[nrow(mr$z)-ind2,,1]
+  
+  ind3 <- which(mr$y > 10)
+  trim.z3 <- mr$z[nrow(mr$z)-ind3,,1]
+  
+  sim.vec5[s] <- length(which(trim.z<0.5)) / length(trim.z<0.5) #prop. asynchronous at <5 yr timescale
+  sim.vec510[s] <- length(which(trim.z2<0.5)) / length(trim.z2<0.5)
+  sim.vec10[s] <- length(which(trim.z3<0.5)) / length(trim.z3<0.5)
+  }
+  result.df$d5[i] <- median(sim.vec5)
+  result.df$d510[i] <- median(sim.vec510)
+  result.df$d10[i] <- median(sim.vec10)
+}
+
+head(result.df)
+
+
+# Figure with detections --------------------------------------------------
+mdf <- melt(result.df,id.vars=c("true.covar","ts.length"))
+ggplot(mdf,aes(x=ts.length,y=value)) + geom_point() + facet_grid(true.covar~variable) 
 
 
 
