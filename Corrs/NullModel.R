@@ -21,10 +21,14 @@ setwd(figwd)
 variables = c("landings","ssb","rec")
 regions = c("Benguela", "California","Humboldt", "Kuroshio-Oyashio", "NE Atlantic")
 dsources = c("RAM","Barange")
-pdf(file = "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures/NEAtlantic.pdf",width=8,height=6.5,useDingbats = FALSE) # 2x3 dims: width=12,height=6.5
-par(mfcol=c(2,3))
-for(v in 1:3){
+#pdf(file = "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures/NEAtlantic.pdf",width=8,height=6.5,useDingbats = FALSE) # 2x3 dims: width=12,height=6.5
+#par(mfcol=c(2,3))
+sp2 <- data.frame()
+true.df <- data.frame()
+
 d = 2; r = 5
+for(r in 1:length(regions)){
+for(v in 1:3){
 data.points <- subset(RB,datasource == dsources[d] & 
                         region == regions[r] & 
                         variable == variables[v])
@@ -42,13 +46,12 @@ anchovy_phase <- surrogate(data.points$Anchovy.est,method = 'phase')
 #plot(1:length(anchovy_phase),anchovy_phase,type='l',ylim=range(c(anchovy_phase,std_anchovy)))
 #lines(1:nrow(data.points),std_sardine,col='red')
 
-
 nsims = 1000
 nyears = length(std_anchovy)
 a.sims <- s.sims <- matrix(NA, nrow = nyears,ncol = nsims)
   for(s in 1:nsims){
     a.sims[,s] <- as.numeric(surrogate(data.points$Anchovy.est,method = 'phase'))
-    s.sims[,s] <- as.numeric(surrogate(data.points$Sardine.est,method = 'phase')) 
+    s.sims[,s] <- as.numeric(surrogate(data.points$Sardine.est,method = 'phase'))
   }
 
 synch.1 <- synch.5 <- synch.10 <- list()
@@ -60,10 +63,10 @@ for(s in 1:nsims){
   mr = wmr(w)
       ind <- which(mr$y < 5)
       synch.1[[s]] <- mr$z[nrow(mr$z)-ind,,1] #
-      
+
       ind2 <- which(mr$y > 5 & mr$y < 10)
       synch.5[[s]] <- mr$z[nrow(mr$z)-ind2,,1] #
-      
+
       ind3 <- which(mr$y > 10)
       synch.10[[s]] <- mr$z[nrow(mr$z)-ind3,,1] #
   }
@@ -88,20 +91,27 @@ for(s in 1:nsims){
 }
 
 # Estimates for probability of detecting WMR <0.5, for CA landings
-sp <- rbind(
-quantile(yr1,probs=c(0.05,0.5,0.95)),
-quantile(yr5, probs=c(0.05,0.5,0.95)),
-quantile(yr10,probs=c(0.05,0.5,0.95))
-)
+sp <- as.data.frame(rbind(
+quantile(yr1,probs=c(0.05,0.25,0.5,0.75,0.95)),
+quantile(yr5, probs=c(0.05,0.25,0.5,0.75,0.95)),
+quantile(yr10,probs=c(0.05,0.25,0.5,0.75,0.95))
+))
 
+sp$variable <- variables[v]
+sp$region <- regions[r]
+sp$datasource <- dsources[d]
+sp$scale <- c("less.than.5","five.ten","ten.plus")
+
+sp2 <- rbind(sp2,sp)
 pal <- beyonce_palette(11)
 plot(1:3,sp[,2],xaxt='n',ylim=c(0,1),pch=21,bg = pal[c(1,3,5)],ylab="Prob(WMR < 0.5)", xlab="")
 axis(1, at = c(1,2,3), labels = c("<5 yr","5-10 yr","10+ yr"))
 arrows(x0 = 1:3, x1 = 1:3,y0 = sp[,1], y1 = sp[,3],col = pal[c(1,3,5)],lwd = 1.5,length = 0.03,angle=90,code = 3)
+#************** END ADD BACK IN IN A SEC
 
 # What is this density for the true variable? i.e, calculate WMR for the real time series. Is it different from the null model? I.e., is the density below 0.5 similar to the one you would expect from random time series?
 # True wavelet form (get data to plot on the graph with the null model!)
-xx <- 1:nrow(a.sims)
+xx <- 1:length(std_anchovy)
 yy <- cbind(std_anchovy,std_sardine)
 w = mvcwt(xx, yy, min.scale = 1, max.scale = 20)
 true <- list() # z values for histograms of WMR
@@ -119,8 +129,43 @@ ind3 <- which(mr$y > 10)
 true[[3]] <- mr$z[nrow(mr$z)-ind3,,1] #
 true.vec[3] <- length(which(true[[3]]<0.5))/length(true[[3]])
 
+tv <- data.frame(scale = c("less.than.5","five.ten","ten.plus"),
+                 obs = true.vec,
+                 variable = variables[v],
+                  region = regions[r],
+                  datasource = dsources[d])
+true.df <- rbind(true.df,tv)
+
 points(1:3 + 0.02,true.vec,pch=21, bg = "orange")
 legend("topright",pch = c(21,21),pt.bg = c("grey","orange"),legend=c("null model (no synchrony)","Observation"))
+print(sp2)
+print(true.df)
 }
+}
+
+
+
+
+list.results <- list()
+df <- ldply (list.results, data.frame)
+df <- subset(df, datasource=="Barange")
+save(df,file = "NullModelDistributions.RData")
+
+pdf("ExpectationPlot.pdf",width=8,height=7,useDingbats = FALSE)
+ggplot(df, aes(x=scale,y=X50.)) + 
+  #geom_point(size=0.5) + 
+  facet_grid(region~variable) + 
+  scale_x_discrete(limits=c("ten.plus","five.ten","less.than.5")) +
+  coord_flip() +
+  geom_linerange(aes(x=scale, ymin = X5.,ymax=X95.),lwd=0.7,colour='darkgrey') +
+  geom_linerange(aes(x=scale,ymin=X50.,ymax=X75.),lwd=1.5,colour="darkgrey") +
+  theme_classic(base_size=14) +
+  geom_point(data = true.df,
+             aes(x=scale,y=obs)) +
+  theme(strip.background = element_blank()) +
+  ylab("Degree of asynchrony") +
+  xlab("Time scale")
 dev.off()
+
+#dev.off()
 # Compare to one of the runs using a K-S test? 
