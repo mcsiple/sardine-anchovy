@@ -3,6 +3,7 @@
 #######################################################################################
 
 require(MASS)
+require(mvcwt)
 # Matrix of autocorrelation terms 
 rho <- matrix(c(0.8,0,0,0.8),nrow=2,byrow=T) # used to be 0.8 and 0.8
 # Create variance covariance matrix
@@ -63,12 +64,12 @@ generate.sa <- function(diag.sigma = c(0.6,0.6),
                   ncol =2, 
                   byrow = F)
   # Omega is the variance covariance of Y's
-  y <- matrix(NA, nrow = 100, ncol=2)
+  y <- matrix(NA, nrow = nyears, ncol=2)
   # get first year
   for (i in 1:2) y[1,i] <- rnorm(1,0,Omega)
   eps <- mvrnorm(n = 100,mu = c(0,0), Sigma = Sigma)
   # loop through years
-  for (i in 2:100) {
+  for (i in 2:nyears) {
     eta.t1 <- y[i-1,]
     eta.t <- diag(rho) * eta.t1 + eps[i,]
     y[i,]<- eta.t
@@ -77,11 +78,66 @@ generate.sa <- function(diag.sigma = c(0.6,0.6),
 }
 
 
+
+# First: make null distribution for what you would expect at corr=0  --------
+nsims = 50
+trim.z.list = trim.z2.list = trim.z3.list = list()
+for(i in 1:nsims){
+    ts <- generate.sa(true.covar=0,
+                      nyears = 100)
+    x <- 1:nrow(ts)
+    y <- ts
+    w = mvcwt(x, y, min.scale = 1, max.scale = 20)
+    mr = wmr(w)
+    
+    ind <- which(mr$y < 5)
+    trim.z.list[[i]] <- mr$z[nrow(mr$z)-ind,,1]
+    
+    ind2 <- which(mr$y > 5 & mr$y < 10)
+    trim.z2.list[[i]] <- mr$z[nrow(mr$z)-ind2,,1]
+    
+    ind3 <- which(mr$y > 10)
+    trim.z3.list[[i]] <- mr$z[nrow(mr$z)-ind3,,1]
+}
+
+
+#trim.z is a list of matrices, maybe can add them all together to get null dist?
+h1 <- matrix(unlist(trim.z.list), byrow = TRUE) # null distribution at period <5 yr (corr = 0)
+h2 <- matrix(unlist(trim.z2.list), byrow = TRUE) # null dist at period 5-10 yr (corr = 0)
+h3 <- matrix(unlist(trim.z3.list), byrow = TRUE) # "" 10+ yr
+
+# Now cycle thru some simulations, see if quantified corr is different from null
+#nsims <- 50
+#sim.vec5 <- sim.vec510 <- sim.vec10 <- vector()
+
+    ts <- generate.sa(true.covar=0,
+                      nyears = 100)
+    x <- 1:nrow(ts)
+    y <- ts
+    w = mvcwt(x, y, min.scale = 1, max.scale = 20)
+    mr = wmr(w)
+    
+    ind <- which(mr$y < 5)
+    trim.z <- mr$z[nrow(mr$z)-ind,,1]
+    
+    hist(trim.z)
+    hist(h1)
+    hist(sample(h1,size = 5400,replace = T))
+    ks.test(trim.z,sample(h1,size = 5400,replace = T)) ### *** need another way to compare to null distribution to observed one
+           
+    ind2 <- which(mr$y > 5 & mr$y < 10)
+    trim.z2 <- mr$z[nrow(mr$z)-ind2,,1]
+    
+    ind3 <- which(mr$y > 10)
+    trim.z3 <- mr$z[nrow(mr$z)-ind3,,1]
+    
+
 # What are chances of spurious correlation? --------
 # See "NullModel.R" for simulations with similar spectral characteristics (null expectation for amount of asynchrony observed)
 
 # See how hard it is to detect asynchrony at different lengths of time series --------
-result.df <- data.frame(true.covar = rep(c(-0.99,-0.75,-0.5,0,0.5,0.75,0.99),each=8),ts.length = rep(c(10,20,30,40,50,100,150,200)),d5 = NA,d510 = NA,d10=NA )
+# NOTE: THis one is a bust because the metric isn't sensitive enough. SO the new plan is to generate the null expectations for 0 correlation, then use K-S test to detect asynchrony in a series of simulations.
+result.df <- data.frame(true.covar = rep(c(-0.99,-0.75,-0.5,0,0.5,0.75,0.99),each=8),ts.length = rep(c(10,20,30,40,50,100,150,200)),d5 = NA,d510 = NA,d10=NA, d5loCI=NA,d5hiCI=NA,d510loCI=NA,d510hiCI=NA,d10loCI=NA,d10hiCI=NA )
 
 nsims <- 50
 sim.vec5 <- sim.vec510 <- sim.vec10 <- vector()
@@ -110,15 +166,23 @@ for(i in 1:nrow(result.df)){
   result.df$d5[i] <- median(sim.vec5)
   result.df$d510[i] <- median(sim.vec510)
   result.df$d10[i] <- median(sim.vec10)
+  
+  result.df$d5loCI[i] <- quantile(sim.vec5,probs = c(0.05,0.95))[1]
+  result.df$d5hiCI[i] <- quantile(sim.vec5,probs = c(0.05,0.95))[2]
+  result.df$d510loCI[i] <- quantile(sim.vec510,probs = c(0.05,0.95))[1]
+  result.df$d510hiCI[i] <- quantile(sim.vec510,probs = c(0.05,0.95))[2]
+  result.df$d10loCI[i] <- quantile(sim.vec10,probs = c(0.05,0.95))[1]
+  result.df$d10hiCI[i] <- quantile(sim.vec10,probs = c(0.05,0.95))[2]
 }
 
 head(result.df)
 
 
 # Figure with detections --------------------------------------------------
-mdf <- melt(result.df,id.vars=c("true.covar","ts.length"))
-ggplot(mdf,aes(x=ts.length,y=value)) + geom_point() + facet_grid(true.covar~variable) 
-
+mdf <- melt(result.df,id.vars=c("true.covar","ts.length","d5loCI", "d5hiCI",  "d510loCI", "d510hiCI", "d10loCI", "d10hiCI"))
+ggplot(mdf,aes(x=ts.length,y=value)) + 
+geom_point() +geom_linerange(aes(x=ts.length,ymin=d5loCI,ymax=d5hiCI)) + facet_grid(true.covar~variable) 
+ggplot(result.df, aes(x=ts.length,y=d5,colour=true.covar))+ geom_point()
 
 
 
@@ -162,6 +226,7 @@ ks.test(x = trim.z3, # this is asynchrony at 10+ years, SIM'D from Tim code!
 
 
 # Figure out which method to use for detecting “power" --------------------
+# ANSWER: It doesn't matter whether you sample repeatedly within the same time series, or generate a whole new one.
 # This first one samples N-year chunks within one time series
 set.seed(123)
 within <- between <- matrix(NA,nrow = 20,ncol = 100) # ncol = sims, nrow = how many correlations
