@@ -21,8 +21,7 @@ setwd(figwd)
 variables = c("landings","ssb","rec")
 regions = c("Benguela", "California","Humboldt", "Kuroshio-Oyashio", "NE Atlantic")
 dsources = c("RAM","Barange")
-#pdf(file = "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures/NEAtlantic.pdf",width=8,height=6.5,useDingbats = FALSE) # 2x3 dims: width=12,height=6.5
-#par(mfcol=c(2,3))
+
 sp2 <- data.frame()
 true.df <- data.frame()
 
@@ -35,6 +34,7 @@ data.points <- subset(RB,datasource == dsources[d] &
 if(nrow(data.points)==0 | length(unique(data.points$Sardine.est))==1 |
    length(unique(data.points$Anchovy.est))==1){print("one time series missing - STOP")}
 
+#Standardize data
 std_sardine <- data.points$Sardine.est - mean(data.points$Sardine.est)
 std_anchovy <- data.points$Anchovy.est - mean(data.points$Anchovy.est)
 
@@ -46,6 +46,7 @@ anchovy_phase <- surrogate(data.points$Anchovy.est,method = 'phase')
 #plot(1:length(anchovy_phase),anchovy_phase,type='l',ylim=range(c(anchovy_phase,std_anchovy)))
 #lines(1:nrow(data.points),std_sardine,col='red')
 
+# Generate surrogate time series from the data
 nsims = 1000
 nyears = length(std_anchovy)
 a.sims <- s.sims <- matrix(NA, nrow = nyears,ncol = nsims)
@@ -59,16 +60,29 @@ synch.1 <- synch.5 <- synch.10 <- list()
 for(s in 1:nsims){
   x <- 1:nrow(a.sims)
   y <- cbind(a.sims[,s],s.sims[,s])
-  w = mvcwt(x, y, min.scale = 1, max.scale = 20)
+  scale.exp = 0.5; nscales = get.nscales(x)
+  min.scale = get.min.scale(x); max.scale = get.max.scale(x)
+  scales = log2Bins(min.scale, max.scale, nscales)
+  w = mvcwt(x, y)
   mr = wmr(w)
-      ind <- which(mr$y < 5)
-      synch.1[[s]] <- mr$z[nrow(mr$z)-ind,,1] #
+  #image(mr)
+  # eliminate z values outside cone of influence
+          to.trim <- round(scales) # this is the number of cells to trim from the matrix (top and bottom)
+          mmat <- mr$z[,,1]
+          # OMG THIS TOOK ME SO LONG
+          for(c in 1:ncol(mmat)){
+            mmat[1:to.trim[c],c] <- NA
+            mmat[nrow(mmat):(nrow(mmat)-to.trim[c]),c] <- NA
+          }
+          
+    ind <- which(mr$y < 5)
+    synch.1[[s]] <- mmat[,ind] #
 
-      ind2 <- which(mr$y > 5 & mr$y < 10)
-      synch.5[[s]] <- mr$z[nrow(mr$z)-ind2,,1] #
+    ind2 <- which(mr$y > 5 & mr$y < 10)
+    synch.5[[s]] <- mmat[,ind2] #
 
-      ind3 <- which(mr$y > 10)
-      synch.10[[s]] <- mr$z[nrow(mr$z)-ind3,,1] #
+    ind3 <- which(mr$y > 10)
+    synch.10[[s]] <- mmat[,ind3] #
   }
 
 sa.col <- c("#ef8a62","#67a9cf")
@@ -80,14 +94,14 @@ plot(1:nyears,std_anchovy, type='l',col=sa.col[1],lwd=1.5,
 lines(1:nyears,std_sardine,type='l',col=sa.col[2],lwd=1.5)
 legend("topleft",lty=c(1,1),lwd=c(1.5,1.5),legend = c("Anchovy","Sardine"),col=sa.col)
 
-length(which(synch.1[[1]]<0.3))/length(synch.1[[1]])
+#length(which(synch.1[[1]]<0.3))/length(synch.1[[1]])
 # On average, at each time scale, what is the density below 0.5 (asynchronous)?
 yr1 <- yr5 <- yr10 <- vector()
 
 for(s in 1:nsims){
-  yr1[s] <- length(which(synch.1[[s]]<0.5))/length(synch.1[[s]])
-  yr5[s] <- length(which(synch.5[[s]]<0.5))/length(synch.5[[s]])
-  yr10[s] <- length(which(synch.10[[s]]<0.5))/length(synch.10[[s]])
+  yr1[s] <- length(which(synch.1[[s]]<0.5))/length(which(!is.na(synch.1[[s]])))
+  yr5[s] <- length(which(synch.5[[s]]<0.5))/length(which(!is.na(synch.5[[s]])))
+  yr10[s] <- length(which(synch.10[[s]]<0.5))/length(which(!is.na(synch.10[[s]])))
 }
 
 # Estimates for probability of detecting WMR <0.5, for CA landings
@@ -107,27 +121,38 @@ pal <- beyonce_palette(11)
 plot(1:3,sp[,2],xaxt='n',ylim=c(0,1),pch=21,bg = pal[c(1,3,5)],ylab="Prob(WMR < 0.5)", xlab="")
 axis(1, at = c(1,2,3), labels = c("<5 yr","5-10 yr","10+ yr"))
 arrows(x0 = 1:3, x1 = 1:3,y0 = sp[,1], y1 = sp[,3],col = pal[c(1,3,5)],lwd = 1.5,length = 0.03,angle=90,code = 3)
-#************** END ADD BACK IN IN A SEC
+
 
 # What is this density for the true variable? i.e, calculate WMR for the real time series. Is it different from the null model? I.e., is the density below 0.5 similar to the one you would expect from random time series?
 # True wavelet form (get data to plot on the graph with the null model!)
 xx <- 1:length(std_anchovy)
 yy <- cbind(std_anchovy,std_sardine)
-w = mvcwt(xx, yy, min.scale = 1, max.scale = 20)
-true <- list() # z values for histograms of WMR
+scale.exp = 0.5; nscales = get.nscales(x)
+min.scale = get.min.scale(x); max.scale = get.max.scale(x)
+scales = log2Bins(min.scale, max.scale, nscales)
+w = mvcwt(xx, yy) # Defaults are the above vars
+true <- list()    # z values for histograms of WMR
 true.vec <- vector() # to store median densities < 0.5
 
 mr = wmr(w)
-ind <- which(mr$y < 5)
-true[[1]] <- mr$z[nrow(mr$z)-ind,,1] # subset to values at a period of <5 yrs
-true.vec[1] <- length(which(true[[1]]<0.5))/length(true[[1]]) # proportion of values at period<5 that are <0.5 (compensatory dynamics side)
 
+to.trim <- round(scales) # this is the number of cells to trim from the matrix to eliminate things outside cone of influence (top and bottom)
+mmat <- mr$z[,,1]
+# TRIM BABY TRIM
+for(c in 1:ncol(mmat)){
+  mmat[1:to.trim[c],c] <- NA
+  mmat[nrow(mmat):(nrow(mmat)-to.trim[c]),c] <- NA
+}
+
+ind <- which(mr$y < 5)
+true[[1]] <- mmat[,ind] # subset to values at a period of <5 yrs
+true.vec[1] <- length(which(true[[1]]<0.5))/length(which(!is.na(true[[1]]))) # proportion of values at period<5 that are <0.5 (compensatory dynamics side)
 ind2 <- which(mr$y > 5 & mr$y < 10)
-true[[2]] <- mr$z[nrow(mr$z)-ind2,,1] #
-true.vec[2] <- length(which(true[[2]]<0.5))/length(true[[2]])
+true[[2]] <- mmat[,ind2] #
+true.vec[2] <- length(which(true[[2]]<0.5))/length(which(!is.na(true[[2]])))
 ind3 <- which(mr$y > 10)
-true[[3]] <- mr$z[nrow(mr$z)-ind3,,1] #
-true.vec[3] <- length(which(true[[3]]<0.5))/length(true[[3]])
+true[[3]] <- mmat[,ind3] #
+true.vec[3] <- length(which(true[[3]]<0.5))/length(which(!is.na(true[[3]])))
 
 tv <- data.frame(scale = c("less.than.5","five.ten","ten.plus"),
                  obs = true.vec,
@@ -136,8 +161,8 @@ tv <- data.frame(scale = c("less.than.5","five.ten","ten.plus"),
                   datasource = dsources[d])
 true.df <- rbind(true.df,tv)
 
-points(1:3 + 0.02,true.vec,pch=21, bg = "orange")
-legend("topright",pch = c(21,21),pt.bg = c("grey","orange"),legend=c("null model (no synchrony)","Observation"))
+#points(1:3 + 0.02,true.vec,pch=21, bg = "orange")
+#legend("topright",pch = c(21,21),pt.bg = c("grey","orange"),legend=c("null model (no synchrony)","Observation"))
 print(sp2)
 print(true.df)
 }
@@ -147,11 +172,17 @@ print(true.df)
 
 
 list.results <- list()
+#true2 <- true.df
+list.results[[1]] <- sp2
+list.results[[2]] <- sp2
+list.results[[3]] <-sp2
+list.results[[4]] <- sp2
+
 df <- ldply (list.results, data.frame)
 df <- subset(df, datasource=="Barange")
-save(df,file = "NullModelDistributions.RData")
+save(df,file = "NullModelDistributions_v2.RData")
 
-pdf("ExpectationPlot.pdf",width=8,height=7,useDingbats = FALSE)
+pdf("ExpectationPlot_v2.pdf",width=8,height=7,useDingbats = FALSE)
 ggplot(df, aes(x=scale,y=X50.)) + 
   #geom_point(size=0.5) + 
   facet_grid(region~variable) + 
@@ -168,4 +199,5 @@ ggplot(df, aes(x=scale,y=X50.)) +
 dev.off()
 
 #dev.off()
-# Compare to one of the runs using a K-S test? 
+
+# 
