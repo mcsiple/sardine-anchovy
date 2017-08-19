@@ -54,7 +54,7 @@ lines(1:100, y[,2], type = "l", lwd = 2, col = "gray")
 generate.sa <- function(diag.sigma = c(0.6,0.6),
                         true.covar = 0,
                         nyears = 100){
-  rho <- matrix(c(0.8,0,0,0.8),nrow=2,byrow=T) 
+  rho <- matrix(c(0.9,0,0,0.9),nrow=2,byrow=T) 
   # Create variance covariance matrix
   Sigma <- matrix(0, nrow=2, ncol=2)
   diag(Sigma) <- diag.sigma # These are the sigma values used for both anchovy and sardine in chapter 3
@@ -90,70 +90,129 @@ generate.sa <- function(diag.sigma = c(0.6,0.6),
 # See "NullModel.R" for simulations with similar spectral characteristics (null expectation for amount of asynchrony observed)
 # See how hard it is to detect asynchrony at different lengths of time series --------
 # NOTE: THis one is a bust because the metric isn't sensitive enough. SO the new plan is to generate the null expectations for 0 correlation, then use K-S test to detect asynchrony in a series of simulations.
-result.df <- data.frame(true.covar = rep(c(-0.99,-0.75,-0.5,0,0.5,0.75,0.99),each=8),ts.length = rep(c(10,20,30,40,50,100,150,200)),d5 = NA,d510 = NA,d10=NA) #, d5loCI=NA,d5hiCI=NA,d510loCI=NA,d510hiCI=NA,d10loCI=NA,d10hiCI=NA 
+result.df <- data.frame(true.covar = rep(c(-0.99,-0.75,-0.5,0,0.5,0.75,0.99),each=8),ts.length = rep(c(10,20,30,40,50,100,150,200)),d5 = NA,d510 = NA,d10=NA) 
+set.seed(123)
+nsims <- 500
+null1 <- null2 <- null3 <- list()
+prop.list1 <- prop.list2 <- prop.list3 <- list()
 
-nsims <- 1000
-sim.vec5 <- sim.vec510 <- sim.vec10 <- vector()
-for(d in 1:nrow(result.df)){ 
+for(d in 1:nrow(result.df)){  #
   # First: make null distribution for what you would expect at corr=0  --------
   trim.z.list = trim.z2.list = trim.z3.list <- list()
-  prop1 = prop2 = prop3 = vector()
+  tzl1 <- tzl2 <- tzl3 <- list()
+  
   for(i in 1:nsims){
     ts <- generate.sa(true.covar=0,
                       nyears = result.df$ts.length[d]) #Generate null expectation based on length of ts
     x <- 1:nrow(ts)
     y <- ts
-    w = mvcwt(x, y, min.scale = 1, max.scale = 20)
-    mr = wmr(w)
-    
+    # wave.fun = "Morlet"
+     scale.exp = 0.5; nscales = get.nscales(x)
+     min.scale = get.min.scale(x); max.scale = get.max.scale(x)
+     scales = log2Bins(min.scale, max.scale, nscales)
+     w = mvcwt(x, y)
+     mr = wmr(w)
+     to.trim <- round(scales) # this is the number of cells to trim from the matrix (top and bottom)
+     mmat <- mr$z[,,1]
+     # OMG THIS TOOK ME SO LONG
+     for(c in 1:ncol(mmat)){
+       mmat[1:to.trim[c],c] <- NA
+       mmat[nrow(mmat):(nrow(mmat)-to.trim[c]),c] <- NA
+     }
+     
+    # NEW: trim cone of influence from z matrix (these values don't count!)
     ind <- which(mr$y < 5)
-    trim.z.list <- mr$z[nrow(mr$z)-ind,,1]
-    prop1[i] <- length(which(trim.z.list<0.5)) / length(trim.z.list<0.5)
+    trim.z.list <- mmat[,ind]
+    prop1[i] <- length(which(trim.z.list<0.7)) / length(which(!is.na(trim.z.list)))
+    tzl1 [[i]] <-  trim.z.list
     
     ind2 <- which(mr$y > 5 & mr$y < 10)
-    trim.z2.list <- mr$z[nrow(mr$z)-ind2,,1]
-    prop2[i] <- length(which(trim.z2.list<0.5)) / length(trim.z2.list<0.5)
+    trim.z2.list <- mmat[,ind2]
+    prop2[i] <- length(which(trim.z2.list<0.7)) / length(which(!is.na(trim.z2.list)))
+    tzl2[[i]] <- trim.z2.list
     
     ind3 <- which(mr$y > 10)
-    trim.z3.list <- mr$z[nrow(mr$z)-ind3,,1]
-    prop3[i] <- length(which(trim.z3<0.5)) / length(trim.z3<0.5)
+    if(length(ind3)==0){
+  		trim.z3 <- NA
+  		sim.vec10[s] <- NA
+  		result.df$d10[d]<- NA	
+  		prop3[i] <- NA
+  		}else{
+    		trim.z3.list <- mmat[,ind3]
+    		prop3[i] <- length(which(trim.z3.list<0.7)) / length(which(!is.na(trim.z3.list)))
+  		}
+    tzl3[[i]] <- trim.z3.list
   }
   
-  # Get upper limits based on that ts length
-  limit1 <- quantile(prop1,probs=0.975)
-  limit2 <- quantile(prop2,probs=0.975)
-  limit3 <- quantile(prop3,probs=0.975)
-  
-  # 
-  for(s in 1:nsims){
+  null1[[d]] <- ldply(tzl1, data.frame)
+  null2[[d]] <- ldply(tzl2,data.frame)
+  null3[[d]] <- ldply(tzl3,data.frame)
+  prop.list1[[d]] <- prop1 # each element of the list = 1 row of the results
+  prop.list2[[d]] <- prop2
+  prop.list3[[d]] <- prop3
+  print(d)
+}
+
+
+
+#prop1 = prop2 = prop3 = vector()
+#prop1[i] <- length(which(tzl1[[i]]<0.5)) / length(which(!is.na(tzl1[[i]])))
+#prop2[i] <- length(which(tzl2[[i]]<0.5)) / length(which(!is.na(tzl2[[i]])))
+#prop3[i] <- length(which(tzl3[[i]]<0.5)) / length(which(!is.na(tzl3[[i]])))
+sim.vec5 <- sim.vec510 <- sim.vec10 <- vector()
+
+# Get upper limits based on that ts length
+for(d in 1:nrow(result.df)){
+limit1 <- ifelse(all(prop.list1[[d]]==0),NA,quantile(prop.list1[[d]],probs=0.975,na.rm=T))
+limit2 <- ifelse(all(prop.list2[[d]]==0),NA,quantile(prop.list2[[d]],probs=0.975,na.rm=T))
+limit3 <- ifelse(all(prop.list3[[d]]==0),NA,quantile(prop.list3[[d]],probs=0.975,na.rm=T))
+
+  for(s in 1:nsims){ # simulate a bunch of runs with the true covariance, see if they have higher props under 0.5 than the null.
   ts <- generate.sa(true.covar=result.df$true.covar[d],
                     nyears = result.df$ts.length[d])
   x <- 1:nrow(ts)
   y <- ts
-  w = mvcwt(x, y, min.scale = 1, max.scale = 20)
+  w = mvcwt(x, y)
   mr = wmr(w)
   
+  # Keep values inside cone of influence
+  to.trim <- round(scales) # this is the number of cells to trim from the matrix (top and bottom)
+  mmat <- mr$z[,,1]
+  # OMG THIS TOOK ME SO LONG
+  for(c in 1:ncol(mmat)){
+    mmat[1:to.trim[c],c] <- NA
+    mmat[nrow(mmat):(nrow(mmat)-to.trim[c]),c] <- NA
+  }
   ind <- which(mr$y < 5)
-  trim.z <- mr$z[nrow(mr$z)-ind,,1]
+  trim.z <- mmat[,ind]
   
   ind2 <- which(mr$y > 5 & mr$y < 10)
-  trim.z2 <- mr$z[nrow(mr$z)-ind2,,1]
+  trim.z2 <- mmat[,ind2]
   
   ind3 <- which(mr$y > 10)
-  trim.z3 <- mr$z[nrow(mr$z)-ind3,,1]
   
-  sim.vec5[s] <- length(which(trim.z<0.5)) / length(trim.z<0.5) #prop. asynchronous at <5 yr timescale
-  sim.vec510[s] <- length(which(trim.z2<0.5)) / length(trim.z2<0.5)
-  sim.vec10[s] <- length(which(trim.z3<0.5)) / length(trim.z3<0.5)
+  if(length(ind3)==0){
+  trim.z3 <- NA
+  sim.vec10[s] <- NA
+  result.df$d10[d]<- NA	
+  }else{
+  trim.z3 <- mmat[,ind3]
+  
+  sim.vec5[s] <- length(which(trim.z<0.7)) / length(which(!is.na(trim.z))) #prop. asynchronous at <5 yr timescale
+  sim.vec510[s] <- length(which(trim.z2<0.7)) / length(which(!is.na(trim.z2)))
+  sim.vec10[s] <- length(which(trim.z3<0.7)) / length(which(!is.na(trim.z3)))
+  }}
+  
+  result.df$d5[d] <- length(which(sim.vec5>limit1))/nsims
+  result.df$d510[d] <- length(which(sim.vec510>limit2))/nsims
+  result.df$d10[d] <- length(which(sim.vec10>limit3))/nsims
+  print(d)
   }
   
-  result.df$d5[d] <- length(which(sim.vec5>limit1))
-  result.df$d510[d] <- length(which(sim.vec510>limit2))
-  result.df$d10[d] <- length(which(sim.vec10>limit3))
-}
+
 
 head(result.df)
-
+save(result.df,file="PowerResults_likelyright_07cutoff.RData")
 
 # Figure with detections --------------------------------------------------
 mdf <- melt(result.df,id.vars=c("true.covar","ts.length"))
