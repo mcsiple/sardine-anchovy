@@ -54,7 +54,7 @@ lines(1:100, y[,2], type = "l", lwd = 2, col = "gray")
 generate.sa <- function(diag.sigma = c(0.6,0.6),
                         true.covar = 0,
                         nyears = 100){
-  rho <- matrix(c(0.9,0,0,0.9),nrow=2,byrow=T) 
+  rho <- matrix(c(0.8,0,0,0.8),nrow=2,byrow=T) 
   # Create variance covariance matrix
   Sigma <- matrix(0, nrow=2, ncol=2)
   diag(Sigma) <- diag.sigma # These are the sigma values used for both anchovy and sardine in chapter 3
@@ -155,10 +155,6 @@ for(d in 1:nrow(result.df)){  #
 
 
 
-#prop1 = prop2 = prop3 = vector()
-#prop1[i] <- length(which(tzl1[[i]]<0.5)) / length(which(!is.na(tzl1[[i]])))
-#prop2[i] <- length(which(tzl2[[i]]<0.5)) / length(which(!is.na(tzl2[[i]])))
-#prop3[i] <- length(which(tzl3[[i]]<0.5)) / length(which(!is.na(tzl3[[i]])))
 sim.vec5 <- sim.vec510 <- sim.vec10 <- vector()
 
 # Get upper limits based on that ts length
@@ -209,7 +205,7 @@ limit3 <- ifelse(all(prop.list3[[d]]==0),NA,quantile(prop.list3[[d]],probs=0.975
   print(d)
   }
   
-
+#Running right now: rho = 0.8
 
 head(result.df)
 save(result.df,file="PowerResults_likelyright_07cutoff.RData")
@@ -219,9 +215,9 @@ mdf <- melt(result.df,id.vars=c("true.covar","ts.length"))
 levels(mdf$variable) <- c("< 5 yr","5-10 yr","10+ yr")
 setwd(figwd)
 pdf("Power_08.pdf",width=8,height=3,useDingbats = FALSE)
-ggplot(mdf,aes(x=ts.length,y=value/50,colour=as.factor(true.covar),group=true.covar)) +
+ggplot(mdf,aes(x=ts.length,y=value,colour=as.factor(true.covar),group=true.covar)) +
   geom_line(lwd=1) + facet_grid(~variable) +
-  scale_color_brewer("True amount of \n asynchrony",palette = 7,type = "div") + theme_classic(base_size=14) +
+  scale_color_brewer("True covariance",palette = 7,type = "div") + theme_classic(base_size=14) +
   xlab("Time series length") + ylab("Probability of \n detecting asynchrony")
 dev.off()
 
