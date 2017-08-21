@@ -208,7 +208,7 @@ limit3 <- ifelse(all(prop.list3[[d]]==0),NA,quantile(prop.list3[[d]],probs=0.975
 #Running right now: rho = 0.8
 
 head(result.df)
-save(result.df,file="PowerResults_likelyright_07cutoff.RData")
+save(result.df,file="PowerResults_likelyright_rho08.RData")
 
 # Figure with detections --------------------------------------------------
 mdf <- melt(result.df,id.vars=c("true.covar","ts.length"))
@@ -228,37 +228,60 @@ dev.off()
 # Wavelet test ------------------------------------------------------------
 x <- 1:nrow(test)
 y <- test
-w = mvcwt(x, y, min.scale = 1, max.scale = 20)
-mr = wmr(w)
 
-image(mr, reset.par = FALSE)
+plot(x,y[,1],type='l',lwd=1.5)
+lines(x,y[,2],col='darkgrey',lwd=1.5)
+
+
+# Remove cone of influence
+scale.exp = 0.5; nscales = get.nscales(x)
+min.scale = get.min.scale(x); max.scale = get.max.scale(x)
+scales = log2Bins(min.scale, max.scale, nscales)
+w = mvcwt(x, y)
+mr = wmr(w)
+image(mr, reset.par = FALSE,xlab="Year")
 contour(mr, bound = NA, add = TRUE)
+to.trim <- round(scales) # this is the number of cells to trim from the matrix (top and bottom)
+mmat <- mr$z[,,1]
+# OMG THIS TOOK ME SO LONG
+for(c in 1:ncol(mmat)){
+  mmat[1:to.trim[c],c] <- NA
+  mmat[nrow(mmat):(nrow(mmat)-to.trim[c]),c] <- NA
+}
+
 
 par(mfrow=c(3,1))
+var.color <- beyonce_palette(5)[5]
+
 # Scale: <5 yr    
 ind <- which(mr$y < 5)
-trim.z <- mr$z[nrow(mr$z)-ind,,1]
+trim.z <- mmat[,ind]
 hist(trim.z,xlim=c(0,1),col=var.color,border=var.color,
      probability = T,main='',xaxt='n',xlab="",ylab="") 
-text(tx,1,"<5 yr")
+abline(v=0.7,lty=2)
+
+#axis(1,at=c(0,0.5,1.0), labels=c(0,0.5,1.0))
+#text(tx,1,"<5 yr")
 
 # Scale: 5-10 yr
 ind2 <- which(mr$y > 5 & mr$y < 10)
-trim.z2 <- mr$z[nrow(mr$z)-ind2,,1]
+trim.z2 <- mmat[,ind2]
 hist(trim.z2,xlim=c(0,1),col=var.color,border=var.color,
      probability = T,main='',xaxt='n',xlab="")
-text(tx,1,"5-10 yr")
+abline(v=0.7,lty=2)
+#axis(1,at=c(0,0.5,1.0), labels=c(0,0.5,1.0))
+#text(tx,1,"5-10 yr")
 
 #Scale: 10+ yr
 ind3 <- which(mr$y > 10)
-trim.z3 <- mr$z[nrow(mr$z)-ind3,,1]
+trim.z3 <- mmat[,ind3]
 if(all(is.na(trim.z3))){plot.new()}else{
   hist(trim.z3,xlim=c(0,1),col=var.color,border=var.color,
        probability = T,main='',
        xlab="Degree of synchrony",xaxt='n',ylab="")
-  text(tx,1,"10+ yr")
+  #text(tx,1,"10+ yr")
   axis(1,at=c(0,0.5,1.0), labels=c(0,0.5,1.0))}
-
+abline(v=0.7,lty=2)
 # See if KS test works for detecting differences between asynchronous time series and real ones.
 ks.test(x = trim.z3, # this is asynchrony at 10+ years, SIM'D from Tim code!
         y = trim.z3b) # this is asynchrony from the real S/A time series
