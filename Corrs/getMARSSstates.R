@@ -33,7 +33,7 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "Benguela", scal
   
   #anchovy stats
   lt.max.a <- max(lt.maxes[which(lt.maxes$sp=="Anchovy"),ncol(lt.maxes)])   
-  lt.max.sp <- lt.maxes[lt.maxes$max.var==lt.max.a,2]    #Which anchovy species had biggest long term value for this time series (i.e., the "dominant anchovy species")
+  lt.max.sp <- lt.maxes[lt.maxes$max.var==lt.max.a,2]    #Which anchovy species had largest long term value for this time series (i.e., the "dominant anchovy species")
   
   #sardine stats
   lt.max.s <- max(lt.maxes[which(lt.maxes$sp=="Sardine"),ncol(lt.maxes)])
@@ -44,13 +44,14 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "Benguela", scal
 
   
   if(variable=="landings"){sar = dom.s.ts$landings
-  anch = dom.a.ts$landings} 
+  anch = dom.a.ts$landings}
   if(variable=="ssb"){sar = dom.s.ts$ssb
-  anch = dom.a.ts$ssb} 
+  anch = dom.a.ts$ssb}
   if(variable=="rec"){sar = dom.s.ts$rec
   anch = dom.a.ts$rec}
-  if(variable=="fishing.mortality"){sar = dom.s.ts$fishing.mortality
-  anch = dom.a.ts$fishing.mortality}
+  if(variable=="fishing.mortality"){
+    sar = dom.s.ts$fishing.mortality
+    anch = dom.a.ts$fishing.mortality}
   #Plot the two dominant stocks/ts
   if (plot == TRUE){
     plot(dom.s.ts$year,sar,
@@ -58,7 +59,6 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "Benguela", scal
          xlab="Year",ylab=variable,main=paste(c(region_or_subregion,variable)),
          xlim=c(min(dataset$year),max(dataset$year)),
          ylim=c(0,max(lt.maxes[,ncol(lt.maxes)])))
-    #lines(dom.a.ts$year,anch,col='red')
   }
   
   # One correlation method: use MARSS to find covariance --------------------------------------------
