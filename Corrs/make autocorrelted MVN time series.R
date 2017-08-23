@@ -53,8 +53,8 @@ lines(1:100, y[,2], type = "l", lwd = 2, col = "gray")
 #Function to do the same
 generate.sa <- function(diag.sigma = c(0.6,0.6),
                         true.covar = 0,
-                        nyears = 100){
-  rho <- matrix(c(0.8,0,0,0.8),nrow=2,byrow=T) 
+                        nyears = 100, rho = matrix(c(0.8,0,0,0.8),nrow=2,byrow=T)){
+  #rho <- matrix(c(0.8,0,0,0.8),nrow=2,byrow=T) 
   # Create variance covariance matrix
   Sigma <- matrix(0, nrow=2, ncol=2)
   diag(Sigma) <- diag.sigma # These are the sigma values used for both anchovy and sardine in chapter 3
