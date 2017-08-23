@@ -1,9 +1,20 @@
 # Test - quantiles for distributions of WMR under asynchronous/synchronous dynamics
 # Simulate time series as before
+# 
 
+require(MASS)
+require(mvcwt)
+
+true.cov <- c(-0.75) #,-0.75,-0.5,0
+rho <- c(0.9) # 0.8, 0.7
+sims = 1:20
+sim.df <- data.frame(expand.grid(sims,true.cov,rho))
+
+
+for(sim in 1:length(sims)){
 asyn <- generate.sa(true.covar = -0.99)
-plot(1:nrow(asyn),asyn[,1],type='l')
-lines(1:nrow(asyn),asyn[,2],col="darkgrey")
+#plot(1:nrow(asyn),asyn[,1],type='l')
+#lines(1:nrow(asyn),asyn[,2],col="darkgrey")
 
 x <- 1:nrow(asyn)
 y <- asyn
@@ -25,12 +36,15 @@ for(c in 1:ncol(mmat)){
 # NEW: trim cone of influence from z matrix (these values don't count!)
 ind <- which(mr$y < 5)
 trim.z.list <- mmat[,ind]
-hist(trim.z.list,xlim=c(0,1))
-quantile(trim.z.list,probs=c(0.75),na.rm=T)
-#prop1[i] <- length(which(trim.z.list<0.7)) / length(which(!is.na(trim.z.list)))
+ind2 <- which(mr$y > 5 & mr$y < 10)
+trim.z2.list <- mmat[,ind2]
+ind3 <- which(mr$y > 10)
+trim.z3.list <- mmat[,ind3]
 
-true.cov <- c(-0.99,-0.75,-0.5,0)
-rho <- c(0.9,0.9,0.7)
-sims = 1:100
-sim.df <- expand.grid(sims,true.cov,rho)
-sim.df[1:100,]
+sim.df$median[sim] <- median(trim.z.list,na.rm=T)
+sim.df$q75[sim] <- quantile(trim.z.list,probs=0.75,na.rm=T)
+sim.df$median2[sim] <- median(trim.z2.list,na.rm=T)
+sim.df$q75_2[sim] <- quantile(trim.z2.list,probs=0.75,na.rm=T)
+sim.df$median3[sim] <- median(trim.z3.list,na.rm=T)
+sim.df$q75_3[sim] <- quantile(trim.z3.list,probs=0.75,na.rm=T)
+}
