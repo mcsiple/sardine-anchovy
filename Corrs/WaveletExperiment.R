@@ -27,15 +27,14 @@ data.list <- list()
 region.list <- list()
 regions <- unique(alldat$region)
 dsources <- unique(alldat$datasource)
+variables <- c("rec","ssb","landings")
 
-
-d=1 
+d=1
  for(r in 1:length(regions)){
 # Need to fix FAO data before using this function on them.
       var.list <- list()
       region = regions[r]
       data_source = dsources[d]
-      variables = c("rec","ssb","landings")
       for(v in 1:3){
       var.list[[v]] <- getMARSSstates(data = alldat,
                                  region_or_subregion = region,
