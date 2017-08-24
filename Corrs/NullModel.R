@@ -116,11 +116,11 @@ sp$region <- regions[r]
 sp$datasource <- dsources[d]
 sp$scale <- c("less.than.5","five.ten","ten.plus")
 
-sp2 <- rbind(sp2,sp)
-pal <- beyonce_palette(11)
-plot(1:3,sp[,2],xaxt='n',ylim=c(0,1),pch=21,bg = pal[c(1,3,5)],ylab="Prob(WMR < 0.5)", xlab="")
-axis(1, at = c(1,2,3), labels = c("<5 yr","5-10 yr","10+ yr"))
-arrows(x0 = 1:3, x1 = 1:3,y0 = sp[,1], y1 = sp[,3],col = pal[c(1,3,5)],lwd = 1.5,length = 0.03,angle=90,code = 3)
+ sp2 <- rbind(sp2,sp)
+# pal <- beyonce_palette(11)
+# plot(1:3,sp[,2],xaxt='n',ylim=c(0,1),pch=21,bg = pal[c(1,3,5)],ylab="Prob(WMR < 0.5)", xlab="")
+# axis(1, at = c(1,2,3), labels = c("<5 yr","5-10 yr","10+ yr"))
+# arrows(x0 = 1:3, x1 = 1:3,y0 = sp[,1], y1 = sp[,3],col = pal[c(1,3,5)],lwd = 1.5,length = 0.03,angle=90,code = 3)
 
 
 # What is this density for the true variable? i.e, calculate WMR for the real time series. Is it different from the null model? I.e., is the density below 0.5 similar to the one you would expect from random time series?
