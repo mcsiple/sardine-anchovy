@@ -105,29 +105,37 @@ load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Bar
       if(nrow(data.points)==0 | length(unique(data.points$Sardine.est))==1 |
          length(unique(data.points$Anchovy.est))==1) {plot.new()} else{
       # RAM only has both sardine and anchovy for any of the variables (e.g., ssb, rec) for Humboldt. 
-      
+      std_sardine <- as.numeric(scale(data.points$Sardine.est))  #Standardize: subtract mean, divide by stdev
+      std_anchovy <- as.numeric(scale(data.points$Anchovy.est)) # Standardize
       x = data.points$Year       # Time series sampling points (day of year in this case)
-      y = data.points[,c("Sardine.est","Anchovy.est")] # Time series only (each column = one species)
+      y = cbind(std_sardine,std_anchovy) # Time series only (each column = one species)
       
       # If using surrogate time series:
       #x = 1:length(anchovy_phase)
       #y = cbind(as.numeric(anchovy_phase),as.numeric(sardine_phase))
       
       # If using simulated data (NOTE: need starting values)
-      # subyrs <- 1:100 #1:nrow(response.ts)
-      # x <- subyrs 
-      # y <- response.ts[subyrs,1:2]
-      
-      w = mvcwt(x, y, min.scale = 1, max.scale = 20)
+      scale.exp = 0.5; nscales = get.nscales(x)
+      min.scale = get.min.scale(x); max.scale = get.max.scale(x)
+      scales = log2Bins(min.scale, max.scale, nscales)
+      w = mvcwt(x, y)
       mr = wmr(w)
-      #mr.boot = wmr.boot(w, smoothing = 1, reps = 1000, mr.func = "wmr")
+      # eliminate z values outside cone of influence
+      to.trim <- round(scales) # this is the number of cells to trim from the matrix (top and bottom)
+      mmat <- mr$z[,,1]
+      # OMG THIS TOOK ME SO LONG
+      for(c in 1:ncol(mmat)){
+        mmat[1:to.trim[c],c] <- NA
+        mmat[nrow(mmat):(nrow(mmat)-to.trim[c]),c] <- NA
+      }
+    
       #image(mr, reset.par = FALSE)
       #contour(mr, bound = NA, add = TRUE)
       
       
       # Plots
-      plot(1:nrow(y),y[,1],type='l',ylim=c(-2,max(c(y[,1],y[,2]))),
-           xlab="Year",ylab="",
+      plot(1:nrow(y),y[,1],type='l',ylim=c(min(c(y[,1],y[,2])),max(c(y[,1],y[,2]))),
+           xlab="Year",ylab="Standardized var",
            main=paste(regions[r]," - ",
                       variables[v]),col=sa.col[2],lwd=1.5)
       lines(1:nrow(y),y[,2],col=sa.col[1],lwd=1.5)
@@ -136,7 +144,7 @@ load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Bar
       
       # Scale: <5 yr    
       ind <- which(mr$y < 5)
-      trim.z <- mr$z[nrow(mr$z)-ind,,1]
+      trim.z <- mmat[ind,]
       hist(trim.z,xlim=c(0,1),col=var.color,border=var.color,
            probability = T,main='',
            xaxt='n',xlab="",ylab="") 
@@ -144,7 +152,7 @@ load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Bar
       
       # Scale: 5-10 yr
       ind2 <- which(mr$y > 5 & mr$y < 10)
-      trim.z2 <- mr$z[nrow(mr$z)-ind2,,1]
+      trim.z2 <- mmat[ind2,]
       hist(trim.z2,xlim=c(0,1),col=var.color,border=var.color,
            probability = T,main='',
            xaxt='n',xlab="")
@@ -152,7 +160,7 @@ load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Bar
       
       #Scale: 10+ yr
       ind3 <- which(mr$y > 10)
-      trim.z3 <- mr$z[nrow(mr$z)-ind3,,1]
+      trim.z3 <- mmat[ind3,]
       if(all(is.na(trim.z3))){plot.new()}else{
       hist(trim.z3,xlim=c(0,1),col=var.color,border=var.color,
            probability = T,main='',
