@@ -9,7 +9,7 @@ require(ggplot2)
 
 figwd = "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures"
 
-# Matrix of autocorrelation terms 
+# Matrix of autocorrelation terms
 rho <- matrix(c(0.9,0,0,0.9),nrow=2,byrow=T) # used to be 0.8 and 0.8
 # Create variance covariance matrix
 Sigma <- matrix(0, nrow=2, ncol=2)
@@ -64,7 +64,7 @@ generate.sa <- function(diag.sigma = c(0.6,0.6),
   beta <- rho  %x% rho
   I <- matrix(0,nrow=nrow(beta),ncol=ncol(beta))
   diag(I)<-1
-  Omega <- matrix(solve((I-beta)) %*% as.vector(Sigma) , 
+  Omega <- matrix(solve((I-beta)) %*% as.vector(Sigma), 
                   nrow=2, 
                   ncol =2, 
                   byrow = F)
