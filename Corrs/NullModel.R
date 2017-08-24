@@ -35,8 +35,11 @@ if(nrow(data.points)==0 | length(unique(data.points$Sardine.est))==1 |
    length(unique(data.points$Anchovy.est))==1){print("one time series missing - STOP")}
 
 #Standardize data
-std_sardine <- data.points$Sardine.est - mean(data.points$Sardine.est)
-std_anchovy <- data.points$Anchovy.est - mean(data.points$Anchovy.est)
+std_sardine <- as.numeric(scale(data.points$Sardine.est)) #data.points$Sardine.est - mean(data.points$Sardine.est)
+if(all(is.na(std_sardine))) std_sardine <- rep(NA, times=length(std_sardine))
+
+std_anchovy <- as.numeric(scale(data.points$Anchovy.est)) #data.points$Anchovy.est - mean(data.points$Anchovy.est)
+if(all(is.na(std_anchovy))) std_sardine <- rep(NA, times=length(std_anchovy))
 
 # Simulate 100 time series of the same spectral characteristics as sardine and anchovy.
 sardine_phase <- surrogate(data.points$Sardine.est,method = "phase")
@@ -89,7 +92,8 @@ sa.col <- c("#ef8a62","#67a9cf")
 
 ylabel <- c("Landings","SSB","Recruitment")
 plot(1:nyears,std_anchovy, type='l',col=sa.col[1],lwd=1.5,
-     ylim=range(c(std_anchovy,std_sardine)),ylab=paste("Standardized",ylabel[v]),
+     ylim=range(c(std_anchovy,std_sardine)),
+     ylab=paste("Standardized",ylabel[v]),
      xlab="Year")
 lines(1:nyears,std_sardine,type='l',col=sa.col[2],lwd=1.5)
 legend("topleft",lty=c(1,1),lwd=c(1.5,1.5),legend = c("Anchovy","Sardine"),col=sa.col)
@@ -117,10 +121,10 @@ sp$datasource <- dsources[d]
 sp$scale <- c("less.than.5","five.ten","ten.plus")
 
  sp2 <- rbind(sp2,sp)
-# pal <- beyonce_palette(11)
-# plot(1:3,sp[,2],xaxt='n',ylim=c(0,1),pch=21,bg = pal[c(1,3,5)],ylab="Prob(WMR < 0.5)", xlab="")
-# axis(1, at = c(1,2,3), labels = c("<5 yr","5-10 yr","10+ yr"))
-# arrows(x0 = 1:3, x1 = 1:3,y0 = sp[,1], y1 = sp[,3],col = pal[c(1,3,5)],lwd = 1.5,length = 0.03,angle=90,code = 3)
+            # pal <- beyonce_palette(11)
+            # plot(1:3,sp[,2],xaxt='n',ylim=c(0,1),pch=21,bg = pal[c(1,3,5)],ylab="Prob(WMR < 0.5)", xlab="")
+            # axis(1, at = c(1,2,3), labels = c("<5 yr","5-10 yr","10+ yr"))
+            # arrows(x0 = 1:3, x1 = 1:3,y0 = sp[,1], y1 = sp[,3],col = pal[c(1,3,5)],lwd = 1.5,length = 0.03,angle=90,code = 3)
 
 
 # What is this density for the true variable? i.e, calculate WMR for the real time series. Is it different from the null model? I.e., is the density below 0.5 similar to the one you would expect from random time series?
