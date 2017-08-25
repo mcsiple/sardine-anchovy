@@ -13,7 +13,7 @@ library(DescTools)
 library(biwavelet)
 library(mvcwt)
 library(beyonce)
-load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Barange_States.RData") # data frame RB
+load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Barange_States.RData") # data frame: RB
 figwd <- "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures"
 setwd(figwd)
 
@@ -36,7 +36,7 @@ if(nrow(data.points)==0 | length(unique(data.points$Sardine.est))==1 |
 
 #Standardize data
 std_sardine <- as.numeric(scale(data.points$Sardine.est)) #data.points$Sardine.est - mean(data.points$Sardine.est)
-if(all(is.na(std_sardine))) std_sardine <- rep(NA, times=length(std_sardine))
+if(all(is.na(std_sardine))) std_sardine <- rep(NA, times=length(std_sardine)) # In case all values are the same
 
 std_anchovy <- as.numeric(scale(data.points$Anchovy.est)) #data.points$Anchovy.est - mean(data.points$Anchovy.est)
 if(all(is.na(std_anchovy))) std_sardine <- rep(NA, times=length(std_anchovy))
@@ -89,23 +89,25 @@ for(s in 1:nsims){
   }
 
 sa.col <- c("#ef8a62","#67a9cf")
+sa.range <- range(c(std_anchovy,std_sardine))
+                   
 
 ylabel <- c("Landings","SSB","Recruitment")
-plot(1:nyears,std_anchovy, type='l',col=sa.col[1],lwd=1.5,
-     ylim=range(c(std_anchovy,std_sardine)),
-     ylab=paste("Standardized",ylabel[v]),
-     xlab="Year")
-lines(1:nyears,std_sardine,type='l',col=sa.col[2],lwd=1.5)
-legend("topleft",lty=c(1,1),lwd=c(1.5,1.5),legend = c("Anchovy","Sardine"),col=sa.col)
+      # plot(1:nyears,std_anchovy, type='l',col=sa.col[1],lwd=1.5,
+      #      ylab=paste("Standardized",ylabel[v]),
+      #      xlab="Year")
+      # lines(1:nyears,std_sardine,type='l',col=sa.col[2],lwd=1.5)
+      # legend("topleft",lty=c(1,1),lwd=c(1.5,1.5),legend = c("Anchovy","Sardine"),col=sa.col)
+      # 
 
-#length(which(synch.1[[1]]<0.3))/length(synch.1[[1]])
 # On average, at each time scale, what is the density below 0.5 (asynchronous)?
+# This cutoff can be flexible... it's not always necessarily exactly 0.5 (see appendix)
 yr1 <- yr5 <- yr10 <- vector()
 
 for(s in 1:nsims){
-  yr1[s] <- length(which(synch.1[[s]]<0.5))/length(which(!is.na(synch.1[[s]])))
-  yr5[s] <- length(which(synch.5[[s]]<0.5))/length(which(!is.na(synch.5[[s]])))
-  yr10[s] <- length(which(synch.10[[s]]<0.5))/length(which(!is.na(synch.10[[s]])))
+  yr1[s] <- length(which(synch.1[[s]]<0.7))/length(which(!is.na(synch.1[[s]])))
+  yr5[s] <- length(which(synch.5[[s]]<0.7))/length(which(!is.na(synch.5[[s]])))
+  yr10[s] <- length(which(synch.10[[s]]<0.7))/length(which(!is.na(synch.10[[s]])))
 }
 
 # Estimates for probability of detecting WMR <0.5, for CA landings
@@ -115,12 +117,22 @@ quantile(yr5, probs=c(0.05,0.25,0.5,0.75,0.95)),
 quantile(yr10,probs=c(0.05,0.25,0.5,0.75,0.95))
 ))
 
-sp$variable <- variables[v]
-sp$region <- regions[r]
-sp$datasource <- dsources[d]
-sp$scale <- c("less.than.5","five.ten","ten.plus")
+# For storing individual sims
+sp.all <- list("1yr" = do.call(rbind,synch.1), # This stores all the values from each simulation 
+               "5yr" = do.call(rbind,synch.5), # TO DO: Organize so that you can save each variable/region combo separately. O_O
+               "10" = do.call(rbind,synch.10)) # Then they can be plotted with the distributions from the data (standardized sts)
 
+# Save 
+sp$variable <- sp.all <- variables[v]
+sp$region <- sp.all <- regions[r]
+sp$datasource <- sp.all <- dsources[d]
+sp$scale <- c("less.than.5","five.ten","ten.plus")
  sp2 <- rbind(sp2,sp)
+
+ 
+ # Save simulations
+ sp.all2 <- rbind(sp.all2,sp.all)
+ 
             # pal <- beyonce_palette(11)
             # plot(1:3,sp[,2],xaxt='n',ylim=c(0,1),pch=21,bg = pal[c(1,3,5)],ylab="Prob(WMR < 0.5)", xlab="")
             # axis(1, at = c(1,2,3), labels = c("<5 yr","5-10 yr","10+ yr"))
@@ -150,13 +162,13 @@ for(c in 1:ncol(mmat)){
 
 ind <- which(mr$y < 5)
 true[[1]] <- mmat[,ind] # subset to values at a period of <5 yrs
-true.vec[1] <- length(which(true[[1]]<0.5))/length(which(!is.na(true[[1]]))) # proportion of values at period<5 that are <0.5 (compensatory dynamics side)
+true.vec[1] <- length(which(true[[1]]<0.7))/length(which(!is.na(true[[1]]))) # proportion of values at period<5 that are <0.5 (compensatory dynamics side)
 ind2 <- which(mr$y > 5 & mr$y < 10)
 true[[2]] <- mmat[,ind2] #
-true.vec[2] <- length(which(true[[2]]<0.5))/length(which(!is.na(true[[2]])))
+true.vec[2] <- length(which(true[[2]]<0.7))/length(which(!is.na(true[[2]])))
 ind3 <- which(mr$y > 10)
 true[[3]] <- mmat[,ind3] #
-true.vec[3] <- length(which(true[[3]]<0.5))/length(which(!is.na(true[[3]])))
+true.vec[3] <- length(which(true[[3]]<0.7))/length(which(!is.na(true[[3]])))
 
 tv <- data.frame(scale = c("less.than.5","five.ten","ten.plus"),
                  obs = true.vec,
@@ -184,9 +196,9 @@ list.results[[4]] <- sp2
 
 df <- ldply (list.results, data.frame)
 df <- subset(df, datasource=="Barange")
-save(df,file = "NullModelDistributions_v2.RData")
+save(df,file = "NullModelDistributions_07cutoff_std.RData")
 
-pdf("ExpectationPlot_v2.pdf",width=8,height=7,useDingbats = FALSE)
+pdf("ExpectationPlot_07cutoff.pdf",width=8,height=7,useDingbats = FALSE)
 ggplot(df, aes(x=scale,y=X50.)) + 
   #geom_point(size=0.5) + 
   facet_grid(region~variable) + 
