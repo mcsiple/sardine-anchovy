@@ -24,6 +24,8 @@ dsources = c("RAM","Barange")
 
 sp2 <- data.frame()
 true.df <- data.frame()
+sa.col <- c("#ef8a62","#67a9cf")
+ylabel <- c("Landings","SSB","Recruitment")
 
 d = 2; r = 5
 for(r in 1:length(regions)){
@@ -88,11 +90,8 @@ for(s in 1:nsims){
     synch.10[[s]] <- mmat[,ind3] #
   }
 
-sa.col <- c("#ef8a62","#67a9cf")
 sa.range <- range(c(std_anchovy,std_sardine))
                    
-
-ylabel <- c("Landings","SSB","Recruitment")
       # plot(1:nyears,std_anchovy, type='l',col=sa.col[1],lwd=1.5,
       #      ylab=paste("Standardized",ylabel[v]),
       #      xlab="Year")
