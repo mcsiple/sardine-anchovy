@@ -1,7 +1,9 @@
 
 # Annoying code for summarizing data. It's very untidy but it will have to do for now.
 
-
+#load("~/Dropbox/Chapter3-SardineAnchovy/Datasets/allsardineanchovy.RData")
+setwd("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/Corrs")
+source("ExtractMaxes.R")
 data.all <- alldat
 region.max.ssb <- matrix(NA,nrow=nrow(data.all),ncol=2)
 for(i in 1:nrow(alldat)){
@@ -32,7 +34,7 @@ dm.standardized <- domstocks %>%
 
 dm.standardized <- dm.standardized[,-(5:8)]
 md <- melt(dm.standardized, id.vars=c('datasource','scientificname','stock','sp','region','subregion','domanch','domsard','dom.a','dom.s','year'))
-sa.col <- c("#ef8a62","#67a9cf")
+sa.col <- c("red","darkblue")
 levels(md$variable)
 levels(md$variable) = c("SSB","Recruitment","Landings")
 
@@ -62,5 +64,6 @@ unique(data.summary[,c('datasource','region','domanch','domsard')])
 #write.csv(data.summary,"Data-summary.csv")
 #ts.summary <- data.summary %>% group_by(datasource,region,stock,nyears.data,domanch,domsard) %>% summarize()
 
-subset(alldat,datasource=="RAM" & scientificname == "Engraulis encrasicolus" & stock=="Anchovy ICES VIII" & sp=="Anchovy" & region=="NE Atlantic")
-write.csv(alldat,"Data-check.csv")
+#subset(alldat,datasource=="RAM" & scientificname == "Engraulis encrasicolus" & stock=="Anchovy ICES VIII" & sp=="Anchovy" & region=="NE Atlantic")
+#write.csv(alldat,"Data-check.csv")
+
