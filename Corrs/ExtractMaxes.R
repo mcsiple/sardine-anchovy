@@ -1,4 +1,4 @@
-load("~/Dropbox/Chapter 3 - Sardine Anchovy/R files/allsardineanchovy.RData")
+load("~/Dropbox/Chapter3-SardineAnchovy/Datasets/allsardineanchovy.RData")
 library(dplyr)
 library(plyr)
 
@@ -51,5 +51,7 @@ extract.maxes <- function(data = alldat, region_or_subregion = "Benguela", scale
   return(list(Dom_anch_LTmax=as.character(lt.max.sp),
               Dom_sard_LTmax=as.character(lt.max.sp.sar),dom.anch = dom.a.ts,dom.sard = dom.s.ts,max.table = lt.maxes))
  
-}  #End corr.fig function
+}  #End of extract.maxes fxn
+
+extract.maxes(data = alldat,region_or_subregion = "Benguela",)
 
