@@ -1,7 +1,6 @@
 
 # Annoying code for summarizing data. It's very untidy but it will have to do for now.
 
-#load("~/Dropbox/Chapter3-SardineAnchovy/Datasets/allsardineanchovy.RData")
 setwd("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/Corrs")
 source("ExtractMaxes.R")
 data.all <- alldat
@@ -15,6 +14,16 @@ for(i in 1:nrow(alldat)){
                                                     scale = "Region",
                                                     data_source = alldat$datasource[i],
                                                     variable = "ssb" )[2])
+  if(alldat$datasource[i] =="FAO"){
+    region.max.ssb[i,1] <- as.character(extract.maxes(region_or_subregion = alldat$region[i], 
+                                                      scale = "Region",
+                                                      data_source = alldat$datasource[i],
+                                                      variable = "landings" )[1])
+    region.max.ssb[i,2] <- as.character(extract.maxes(region_or_subregion = alldat$region[i], 
+                                                      scale = "Region",
+                                                      data_source = alldat$datasource[i],
+                                                      variable = "landings" )[2])
+  }
 }
 
 colnames(region.max.ssb) = c("domanch","domsard")
@@ -67,3 +76,8 @@ unique(data.summary[,c('datasource','region','domanch','domsard')])
 #subset(alldat,datasource=="RAM" & scientificname == "Engraulis encrasicolus" & stock=="Anchovy ICES VIII" & sp=="Anchovy" & region=="NE Atlantic")
 #write.csv(alldat,"Data-check.csv")
 
+
+# Dominant species code doesn’t work for FAO data…. testing ---------------
+
+load("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Datasets/FAO/FAO.Rdata")
+ggplot(FAO,aes(x=year,y=landings,colour=Species,lty=sp)) + geom_line() + facet_wrap(~region)
