@@ -24,7 +24,7 @@ dsources = c("RAM","Barange")
 
 sp2 <- data.frame()
 true.df <- data.frame()
-sa.col <- c("#ef8a62","#67a9cf")
+sa.col <- c("red","darkblue")
 ylabel <- c("Landings","SSB","Recruitment")
 
 d = 2; r = 5
@@ -97,7 +97,6 @@ sa.range <- range(c(std_anchovy,std_sardine))
       #      xlab="Year")
       # lines(1:nyears,std_sardine,type='l',col=sa.col[2],lwd=1.5)
       # legend("topleft",lty=c(1,1),lwd=c(1.5,1.5),legend = c("Anchovy","Sardine"),col=sa.col)
-      # 
 
 # On average, at each time scale, what is the density below 0.5 (asynchronous)?
 # This cutoff can be flexible... it's not always necessarily exactly 0.5 (see appendix)
@@ -116,7 +115,7 @@ quantile(yr5, probs=c(0.05,0.25,0.5,0.75,0.95)),
 quantile(yr10,probs=c(0.05,0.25,0.5,0.75,0.95))
 ))
 
-# For storing individual sims
+# For storing individual sims - these are values of WMR
 sp.all <- list("1yr" = do.call(rbind,synch.1), # This stores all the values from each simulation 
                "5yr" = do.call(rbind,synch.5), # TO DO: Organize so that you can save each variable/region combo separately. O_O
                "10" = do.call(rbind,synch.10)) # Then they can be plotted with the distributions from the data (standardized sts)
@@ -130,7 +129,7 @@ sp$scale <- c("less.than.5","five.ten","ten.plus")
 
  
  # Save simulations
- sp.all2 <- rbind(sp.all2,sp.all)
+ sp.all2 <- rbind(sp.all2,sp.all)         # Eek! 
  
             # pal <- beyonce_palette(11)
             # plot(1:3,sp[,2],xaxt='n',ylim=c(0,1),pch=21,bg = pal[c(1,3,5)],ylab="Prob(WMR < 0.5)", xlab="")
