@@ -125,7 +125,7 @@ megatable <- vector(length=6)
 
 for (r in 1:nregions){
 for (v in 1: nvariables){
-  xx <- try(corr.fig(region_or_subregion=regions[r],variable=variables[v],scale = "Region",data_source="Barange"))
+  xx <- try(corr.fig(region_or_subregion=regions[r],variable=variables[v],scale = "Region",data_source="RAM"))
   mt <- xx$max.table
   mt$variable=rep(variables[v],times=nrow(mt))
   mt$region=rep(regions[r],times=nrow(mt))  
@@ -145,6 +145,7 @@ Both <- rbind(RAM.summary,barange.summary)
 # RAM summary is missing some values; fill in with NA
 # RAM.summary <- RAM.summary[-which(is.inf(RAM.summary$max.var)),]
 Both <- Both[-which(is.infinite(Both$max.var)),]
+save(Both,file = "Replacement_RAM_Barange.Rdata")
 # Plot peak biomass, landings, recruitment --------------------------------
 #Change order of x axis tick labels so that sardines/anchovy in similar ecosystems are close together
 desired_order <- c("Northern Benguela anchovy","Northern Benguela sardine","Southern Benguela anchovy","Southern Benguela sardine","Anchovy South Africa","Sardine South Africa","California anchovy","California sardine","N Anchovy E Pacific","Pacific sardine Pacific Coast","Humboldt anchovy - Central Peru","Humboldt sardine - N Central Peru","Humboldt anchovy - South Peru N Chile","Humboldt sardine - South Peru N Chile","Chilean common sardine","Japanese anchovy","Japanese sardine","Bay of Biscay anchovy","European sardine")
@@ -179,21 +180,30 @@ tp2 <- dcast(tp,region+variable+datasource ~ sp,value.var="max.var")
 tp2$log.diff <- log(tp2$Anchovy)
 tp3 <- tp2 %>% mutate(log.diff = log(Anchovy/Sardine)) %>% subset(variable != "Recruitment") 
 tp3$percent.diff <- (abs(tp3$Anchovy-tp3$Sardine) / rowMeans(cbind(tp3$Anchovy,tp3$Sardine),na.rm=T) )* 100
+tp3$zeroes <- 0
 
 # Very messy replacement plot
-pdf("NewReplacementPlot.pdf",width=6,height=7,useDingbats = FALSE)
-ggplot(tp3,aes(x=log.diff,fill=region)) + 
-  geom_vline(xintercept=0,lty=2) + 
-  geom_dotplot(method="histodot",binwidth=.5,stackgroups = TRUE) + 
-  #scale_color_manual(values = c("black","darkgrey")) +
+pdf("NewReplacementPlot_black.pdf",width=10,height=3,useDingbats = FALSE)
+newpal <- c("lightgrey",beyonce_palette(78)[-1],"#F8A02E")
+ggplot(tp3,aes(x=log.diff,y=zeroes,colour=region,shape = datasource)) + 
+  geom_vline(xintercept=0,lty=2,colour="white") + 
+  geom_point(size = 5) +
+  #geom_dotplot(method="histodot",binwidth=.5,stackgroups = TRUE) + 
+  scale_color_manual(values = newpal) +
   facet_wrap(~variable,ncol = 1) + 
-  scale_fill_brewer(palette = 8,type='qual') + 
-  theme_classic(base_size = 14) + xlim(c(-3,3)) +
-  ylim(c(0,0.5))+ xlab("Log(Anchovy / Sardine)") + 
-  ylab("Count") + 
-  annotate("text",label="Sardine dominant",x=-1.75,y=.4) + 
-  annotate("text",label="Anchovy dominant",x=1.75,y=.4)
+  #scale_fill_brewer(palette = 8,type='qual') + 
+  #theme_classic(base_size = 14) + 
+  theme_black(base_size=12) +
+  xlim(c(-3,3)) +
+  xlab("Log(Anchovy / Sardine)") + 
+  ylab("") +
+  scale_y_discrete(breaks=c(-0.1,0,0.1),labels=c("","","")) +
+  annotate("text",label="Sardine dominant",x=-1.75,y=.5,colour='white') + 
+  annotate("text",label="Anchovy dominant",x=1.75,y=.5,colour='white')
 dev.off()
+      
+
+
       # Add percent differences to figure
       sb <- plot.barange[,c("sp","stock","max.var","variable","region")]
       sb2 <- dcast(sb,region+variable ~ sp,value.var="max.var")
