@@ -1,8 +1,11 @@
 
 load("~/Dropbox/Chapter3-SardineAnchovy/R files/allsardineanchovy.RData")
+source("/Users/mcsiple/Dropbox/ChapterX-synthesis/Theme_Black.R")
 library(dplyr)
 library(plyr)
 library(reshape2)
+library(ggplot2)
+library(beyonce)
 #   -----------------------------------------------------------------------
 filter(alldat,datasource=="Barange" & stock == "California anchovy")
 # Make a function to look at correlations and time series --------
@@ -146,6 +149,7 @@ Both <- rbind(RAM.summary,barange.summary)
 # RAM.summary <- RAM.summary[-which(is.inf(RAM.summary$max.var)),]
 Both <- Both[-which(is.infinite(Both$max.var)),]
 save(Both,file = "Replacement_RAM_Barange.Rdata")
+load("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/Replacement_RAM_Barange.Rdata")
 # Plot peak biomass, landings, recruitment --------------------------------
 #Change order of x axis tick labels so that sardines/anchovy in similar ecosystems are close together
 desired_order <- c("Northern Benguela anchovy","Northern Benguela sardine","Southern Benguela anchovy","Southern Benguela sardine","Anchovy South Africa","Sardine South Africa","California anchovy","California sardine","N Anchovy E Pacific","Pacific sardine Pacific Coast","Humboldt anchovy - Central Peru","Humboldt sardine - N Central Peru","Humboldt anchovy - South Peru N Chile","Humboldt sardine - South Peru N Chile","Chilean common sardine","Japanese anchovy","Japanese sardine","Bay of Biscay anchovy","European sardine")
@@ -181,17 +185,34 @@ tp2$log.diff <- log(tp2$Anchovy)
 tp3 <- tp2 %>% mutate(log.diff = log(Anchovy/Sardine)) %>% subset(variable != "Recruitment") 
 tp3$percent.diff <- (abs(tp3$Anchovy-tp3$Sardine) / rowMeans(cbind(tp3$Anchovy,tp3$Sardine),na.rm=T) )* 100
 tp3$zeroes <- 0
+tp3$variable <- revalue(tp3$variable,c("SSB"="Biomass"))
+# New replacement plot for paper
+pdf("NewReplacementPlot.pdf",width=10,height=3,useDingbats = FALSE)
+newpal <- c("darkgrey",beyonce_palette(78)[-1],"#F8A02E")
+ggplot(tp3,aes(x=log.diff,y=zeroes,colour=region,shape = datasource)) + 
+  geom_vline(xintercept=0,lty=2) + 
+  geom_point(size = 5) +
+  scale_colour_manual(values = newpal) +
+  #scale_shape_manual(values = c(21,24)) +
+  facet_wrap(~variable,ncol = 1) + 
+  theme_classic(base_size = 14) + 
+  xlim(c(-3,3)) +
+  xlab("Log(Anchovy / Sardine)") + 
+  ylab("") +
+  scale_y_discrete(breaks=c(-0.1,0,0.1),labels=c("","","")) +
+  annotate("text",label="Sardine dominant",x=-1.75,y=.5,colour='white') + 
+  annotate("text",label="Anchovy dominant",x=1.75,y=.5,colour='white')
+dev.off()
 
-# Very messy replacement plot
+# New replacement plot for defense slides
 pdf("NewReplacementPlot_black.pdf",width=10,height=3,useDingbats = FALSE)
 newpal <- c("lightgrey",beyonce_palette(78)[-1],"#F8A02E")
-ggplot(tp3,aes(x=log.diff,y=zeroes,colour=region,shape = datasource)) + 
+ggplot(tp3,aes(x=log.diff,y=zeroes)) + #colour=region,shape = datasource
   geom_vline(xintercept=0,lty=2,colour="white") + 
-  geom_point(size = 5) +
+  geom_point(size = 5,alpha=0.7,colour='white') + #colour="white",
   #geom_dotplot(method="histodot",binwidth=.5,stackgroups = TRUE) + 
-  scale_color_manual(values = newpal) +
+  #scale_color_manual(values = newpal) +
   facet_wrap(~variable,ncol = 1) + 
-  #scale_fill_brewer(palette = 8,type='qual') + 
   #theme_classic(base_size = 14) + 
   theme_black(base_size=12) +
   xlim(c(-3,3)) +
@@ -204,13 +225,14 @@ dev.off()
       
 
 
-      # Add percent differences to figure
-      sb <- plot.barange[,c("sp","stock","max.var","variable","region")]
-      sb2 <- dcast(sb,region+variable ~ sp,value.var="max.var")
-      sb2$Percent.diff <- abs(sb2$Anchovy - sb2$Sardine) / ((abs(sb2$Anchovy) + abs(sb2$Sardine ))/2) * 100
-      # Originally this was % change, so it could show directionality, but %diff is actually a different value
-      sb2$Absolute.diff <- sb2$Anchovy - sb2$Sardine
-      toplot <- merge(plot.barange,sb2)
+# Back to bar plots -------------------------------------------------------
+# Add percent differences to figure
+sb <- plot.barange[,c("sp","stock","max.var","variable","region")]
+sb2 <- dcast(sb,region+variable ~ sp,value.var="max.var")
+sb2$Percent.diff <- abs(sb2$Anchovy - sb2$Sardine) / ((abs(sb2$Anchovy) + abs(sb2$Sardine ))/2) * 100
+# Originally this was % change, so it could show directionality, but %diff is actually a different value
+sb2$Absolute.diff <- sb2$Anchovy - sb2$Sardine
+toplot <- merge(plot.barange,sb2)
 
 setwd("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures")
 pdf(file = "peaks_stocks_both.pdf",width = 6, height = 5,pointsize=16,useDingbats = FALSE)
@@ -283,8 +305,6 @@ dev.off()
 # Sample time series for talks --------------------------------------------
 
 sample <- subset(alldat,datasource=="RAM" & region =="California" )
-
-
 setwd("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures")
 pdf("SampleCA_presentation.pdf",width=12,height = 7)
 ggplot(sample,aes(x=year,y=ssb/1000,colour=sp)) + 
