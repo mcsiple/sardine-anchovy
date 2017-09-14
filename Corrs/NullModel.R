@@ -16,6 +16,7 @@ library(beyonce)
 load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Barange_States.RData") # data frame: RB
 figwd <- "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures"
 setwd(figwd)
+source("/Users/mcsiple/Dropbox/ChapterX-synthesis/Theme_Black.R")
 
 # Subset data to use ------------------------------------------------------
 variables = c("landings","ssb","rec")
@@ -129,7 +130,7 @@ sp$scale <- c("less.than.5","five.ten","ten.plus")
 
  
  # Save simulations
- sp.all2 <- rbind(sp.all2,sp.all)         # Eek! 
+ #sp.all2 <- rbind(sp.all2,sp.all)         # Eek! 
  
             # pal <- beyonce_palette(11)
             # plot(1:3,sp[,2],xaxt='n',ylim=c(0,1),pch=21,bg = pal[c(1,3,5)],ylab="Prob(WMR < 0.5)", xlab="")
@@ -195,21 +196,33 @@ list.results[[4]] <- sp2
 df <- ldply (list.results, data.frame)
 df <- subset(df, datasource=="Barange")
 save(df,file = "NullModelDistributions_07cutoff_std.RData")
+save(true.df,file = "TrueDF.RData")
 
-pdf("ExpectationPlot_07cutoff.pdf",width=8,height=7,useDingbats = FALSE)
+true.df$ou <- NA
+true.df$ou[which(true.df$obs>df$X95.)] <- "Asynchronous"
+true.df$ou[which(true.df$obs<df$X5.)] <- "Synchronous"
+# Start here if not running sims again! -----------------------------------
+load("NullModelDistributions_07cutoff_std.RData")
+load("TrueDF.RData")
+
+df <- df %>% subset(variable != "rec")
+true.df <- true.df %>% subset(variable !="rec")
+
+pdf("ExpectationPlot_07cutoff_black.pdf",width=8,height=7,useDingbats = FALSE)
 ggplot(df, aes(x=scale,y=X50.)) + 
   #geom_point(size=0.5) + 
   facet_grid(region~variable) + 
-  scale_x_discrete(limits=c("ten.plus","five.ten","less.than.5")) +
+  scale_x_discrete(limits=c("ten.plus","five.ten","less.than.5"),labels=c("10+","5-10","<5 yrs")) +
   coord_flip() +
-  geom_linerange(aes(x=scale, ymin = X5.,ymax=X95.),lwd=0.7,colour='darkgrey') +
-  geom_linerange(aes(x=scale,ymin=X50.,ymax=X75.),lwd=1.5,colour="darkgrey") +
-  theme_classic(base_size=14) +
+  geom_linerange(aes(x=scale, ymin = X5.,ymax=X95.),lwd=1.1,colour='darkgrey') +
+  geom_linerange(aes(x=scale,ymin=X50.,ymax=X75.),lwd=2.5,colour="darkgrey") +
+  #theme_classic(base_size=14) +
   geom_point(data = true.df,
-             aes(x=scale,y=obs)) +
+             aes(x=scale,y=obs,colour=ou),size=4) +
   theme(strip.background = element_blank()) +
   ylab("Degree of asynchrony") +
-  xlab("Time scale")
+  xlab("Time scale") +
+  theme_black(base_size=14)
 dev.off()
 
 #dev.off()
