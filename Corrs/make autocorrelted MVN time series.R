@@ -10,7 +10,7 @@ require(ggplot2)
 figwd = "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures"
 
 # Matrix of autocorrelation terms
-rho <- matrix(c(0.9,0,0,0.9),nrow=2,byrow=T) # used to be 0.8 and 0.8
+rho <- matrix(c(0.7,0,0,0.7),nrow=2,byrow=T) # used to be 0.8 and 0.8
 # Create variance covariance matrix
 Sigma <- matrix(0, nrow=2, ncol=2)
 diag(Sigma) <- c(0.6,0.6) # These are the sigma values used for both anchovy and sardine in chapter 3
@@ -46,18 +46,17 @@ for (i in 2:100) {
 
 test <- y
 
-plot(1:100,y[,1], type = "l", lwd = 2, col = "black")
-lines(1:100, y[,2], type = "l", lwd = 2, col = "gray")
+plot(1:100,y[,1], type = "l", lwd = 2, col = "yellow")
+lines(1:100, y[,2], type = "l", lwd = 2, col = "lightyellow")
 
 # 
 #Function to do the same
 generate.sa <- function(diag.sigma = c(0.6,0.6),
                         true.covar = 0,
                         nyears = 100, rho = matrix(c(0.8,0,0,0.8),nrow=2,byrow=T)){
-  #rho <- matrix(c(0.8,0,0,0.8),nrow=2,byrow=T) 
   # Create variance covariance matrix
   Sigma <- matrix(0, nrow=2, ncol=2)
-  diag(Sigma) <- diag.sigma # These are the sigma values used for both anchovy and sardine in chapter 3
+  diag(Sigma) <- diag.sigma             # These are the sigma values used for both anchovy and sardine in chapter 3
   Sigma[1,2]<- true.covar * Sigma[1,1]  # Add some negative correlation between the two time series
   Sigma[2,1]<- true.covar * Sigma[1,1]
   # beta is the kroneker product of the rho matrix 
