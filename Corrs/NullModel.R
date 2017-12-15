@@ -34,6 +34,7 @@ for(v in 1:3){
 data.points <- subset(RB,datasource == dsources[d] & 
                         region == regions[r] & 
                         variable == variables[v])
+
 if(nrow(data.points)==0 | length(unique(data.points$Sardine.est))==1 |
    length(unique(data.points$Anchovy.est))==1){print("one time series missing - STOP")}
 
@@ -44,6 +45,14 @@ if(all(is.na(std_sardine))) std_sardine <- rep(NA, times=length(std_sardine)) # 
 std_anchovy <- as.numeric(scale(data.points$Anchovy.est)) #data.points$Anchovy.est - mean(data.points$Anchovy.est)
 if(all(is.na(std_anchovy))) std_sardine <- rep(NA, times=length(std_anchovy))
 
+# Plot an example of standardized time series
+# pd <- data.frame(year = c(1:length(std_anchovy),1:length(std_sardine)),
+#                 sp= c(rep("Anchovy",times=length(std_anchovy)),
+#                       rep("Sardine",times=length(std_sardine))),
+#                 std.B = c(std_anchovy,std_sardine))
+# pdf("EgPlot_Surrogates.pdf",width=8,height=5,useDingbats = F)
+# ggplot(pd,aes(x=year,y=std.B,colour=sp)) + geom_line(lwd=1.2) + scale_colour_manual(values=c("#ef8a62","#67a9cf")) +theme_black()
+# dev.off()
 # Simulate 100 time series of the same spectral characteristics as sardine and anchovy.
 sardine_phase <- surrogate(data.points$Sardine.est,method = "phase")
 #plot(1:length(sardine_phase),sardine_phase,type='l',ylim=range(c(sardine_phase,std_sardine)))
@@ -51,6 +60,15 @@ sardine_phase <- surrogate(data.points$Sardine.est,method = "phase")
 anchovy_phase <- surrogate(data.points$Anchovy.est,method = 'phase')
 #plot(1:length(anchovy_phase),anchovy_phase,type='l',ylim=range(c(anchovy_phase,std_anchovy)))
 #lines(1:nrow(data.points),std_sardine,col='red')
+
+# Plot surrogate time series
+#  pd <- data.frame(year = c(1:length(anchovy_phase),1:length(sardine_phase)),
+# sp= c(rep("Anchovy",times=length(anchovy_phase)),
+#       rep("Sardine",times=length(sardine_phase))),
+# std.B = c(as.numeric(scale(anchovy_phase)),as.numeric(scale(sardine_phase))))
+#  pdf("EgPlot_Surrogates2.pdf",width=8,height=5,useDingbats = F)
+# ggplot(pd,aes(x=year,y=std.B,colour=sp)) + geom_line(lwd=1.2) + scale_colour_manual(values=c("#ef8a62","#67a9cf")) +theme_black()
+#  dev.off()
 
 # Generate surrogate time series from the data
 nsims = 1000
@@ -198,27 +216,32 @@ df <- subset(df, datasource=="Barange")
 save(df,file = "NullModelDistributions_07cutoff_std.RData")
 save(true.df,file = "TrueDF.RData")
 
-true.df$ou <- NA
-true.df$ou[which(true.df$obs>df$X95.)] <- "Asynchronous"
-true.df$ou[which(true.df$obs<df$X5.)] <- "Synchronous"
+
 # Start here if not running sims again! -----------------------------------
 load("NullModelDistributions_07cutoff_std.RData")
 load("TrueDF.RData")
+true.df$ou <- NA
+true.df$ou[which(true.df$obs>df$X95.)] <- "Asynchronous"
+true.df$ou[which(true.df$obs<df$X5.)] <- "Synchronous"
 
 df <- df %>% subset(variable != "rec")
 true.df <- true.df %>% subset(variable !="rec")
+true.df$ou[is.na(true.df$ou)] <- "not.significant" 
+pali <- c(beyonce_palette(48)[3],"grey",
+          beyonce_palette(48)[6])
 
 pdf("ExpectationPlot_07cutoff_black.pdf",width=8,height=7,useDingbats = FALSE)
 ggplot(df, aes(x=scale,y=X50.)) + 
   #geom_point(size=0.5) + 
   facet_grid(region~variable) + 
-  scale_x_discrete(limits=c("ten.plus","five.ten","less.than.5"),labels=c("10+","5-10","<5 yrs")) +
+  scale_x_discrete(limits=c("ten.plus","five.ten","less.than.5"),labels=c("Long-term","Medium","Short")) +
   coord_flip() +
   geom_linerange(aes(x=scale, ymin = X5.,ymax=X95.),lwd=1.1,colour='darkgrey') +
   geom_linerange(aes(x=scale,ymin=X50.,ymax=X75.),lwd=2.5,colour="darkgrey") +
   #theme_classic(base_size=14) +
   geom_point(data = true.df,
              aes(x=scale,y=obs,colour=ou),size=4) +
+  scale_colour_manual("",labels = c("Asynchronous","not significant","Synchronous"),values=pali) +
   theme(strip.background = element_blank()) +
   ylab("Degree of asynchrony") +
   xlab("Time scale") +
