@@ -72,14 +72,21 @@ for(i in 1:3){
 
 #head(sim.df)
 
+add.alpha <- function(col, alpha=1){
+  if(missing(col))
+    stop("Please provide a vector of colours.")
+  apply(sapply(col, col2rgb)/255, 2, 
+        function(x) 
+          rgb(x[1], x[2], x[3], alpha=alpha))  
+}
 
 # Plot all the time series with different covariances ---------------------
 setwd(figwd)
-pdf("ExampleCovariance.pdf",width=9,height=4,useDingbats = FALSE)
+pdf("ExampleCovariance_v2.pdf",width=9,height=5,useDingbats = FALSE)
 par(mfrow=c(1,1))
 set.seed(123)
 asyn <- generate.sa(true.covar = -0.9,rho=rho.sim)
-plot(1:nrow(asyn),asyn[,1],type='l',col="darkblue",xlim=c(0,120))
+plot(1:nrow(asyn),asyn[,1],type='l',col="darkblue",xlim=c(0,120),ylab="Standardized biomass",xlab="Year",las=1)
 lines(1:nrow(asyn),asyn[,2],col="red")
 
 true.covar.vec <- c(-0.9,-0.75,-0.5,-0.25)
@@ -90,7 +97,9 @@ asyn <- generate.sa(true.covar = true.covar.vec[i],rho=rho.sim)
 lines(1:nrow(asyn),asyn[,1],col=adjustcolor("darkblue",alpha.f=alpha.vec[i]))
 lines(1:nrow(asyn),asyn[,2],col=adjustcolor("red",alpha.f=alpha.vec[i]))
 }
-legend("right",lty=c(1,1),col=c("darkblue","red"),legend = c("Sardine","Anchovy"))
+legend("right",lty=c(1,1,NA,NA,1,1,1,1),
+       col=c("darkblue","red",NA,NA,add.alpha("black",alpha=rev(alpha.vec))),
+       legend = c("Sardine","Anchovy","","Covariance",rev(as.character(true.covar.vec))),bty = 'n')
 
 dev.off()
 
