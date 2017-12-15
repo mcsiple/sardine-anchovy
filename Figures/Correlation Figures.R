@@ -24,15 +24,23 @@ corr.fig <- function(data = alldat, region_or_subregion = "Benguela", scale = "R
     #dataset <- subset(dataset,datasource == datasource)
     #print(dataset)
   if(variable=="landings"){
-    lt.maxes <- ddply(.data=dataset,.(sp,stock),summarize,max.var=round(max(landings,na.rm=TRUE),2))} 
+    lt.maxes <- ddply(.data=dataset,.(sp,stock),summarize,max.var=round(max(landings,na.rm=TRUE),2))
+    lt.medians <- ddply(.data=dataset,.(sp,stock),summarize,median.var=round(median(landings,na.rm=TRUE),2))
+    } 
   if(variable=="ssb"){
-    lt.maxes <- ddply(.data=dataset,.(sp,stock),summarize,max.var=round(max(ssb,na.rm=TRUE),2))}
+    lt.maxes <- ddply(.data=dataset,.(sp,stock),summarize,max.var=round(max(ssb,na.rm=TRUE),2))
+    lt.medians <- ddply(.data=dataset,.(sp,stock),summarize,median.var=round(median(ssb,na.rm=TRUE),2))
+    }
   if(variable=="rec"){
-    lt.maxes <- ddply(.data=dataset,.(sp,stock),summarize,max.var=round(max(rec,na.rm=TRUE),2))}
+    lt.maxes <- ddply(.data=dataset,.(sp,stock),summarize,max.var=round(max(rec,na.rm=TRUE),2))
+    lt.medians <- ddply(.data=dataset,.(sp,stock),summarize,median.var=round(median(rec,na.rm=TRUE),2))
+    }
   if(variable=="fishing.mortality"){
-    lt.maxes <- ddply(.data=dataset,.(sp,stock),summarize,max.var=round(max(fishing.mortality,na.rm=TRUE),2))}
+    lt.maxes <- ddply(.data=dataset,.(sp,stock),summarize,max.var=round(max(fishing.mortality,na.rm=TRUE),2))
+    lt.medians <- ddply(.data=dataset,.(sp,stock),summarize,median.var=round(median(fishing.mortality,na.rm=TRUE),2))
+    }
   #print(lt.maxes)
-  
+  print(lt.medians)
   #anchovy stats
   #if(!"Anchovy" %in% lt.maxes.sp){print("No anchovy time series")}
   a.only <- subset(lt.maxes, lt.maxes$sp=="Anchovy")
@@ -102,7 +110,10 @@ corr.fig <- function(data = alldat, region_or_subregion = "Benguela", scale = "R
   }
   
   return(list(correlation = correlation,Dom_anch_LTmax=as.character(lt.max.sp),
-             Dom_sard_LTmax=as.character(lt.max.sp.sar),dom.anch = dom.a.ts,dom.sard = dom.s.ts,max.table = lt.maxes))
+             Dom_sard_LTmax=as.character(lt.max.sp.sar),
+             dom.anch = dom.a.ts,dom.sard = dom.s.ts,
+             max.table = lt.maxes,
+             median.table = lt.medians))
   
           # print(kem.sa.CIs$par.upCI)
           # print(kem.sa.CIs$par.lowCI)
@@ -128,13 +139,12 @@ megatable <- vector(length=6)
 
 for (r in 1:nregions){
 for (v in 1: nvariables){
-  xx <- try(corr.fig(region_or_subregion=regions[r],variable=variables[v],scale = "Region",data_source="RAM"))
-  mt <- xx$max.table
+  xx <- try(corr.fig(region_or_subregion=regions[r],variable=variables[v],scale = "Region",data_source="Barange"))
+  mt <- xx$median.table    #xx$max.table
   mt$variable=rep(variables[v],times=nrow(mt))
   mt$region=rep(regions[r],times=nrow(mt))  
   mt$domsard <- xx$Dom_sard_LTmax
   mt$domanch <- xx$Dom_anch_LTmax
-  
   megatable <- rbind(megatable,mt)
 }
 }
@@ -147,8 +157,9 @@ barange.summary$datasource <- "Barange"
 Both <- rbind(RAM.summary,barange.summary)
 # RAM summary is missing some values; fill in with NA
 # RAM.summary <- RAM.summary[-which(is.inf(RAM.summary$max.var)),]
-Both <- Both[-which(is.infinite(Both$max.var)),]
-save(Both,file = "Replacement_RAM_Barange.Rdata")
+Both <- Both[-which(is.infinite(Both$median.var)),]
+#Both <- Both[-which(is.infinite(Both$max.var)),]
+save(Both,file = "Replacement_RAM_Barange_MEDIAN.Rdata")
 load("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/Replacement_RAM_Barange.Rdata")
 # Plot peak biomass, landings, recruitment --------------------------------
 #Change order of x axis tick labels so that sardines/anchovy in similar ecosystems are close together
@@ -179,15 +190,15 @@ plot.both <- mutate(both.summary,variable = revalue(variable, c("ssb" = "SSB",
 sa.col <- c("#ef8a62","#67a9cf")
 
 # Add percent differences to 'both' figure:
-tp <- plot.both[,c("sp","stock","max.var","variable","region","datasource")]
-tp2 <- dcast(tp,region+variable+datasource ~ sp,value.var="max.var")
-tp2$log.diff <- log(tp2$Anchovy)
+tp <- plot.both[,c("sp","stock","median.var","variable","region","datasource")] #"max.var"
+tp2 <- dcast(tp,region+variable+datasource ~ sp,value.var="median.var")
+#tp2$log.diff <- log(tp2$Anchovy)
 tp3 <- tp2 %>% mutate(log.diff = log(Anchovy/Sardine)) %>% subset(variable != "Recruitment") 
 tp3$percent.diff <- (abs(tp3$Anchovy-tp3$Sardine) / rowMeans(cbind(tp3$Anchovy,tp3$Sardine),na.rm=T) )* 100
 tp3$zeroes <- 0
 tp3$variable <- revalue(tp3$variable,c("SSB"="Biomass"))
 # New replacement plot for paper
-pdf("NewReplacementPlot.pdf",width=10,height=3,useDingbats = FALSE)
+pdf("NewReplacementPlot_medians.pdf",width=10,height=3,useDingbats = FALSE)
 newpal <- c("darkgrey",beyonce_palette(78)[-1],"#F8A02E")
 ggplot(tp3,aes(x=log.diff,y=zeroes,colour=region,shape = datasource)) + 
   geom_vline(xintercept=0,lty=2) + 
@@ -205,13 +216,12 @@ ggplot(tp3,aes(x=log.diff,y=zeroes,colour=region,shape = datasource)) +
 dev.off()
 
 # New replacement plot for defense slides
-pdf("NewReplacementPlot_black.pdf",width=10,height=3,useDingbats = FALSE)
-newpal <- c("lightgrey",beyonce_palette(78)[-1],"#F8A02E")
+pdf("NewReplacementPlot_black2.pdf",width=10,height=3,useDingbats = FALSE)
+newpal <- c("lightyellow",beyonce_palette(78)[-1],"#F8A02E")
 ggplot(tp3,aes(x=log.diff,y=zeroes)) + #colour=region,shape = datasource
   geom_vline(xintercept=0,lty=2,colour="white") + 
-  geom_point(size = 5,alpha=0.7,colour='white') + #colour="white",
-  #geom_dotplot(method="histodot",binwidth=.5,stackgroups = TRUE) + 
-  #scale_color_manual(values = newpal) +
+  geom_point(size = 5,colour="white",alpha=0.7) + #
+  scale_color_manual(values = newpal) +
   facet_wrap(~variable,ncol = 1) + 
   #theme_classic(base_size = 14) + 
   theme_black(base_size=12) +
