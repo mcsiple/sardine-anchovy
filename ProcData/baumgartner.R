@@ -24,3 +24,4 @@ for(i in 1:nrow(dat)){
 
 sard = subset(dat, sp=="sardine")
 1e6 * quantile(sard$biomass,probs = c(0.25,0.75))
+# Check timescale, which will help w spectral analysis...
