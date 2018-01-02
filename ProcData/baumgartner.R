@@ -1,5 +1,6 @@
 # Baumgartner data - sardine-anchovy
 # 
+
 basedir <- "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Datasets/Baumgartner"
 dat <- read.csv(file.path(basedir,"sardineanchovyBaumgartner.csv")) # units of scale dep are number/1000cm^2/yr
 # These are averages across two piston cores (extracted from Fig 4 in Baumgartner et al. 1992)
@@ -21,6 +22,12 @@ for(i in 1:nrow(dat)){
   else {dat$biomass[i] <- 0.092*dat$sdr[i] + 0.206} # biomass units: x 10^6
 }
 
+# Plot biomass over time
+ggplot(dat,aes(x=year.approx,y=biomass)) + 
+  geom_line() + 
+  facet_wrap(~sp,scales = "free_y",ncol=1) + 
+  ylab("Biomass (mt * 10^6)") +
+  theme_classic()         
 
 sard = subset(dat, sp=="sardine")
 1e6 * quantile(sard$biomass,probs = c(0.25,0.75))
