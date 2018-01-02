@@ -53,5 +53,5 @@ extract.maxes <- function(data = alldat, region_or_subregion = "Benguela", scale
  
 }  #End of extract.maxes fxn
 
-extract.maxes(data = alldat,region_or_subregion = "Benguela",)
+# extract.maxes(data = alldat,region_or_subregion = "Benguela")
 
