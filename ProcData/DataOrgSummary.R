@@ -77,7 +77,7 @@ unique(data.summary[,c('datasource','region','domanch','domsard')])
 #write.csv(alldat,"Data-check.csv")
 
 
-# Dominant species code doesn’t work for FAO data…. testing ---------------
+# Dominant species code doesn’t work for FAO data… need to figure out this part ---------------
 
 load("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Datasets/FAO/FAO.Rdata")
 ggplot(FAO,aes(x=year,y=landings,colour=Species,lty=sp)) + geom_line() + facet_wrap(~region)
