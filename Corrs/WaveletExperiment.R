@@ -21,7 +21,7 @@ lines(1:nrow(y),y[,2],col='red')
 # In order to get numbers for all years for patchy data sets, use MARSS to get states. 
 # This is a simple way to fill in a few spaces, most datasets do not have a lot of NAs.
 # Five LMEs: NE Atlantic, Benguela, California, Kuroshio-Oyashio, Humboldt
-load("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/R files/allsardineanchovy.RData")
+load("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/R files/allsardineanchovy.RData") # data frame: alldat
 source("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/Corrs/getMARSSstates.R")
 data.list <- list()
 region.list <- list()
