@@ -14,6 +14,7 @@ ggplot(dat,aes(x=year.approx,y=sdr)) +
   theme_classic()             
 
 # Per the paper, can convert SDR to biomass using the following regressions
+# This regression is based on 5-year averages
 # sardine_B <- 0.767*SDR + 0.416
 # anchovy_B <- 0.092*SDR + 0.206
 dat$biomass <- NA
@@ -31,4 +32,4 @@ ggplot(dat,aes(x=year.approx,y=biomass)) +
 
 sard = subset(dat, sp=="sardine")
 1e6 * quantile(sard$biomass,probs = c(0.25,0.75))
-# Check timescale, which will help w spectral analysis...
+# SAMPLE TIMESCALE: 10 YEARS! - They do spectral analysis looking at periods only longer than 50 years
