@@ -6,7 +6,7 @@ library(plyr)
 
 # This function takes variable, region, and returns the dominant sardine and anchovy in that ecosystem
 
-extract.maxes <- function(data = alldat, region_or_subregion = "Benguela", scale = "Region", data_source = "Barange", variable = "landings"){
+extract.maxes <- function(data = alldat, region_or_subregion, scale = "Region", data_source, variable = "landings"){
   # data = dataset including the time series you're interested in
   # Region = 1 of 5 LMEs (Benguela, California, NE Atlantic, Kuroshio-Oyashio, Humboldt)
   # variable = the variable (rec, biomass, or landings) 
