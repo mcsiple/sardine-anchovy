@@ -3,7 +3,9 @@
 
 setwd("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/Corrs")
 source("ExtractMaxes.R")
-data.all <- alldat
+load("~/Dropbox/Chapter3-SardineAnchovy/Datasets/allsardineanchovy.RData") # all the data!
+data.all <- alldat 
+
 region.max.ssb <- matrix(NA,nrow=nrow(data.all),ncol=2)
 # Test extract maxes function
 # extract.maxes(data = alldat,region_or_subregion = alldat$region[840],scale = "Region", # row 840 is the first FAO data point

@@ -1,4 +1,4 @@
-load("~/Dropbox/Chapter3-SardineAnchovy/Datasets/allsardineanchovy.RData")
+
 library(dplyr)
 library(plyr)
 
