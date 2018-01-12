@@ -5,6 +5,11 @@ setwd("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/Corrs")
 source("ExtractMaxes.R")
 data.all <- alldat
 region.max.ssb <- matrix(NA,nrow=nrow(data.all),ncol=2)
+# Test extract maxes function
+# extract.maxes(data = alldat,region_or_subregion = alldat$region[840],scale = "Region", # row 840 is the first FAO data point
+#               data_source = alldat$datasource[840],
+#               variable = "landings" ) 
+
 for(i in 1:nrow(alldat)){
   region.max.ssb[i,1] <- as.character(extract.maxes(region_or_subregion = alldat$region[i], 
                                                     scale = "Region",
