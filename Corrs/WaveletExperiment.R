@@ -2,6 +2,7 @@
 # install.packages("mvcwt")
 library(mvcwt)
 
+
 # Example from vignette ---------------------------------------------------
 # With sample data from mvcwt
 data(lrlake)
@@ -31,7 +32,6 @@ variables <- c("rec","ssb","landings")
 
 d=1
  for(r in 1:length(regions)){
-# Need to fix FAO data before using this function on them.
       var.list <- list()
       region = regions[r]
       data_source = dsources[d]
