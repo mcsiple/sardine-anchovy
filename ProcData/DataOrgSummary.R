@@ -77,14 +77,13 @@ data.summary <- data.all[,-c(ncol(data.all)-1,ncol(data.all))] %>%
 unique(data.summary[,c('datasource','region','domanch','domsard')])
 
 
+# Fix these later
 #write.csv(data.summary,"Data-summary.csv")
 #ts.summary <- data.summary %>% group_by(datasource,region,stock,nyears.data,domanch,domsard) %>% summarize()
-
 #subset(alldat,datasource=="RAM" & scientificname == "Engraulis encrasicolus" & stock=="Anchovy ICES VIII" & sp=="Anchovy" & region=="NE Atlantic")
 #write.csv(alldat,"Data-check.csv")
 
 
-# Dominant species code doesn’t work for FAO data… need to figure out this part ---------------
-
+# TODO: Make sure dominant species function works with FAO data - should work as of 1/16/17 ---------------
 load("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Datasets/FAO/FAO.Rdata")
 ggplot(FAO,aes(x=year,y=landings,colour=Species,lty=sp)) + geom_line() + facet_wrap(~region)
