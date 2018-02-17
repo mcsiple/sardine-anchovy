@@ -3,6 +3,9 @@
 
 setwd("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/Corrs")
 source("ExtractMaxes.R")
+library(reshape2)
+library(ggplot2)
+
 load("~/Dropbox/Chapter3-SardineAnchovy/Datasets/allsardineanchovy.RData") # all the data!
 data.all <- alldat 
 
@@ -45,14 +48,15 @@ dm.standardized <- domstocks %>%
   group_by(datasource,scientificname,region,stock,domanch,domsard) %>% 
   mutate(ssb.st = ssb / mean(ssb,na.rm=T),
          rec.st = rec / mean(rec,na.rm=T),
-         landings.st = landings / mean(landings,na.rm=T)) %>%
-  as.data.frame()
+         landings.st = landings / mean(landings,na.rm=T)) %>%as.data.frame()
+        #select(datasource,scientificname,stock,sp,region,subregion,domanch,domsard,dom.a,dom.s,year, ssb,rec,landings) %>%
+  
 
-dm.standardized <- dm.standardized[,-(5:8)]
+#dm.standardized <- dm.standardized %>% select('datasource','scientificname','stock','sp','region','subregion','domanch','domsard','dom.a','dom.s','year')
 md <- melt(dm.standardized, id.vars=c('datasource','scientificname','stock','sp','region','subregion','domanch','domsard','dom.a','dom.s','year'))
 sa.col <- c("red","darkblue")
 levels(md$variable)
-levels(md$variable) = c("SSB","Recruitment","Landings")
+levels(md$variable) = c("Total Catch","SSB","Recruitment","Landings")
 
 
 figwd <- "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures"
