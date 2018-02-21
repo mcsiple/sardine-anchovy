@@ -39,17 +39,18 @@ RAM.new <- data.frame(datasource=rep("RAM",times=nrow(RAM)),
                       subregion=rep(NA,times=nrow(RAM)))
 
 FAO[grep("Southern African pilchard",FAO$Species), 2] <- "Africa"
-FAO.new <- data.frame(datasource=rep("FAO",times=nrow(FAO)),
+FAO.new <- data.frame(datasource="FAO",
                       scientificname=FAO$Scientific.name,
                       stock=paste(FAO$Ocean.Area,FAO$Land.Area), # This is just so that there is a stock name - needed for future comparisons
                       year=FAO$year,
-                      ssb=rep(NA,times=nrow(FAO)),
-                      rec=rep(NA,times=nrow(FAO)),
+                      ssb=NA,
+                      rec=NA,
                       landings=FAO$landings,
                       fishing.mortality=rep(NA,times=nrow(FAO)),
                       sp=FAO$sp,
                       region=FAO$region,subregion=FAO$Land.Area)
 
+FAO.new$year <- as.numeric(levels(FAO.new$year))[FAO.new$year]
 
 # Output just one species for ADMB
 # European pilchard, 34 years of data
@@ -59,7 +60,6 @@ FAO.new <- data.frame(datasource=rep("FAO",times=nrow(FAO)),
 
 colnames(barange.new)
 alldat <- rbind.fill(list(barange.new,RAM.new,FAO.new))
-alldat$year <- as.numeric(alldat$year)
 
 # Save the huge dataset!
 save(alldat,file="allsardineanchovy.RData")
