@@ -56,7 +56,8 @@ dm.standardized <- domstocks %>%
 md <- melt(dm.standardized, id.vars=c('datasource','scientificname','stock','sp','region','subregion','domanch','domsard','dom.a','dom.s','year'))
 sa.col <- c("red","darkblue")
 levels(md$variable)
-levels(md$variable) = c("Total Catch","SSB","Recruitment","Landings")
+
+levels(md$variable) = c("SSB","Rec","Landings","Fishing.mortality","Total.catch","SSB.st","Rec.st","Landings.st")
 
 
 figwd <- "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures"
