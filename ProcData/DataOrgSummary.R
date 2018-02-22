@@ -11,9 +11,9 @@ data.all <- alldat
 
 region.max.ssb <- matrix(NA,nrow=nrow(data.all),ncol=2)
 # Test extract maxes function
-# extract.maxes(data = alldat,region_or_subregion = alldat$region[840],scale = "Region", # row 840 is the first FAO data point
-#               data_source = alldat$datasource[840],
-#               variable = "landings" )
+extract.maxes(data = alldat,region_or_subregion = alldat$region[840],scale = "Region", # row 840 is the first FAO data point
+              data_source = alldat$datasource[840],
+              variable = "landings" )
 
 for(i in 1:nrow(alldat)){
   region.max.ssb[i,1] <- as.character(extract.maxes(region_or_subregion = alldat$region[i], 
@@ -49,28 +49,26 @@ dm.standardized <- domstocks %>%
   mutate(ssb.st = ssb / mean(ssb,na.rm=T),
          rec.st = rec / mean(rec,na.rm=T),
          landings.st = landings / mean(landings,na.rm=T)) %>%as.data.frame()
-        #select(datasource,scientificname,stock,sp,region,subregion,domanch,domsard,dom.a,dom.s,year, ssb,rec,landings) %>%
+        #select(datasource,scientificname,stock,sp,region,subregion,domanch,domsard,dom.a,dom.s,year, ssb,rec,landings)
   
-
-#dm.standardized <- dm.standardized %>% select('datasource','scientificname','stock','sp','region','subregion','domanch','domsard','dom.a','dom.s','year')
 md <- melt(dm.standardized, id.vars=c('datasource','scientificname','stock','sp','region','subregion','domanch','domsard','dom.a','dom.s','year'))
-sa.col <- c("red","darkblue")
-levels(md$variable)
+sa.col <- c("red","darkblue") # colors for plot
 
+levels(md$variable)
 levels(md$variable) = c("SSB","Rec","Landings","Fishing.mortality","Total.catch","SSB.st","Rec.st","Landings.st")
 
 
 figwd <- "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures"
 setwd(figwd)
 pdf("Summary_Dominant_Stocks.pdf",width = 8,height = 7,useDingbats = FALSE)
-ggplot(md, aes(x=year,y=value,colour=sp,linetype=datasource)) + 
+ggplot(md, aes(x=year,y=value,colour=datasource,linetype=sp)) + 
   geom_line(lwd=0.6) + 
   scale_linetype("Data source") +
-  facet_grid(region~variable,scales="free_y") +
+  facet_grid(variable~region,scales="free_y") +
   theme_classic() +
   xlab("Year") +
-  ylab("Standardized value") +
-  scale_colour_manual("Species",values = sa.col)
+  ylab("Standardized value")# +
+  #scale_colour_manual("Species",values = sa.col)
 dev.off()
 
 
