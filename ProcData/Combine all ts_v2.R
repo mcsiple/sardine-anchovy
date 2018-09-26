@@ -3,18 +3,18 @@
 # NOTE: One important thing this code does is turn the "NA" stocks in the FAO database into fake stocks.
 # For example, there is a time series of sardine in land area "Europe" and one in land area "-"
 
-basedir <- "~/Dropbox/Chapter3-SardineAnchovy"
+#basedir <- "~/Dropbox/Chapter3-SardineAnchovy"
+datadir <- "C:/Users/Megsie Siple/Dropbox/Chapter3-SardineAnchovy/Datasets"
 
-load(file.path(basedir,"Datasets/RAM/RAM.RData"))      #RAM
-load(file.path(basedir,"Datasets/FAO/FAO.RData"))      #FAO
-load(file.path(basedir,"Datasets/Barange/Barange_mystocks.RData"))   #barange_noNAs
+load(file.path(datadir,"RAM/RAM.RData"))      #RAM
+load(file.path(datadir,"FAO/FAO.RData"))      #FAO
+load(file.path(datadir,"Barange/Barange_mystocks.RData"))   #barange_noNAs
 b <- which(colnames(barange_noNAs)=='b')
 colnames(barange_noNAs)[b] <- 'sp'
 
-library(plyr)
-library(dplyr)
-library(ggplot2)
 library(reshape2)
+library(tidyverse)
+
 
 
 # Combine all data so that it has all the same columns --------------------
@@ -59,7 +59,7 @@ FAO.new$year <- as.numeric(levels(FAO.new$year))[FAO.new$year]
 # write.csv(x = Ssagax,file = "Sardinops_sagax.csv")
 
 colnames(barange.new)
-alldat <- rbind.fill(list(barange.new,RAM.new,FAO.new))
+alldat <- plyr::rbind.fill(list(barange.new,RAM.new,FAO.new))
 
 # Save the huge dataset!
 save(alldat,file="allsardineanchovy.RData")
