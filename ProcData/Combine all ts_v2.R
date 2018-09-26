@@ -52,6 +52,17 @@ FAO.new <- data.frame(datasource="FAO",
 
 FAO.new$year <- as.numeric(levels(FAO.new$year))[FAO.new$year]
 
+
+# Do some summary stats to double check data ------------------------------
+barange.new %>% 
+  group_by(sp,region,stock) %>% 
+  summarize(max.ssb = max(ssb,na.rm=T), 
+            max.rec = max(rec,na.rm=T),
+            max.landings=max(landings,na.rm=T),
+            max.f=max(fishing.mortality,na.rm=T))
+
+
+
 # Output just one species for ADMB
 # European pilchard, 34 years of data
 # Epilchard <- subset(RAM.new,scientificname=="Sardina pilchardus")
