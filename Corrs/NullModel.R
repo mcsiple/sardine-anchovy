@@ -1,10 +1,9 @@
 # Take original time series, compare wavelet modulus ratio distribution between null model (no synchrony)
-# If you have two time series of the same spectral characteristics, randomly starting, how often do you observe asynchrony by accident at each time scale?
-# This can then be thought of as a "null model"
+# If you have two time series of the same spectral characteristics, randomly starting, how often do you observe asynchrony by accident at each time scale? This can be referred to as the "null model" - how much synchronicity would you see at random.
 
 
 # load libraries and data -------------------------------------------------
-library(fractal) # contains surrogate function
+library(fractal) # contains surrogate() fn
 library(ggplot2)
 library(plyr)
 library(dplyr)
@@ -25,6 +24,7 @@ regions = c("Benguela", "California","Humboldt", "Kuroshio-Oyashio", "NE Atlanti
 dsources = c("RAM","Barange")
 d = 2; # set datasource if needed
 r=1;v=1; #set region and variable
+wmr.thresh <- 0.5 #cutoff for whether something is "more asynchronous" - should be determined in a rigorous way but is currently arbitrary
 
 sp2 <- data.frame()
 true.df <- data.frame()
@@ -126,7 +126,6 @@ for(r in 1:length(regions)){
     # On average, at each time scale, what is the density below 0.5 (asynchronous)?
     # This cutoff can be flexible... it can be something else; we need to figure out what the right cutoff is (see appendix)
     yr1 <- yr5 <- yr10 <- vector()
-    wmr.thresh <- 0.5
     
     for(s in 1:nsims){
       yr1[s] <- length(which(synch.1[[s]]<wmr.thresh))/length(which(!is.na(synch.1[[s]])))
@@ -178,7 +177,7 @@ for(r in 1:length(regions)){
     
     to.trim <- round(scales) # this is the number of cells to trim from the matrix to eliminate things outside cone of influence (top and bottom)
     mmat <- mr$z[,,1]
-    # TRIM BABY TRIM - use values from w/in cone of influence
+    # TRIM BABY TRIM - use only values w/in cone of influence
     for(c in 1:ncol(mmat)){
       mmat[1:to.trim[c],c] <- NA
       mmat[nrow(mmat):(nrow(mmat)-to.trim[c]),c] <- NA
@@ -186,7 +185,7 @@ for(r in 1:length(regions)){
     
     ind <- which(mr$y < 5)
     true[[1]] <- mmat[,ind] # subset to values at a period of <5 yrs
-    true.vec[1] <- length(which(true[[1]]<wmr.thresh))/length(which(!is.na(true[[1]]))) # proportion of values at period<5 that are <0.7 (compensatory dynamics side)
+    true.vec[1] <- length(which(true[[1]]<wmr.thresh))/length(which(!is.na(true[[1]]))) # proportion of values at period<5 that are <wmr.threshold (compensatory dynamics side)
     ind2 <- which(mr$y > 5 & mr$y < 10)
     true[[2]] <- mmat[,ind2] #
     true.vec[2] <- length(which(true[[2]]<wmr.thresh))/length(which(!is.na(true[[2]])))
@@ -208,7 +207,6 @@ for(r in 1:length(regions)){
 
 
 
-
 list.results <- list()
 list.results[[1]] <- sp2
 list.results[[2]] <- sp2
@@ -217,41 +215,7 @@ list.results[[4]] <- sp2
 
 df <- ldply (list.results, data.frame)
 df <- subset(df, datasource=="Barange")
-save(df,file = "NullModelDistributions_07cutoff_std.RData")
+save(df,file = paste("NullModelDistributions_Thresh=",wmr.thresh,".RData",sep=""))
 save(true.df,file = "TrueDF.RData")
 
 
-# Start here if not running sims again! -----------------------------------
-load("NullModelDistributions_07cutoff_std.RData")
-load("TrueDF.RData")
-true.df$ou <- NA
-true.df$ou[which(true.df$obs>df$X95.)] <- "Asynchronous"
-true.df$ou[which(true.df$obs<df$X5.)] <- "Synchronous"
-
-df <- df %>% subset(variable != "rec")
-true.df <- true.df %>% subset(variable !="rec")
-true.df$ou[is.na(true.df$ou)] <- "not.significant" 
-pali <- c(beyonce_palette(48)[3],"grey",
-          beyonce_palette(48)[6])
-
-pdf("ExpectationPlot_07cutoff_black.pdf",width=8,height=7,useDingbats = FALSE)
-ggplot(df, aes(x=scale,y=X50.)) + 
-  #geom_point(size=0.5) + 
-  facet_grid(region~variable) + 
-  scale_x_discrete(limits=c("ten.plus","five.ten","less.than.5"),labels=c("Long-term","Medium","Short")) +
-  coord_flip() +
-  geom_linerange(aes(x=scale, ymin = X5.,ymax=X95.),lwd=1.1,colour='darkgrey') +
-  geom_linerange(aes(x=scale,ymin=X50.,ymax=X75.),lwd=2.5,colour="darkgrey") +
-  #theme_classic(base_size=14) +
-  geom_point(data = true.df,
-             aes(x=scale,y=obs,colour=ou),size=4) +
-  scale_colour_manual("",labels = c("Asynchronous","not significant","Synchronous"),values=pali) +
-  theme(strip.background = element_blank()) +
-  ylab("Degree of asynchrony") +
-  xlab("Time scale") +
-  theme_black(base_size=14)
-dev.off()
-
-#dev.off()
-
-# 
