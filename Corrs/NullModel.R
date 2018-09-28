@@ -12,24 +12,22 @@ library(reshape2)
 library(DescTools)
 library(biwavelet)
 library(mvcwt)
-library(beyonce)
-source("/Users/mcsiple/Dropbox/ChapterX-synthesis/Theme_Black.R")
 
-load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Barange_States.RData") # data frame: RB
-figwd <- "~/Dropbox/Chapter3-SardineAnchovy/Figures"
-setwd(figwd)
-
+# Load all the data
+load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Barange_States.RData") # data frame: RB 
+# TO DO: 
+#         - Add FAO data to data set
+#         - Check whether Barange or RAM have years filled in
 
 # Subset data to use ------------------------------------------------------
 variables = c("landings","ssb","rec")
 regions = c("Benguela", "California","Humboldt", "Kuroshio-Oyashio", "NE Atlantic")
 dsources = c("RAM","Barange")
-d = 2; # set datasource
+d = 2; # set datasource if needed
+r=1;v=1; #set region and variable
 
 sp2 <- data.frame()
 true.df <- data.frame()
-sa.col <- c("red","darkblue")
-ylabel <- c("Landings","SSB","Recruitment")
 
 
 for(r in 1:length(regions)){
@@ -38,40 +36,45 @@ for(r in 1:length(regions)){
                             region == regions[r] & 
                             variable == variables[v])
     
-    if(nrow(data.points)==0 | length(unique(data.points$Sardine.est))==1 |
+    if(nrow(data.points)==0 | 
+       length(unique(data.points$Sardine.est))==1 |
        length(unique(data.points$Anchovy.est))==1){print("one time series missing - STOP")}
     
-    #Standardize data
-    std_sardine <- as.numeric(scale(data.points$Sardine.est)) #data.points$Sardine.est - mean(data.points$Sardine.est)
+    # Standardize data
+    std_sardine <- as.numeric(scale(data.points$Sardine.est)) # scale so center is 0
     if(all(is.na(std_sardine))) std_sardine <- rep(NA, times=length(std_sardine)) # In case all values are the same
+    mean(std_sardine)
     
-    std_anchovy <- as.numeric(scale(data.points$Anchovy.est)) #data.points$Anchovy.est - mean(data.points$Anchovy.est)
+    std_anchovy <- as.numeric(scale(data.points$Anchovy.est)) 
     if(all(is.na(std_anchovy))) std_sardine <- rep(NA, times=length(std_anchovy))
+    mean(std_anchovy)
     
     # Plot an example of standardized time series
     pd <- data.frame(year = c(1:length(std_anchovy),1:length(std_sardine)),
                     sp= c(rep("Anchovy",times=length(std_anchovy)),
                           rep("Sardine",times=length(std_sardine))),
                     std.B = c(std_anchovy,std_sardine))
-    # pdf("EgPlot_Surrogates.pdf",width=8,height=5,useDingbats = F)
-    # ggplot(pd,aes(x=year,y=std.B,colour=sp)) + geom_line(lwd=1.2) + scale_colour_manual(values=c("#ef8a62","#67a9cf")) +theme_classic()
-    # dev.off()
-    # Simulate 100 time series of the same spectral characteristics as sardine and anchovy.
-    sardine_phase <- surrogate(data.points$Sardine.est,method = "phase")
-    #plot(1:length(sardine_phase),sardine_phase,type='l',ylim=range(c(sardine_phase,std_sardine)))
-    #lines(1:nrow(data.points),std_sardine,col='red')
-    anchovy_phase <- surrogate(data.points$Anchovy.est,method = 'phase')
-    #plot(1:length(anchovy_phase),anchovy_phase,type='l',ylim=range(c(anchovy_phase,std_anchovy)))
-    #lines(1:nrow(data.points),std_sardine,col='red')
     
+                # ggplot(pd,aes(x=year,y=std.B,colour=sp)) + 
+                # geom_line(lwd=1.2) + 
+                # scale_colour_manual(values=c("#ef8a62","#67a9cf")) +theme_classic()
+                # dev.off()
+    
+    # Simulate time series of the same spectral characteristics as sardine and anchovy.
+    sardine_phase <- surrogate(data.points$Sardine.est,method = 'phase')
+    anchovy_phase <- surrogate(data.points$Anchovy.est,method = 'phase')
+
     # Plot surrogate time series
-     pd <- data.frame(year = c(1:length(anchovy_phase),1:length(sardine_phase)),
-    sp= c(rep("Anchovy",times=length(anchovy_phase)),
+    pd <- data.frame(year = c(1:length(anchovy_phase),1:length(sardine_phase)),
+    sp = c(rep("Anchovy",times=length(anchovy_phase)),
           rep("Sardine",times=length(sardine_phase))),
     std.B = c(as.numeric(scale(anchovy_phase)),as.numeric(scale(sardine_phase))))
-    #  pdf("EgPlot_Surrogates2.pdf",width=8,height=5,useDingbats = F)
-     ggplot(pd,aes(x=year,y=std.B,colour=sp)) + geom_line(lwd=1.2) + scale_colour_manual(values=c("#ef8a62","#67a9cf")) +theme_classic()
-    #  dev.off()
+    # pdf("EgPlot_Surrogates2.pdf",width=8,height=5,useDingbats = F)
+     ggplot(pd,aes(x=year,y=std.B,colour=sp)) + 
+       geom_line(lwd=1.2) + 
+       scale_colour_manual(values=c("#ef8a62","#67a9cf")) +
+       theme_classic()
+    # dev.off()
     
     # Generate surrogate time series from the data
     nsims = 1000
@@ -121,16 +124,19 @@ for(r in 1:length(regions)){
           # legend("topleft",lty=c(1,1),lwd=c(1.5,1.5),legend = c("Anchovy","Sardine"),col=sa.col)
     
     # On average, at each time scale, what is the density below 0.5 (asynchronous)?
-    # This cutoff can be flexible... it's not always necessarily exactly 0.5 (see appendix)
+    # This cutoff can be flexible... it can be something else; we need to figure out what the right cutoff is (see appendix)
     yr1 <- yr5 <- yr10 <- vector()
+    wmr.thresh <- 0.5
     
     for(s in 1:nsims){
-      yr1[s] <- length(which(synch.1[[s]]<0.7))/length(which(!is.na(synch.1[[s]])))
-      yr5[s] <- length(which(synch.5[[s]]<0.7))/length(which(!is.na(synch.5[[s]])))
-      yr10[s] <- length(which(synch.10[[s]]<0.7))/length(which(!is.na(synch.10[[s]])))
+      yr1[s] <- length(which(synch.1[[s]]<wmr.thresh))/length(which(!is.na(synch.1[[s]])))
+      yr5[s] <- length(which(synch.5[[s]]<wmr.thresh))/length(which(!is.na(synch.5[[s]])))
+      yr10[s] <- length(which(synch.10[[s]]<wmr.thresh))/length(which(!is.na(synch.10[[s]])))
     }
     
-    # Estimates for probability of detecting WMR <0.5, for CA landings
+    
+    # Plotting
+    # Estimates for probability of detecting WMR <threshold, for CA landings
     sp <- as.data.frame(rbind(
     quantile(yr1,probs=c(0.05,0.25,0.5,0.75,0.95)),
     quantile(yr5, probs=c(0.05,0.25,0.5,0.75,0.95)),
@@ -138,28 +144,26 @@ for(r in 1:length(regions)){
     ))
     
     # For storing individual sims - these are values of WMR
-    sp.all <- list("1yr" = do.call(rbind,synch.1), # This stores all the values from each simulation 
-                   "5yr" = do.call(rbind,synch.5), # TO DO: Organize so that you can save each variable/region combo separately. O_O
-                   "10" = do.call(rbind,synch.10)) # Then they can be plotted with the distributions from the data (standardized sts)
+    # This stores all the values from each simulation
+    sp.all <- list("1yr" = do.call(rbind,synch.1),  
+                   "5yr" = do.call(rbind,synch.5), 
+                   # TO DO: Organize so that you can save each variable/region combo separately. O_O
+                   "10" = do.call(rbind,synch.10)) 
     
     # Save 
     sp$variable <- sp.all <- variables[v]
     sp$region <- sp.all <- regions[r]
     sp$datasource <- sp.all <- dsources[d]
     sp$scale <- c("less.than.5","five.ten","ten.plus")
-     sp2 <- rbind(sp2,sp)
+    sp2 <- rbind(sp2,sp)
     
      
      # Save simulations
      #sp.all2 <- rbind(sp.all2,sp.all)         # Eek! 
      
-                # pal <- beyonce_palette(11)
-                # plot(1:3,sp[,2],xaxt='n',ylim=c(0,1),pch=21,bg = pal[c(1,3,5)],ylab="Prob(WMR < 0.5)", xlab="")
-                # axis(1, at = c(1,2,3), labels = c("<5 yr","5-10 yr","10+ yr"))
-                # arrows(x0 = 1:3, x1 = 1:3,y0 = sp[,1], y1 = sp[,3],col = pal[c(1,3,5)],lwd = 1.5,length = 0.03,angle=90,code = 3)
     
     
-    # What is this density for the true variable? i.e, calculate WMR for the real time series. Is it different from the null model? I.e., is the density below 0.5 similar to the one you would expect from random time series?
+    # What is this density for the true variable? i.e, calculate WMR for the real time series. Is it different from the null model? I.e., is the density below wmr.thresh similar to the one you would expect from random time series?
     # True wavelet form (get data to plot on the graph with the null model!)
     xx <- 1:length(std_anchovy)
     yy <- cbind(std_anchovy,std_sardine)
@@ -182,13 +186,13 @@ for(r in 1:length(regions)){
     
     ind <- which(mr$y < 5)
     true[[1]] <- mmat[,ind] # subset to values at a period of <5 yrs
-    true.vec[1] <- length(which(true[[1]]<0.7))/length(which(!is.na(true[[1]]))) # proportion of values at period<5 that are <0.7 (compensatory dynamics side)
+    true.vec[1] <- length(which(true[[1]]<wmr.thresh))/length(which(!is.na(true[[1]]))) # proportion of values at period<5 that are <0.7 (compensatory dynamics side)
     ind2 <- which(mr$y > 5 & mr$y < 10)
     true[[2]] <- mmat[,ind2] #
-    true.vec[2] <- length(which(true[[2]]<0.7))/length(which(!is.na(true[[2]])))
+    true.vec[2] <- length(which(true[[2]]<wmr.thresh))/length(which(!is.na(true[[2]])))
     ind3 <- which(mr$y > 10)
     true[[3]] <- mmat[,ind3] #
-    true.vec[3] <- length(which(true[[3]]<0.7))/length(which(!is.na(true[[3]])))
+    true.vec[3] <- length(which(true[[3]]<wmr.thresh))/length(which(!is.na(true[[3]])))
     
     tv <- data.frame(scale = c("less.than.5","five.ten","ten.plus"),
                      obs = true.vec,
@@ -206,7 +210,6 @@ for(r in 1:length(regions)){
 
 
 list.results <- list()
-#true2 <- true.df
 list.results[[1]] <- sp2
 list.results[[2]] <- sp2
 list.results[[3]] <-sp2
