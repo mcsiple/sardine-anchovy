@@ -18,13 +18,96 @@ load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Bar
 #         - Add FAO data to data set
 #         - Check whether Barange or RAM have years filled in
 
-# Subset data to use ------------------------------------------------------
+
+
+get_surrogates <- function(dat=RB, dsource, reg, var, nsurrogates){
+  #' @description takes a pair of sardine-anchovy time series from the bigger dataset and generates surrogate time series that have the same time series properties but none of the phase information (i.e., no info about the relationship between the two time series).
+  #' @param dat the dataset to extract from. Default "RB" which includes RAM and Barange data, already interpolated where necessary.
+  #' @param dsource which dataset the data should come from. Eventually, choose between, FAO, RAM, Barange et al.
+  #' @param reg region
+  #' @param var variable - choose between (ssb, landings, rec)
+  #' @param nsurrogates - number of surrogate time series to generate
+  #' @return a list of time series info (region, datasource, variable) and a matrix of surrogates for each fish. The surrogates are organized as having rows=years, columns=surrogates
+  data.points <- subset(dat,datasource == dsource & 
+                          region == reg & 
+                          variable == var)
+  #print(data.points)
+  if(nrow(data.points)==0 | 
+     length(unique(data.points$Sardine.est))==1 |
+     length(unique(data.points$Anchovy.est))==1){stop("Error: one time series missing")}
+  
+  # Standardize data
+  std_sardine <- as.numeric(scale(data.points$Sardine.est)) # scale so center is 0
+  if(all(is.na(std_sardine))) std_sardine <- rep(NA, times=length(std_sardine)) # In case all values are the same
+  std_anchovy <- as.numeric(scale(data.points$Anchovy.est)) 
+  if(all(is.na(std_anchovy))) std_sardine <- rep(NA, times=length(std_anchovy))
+  
+  nyears = length(std_anchovy)
+  a.sims <- s.sims <- matrix(NA, nrow = nyears,ncol = nsurrogates)
+  for(s in 1:nsurrogates){
+    a.sims[,s] <- as.numeric(surrogate(data.points$Anchovy.est,method = 'phase'))
+    s.sims[,s] <- as.numeric(surrogate(data.points$Sardine.est,method = 'phase'))
+  }
+  return(list(Region=reg,DataSource=dsource,Variable=var, Anchovy.surrogates = a.sims,Sardine.surrogates = s.sims))
+}
+
+xx <- get_surrogates(dat = RB,dsource = "Barange",reg = "California",var = "ssb",nsurrogates = 10)
+
+
+
+get_wmr <- function(anchovy.ts,sardine.ts){ 
+  #' @description takes surrogate or true time series of sardine and anchovy and calculates the wavelet modulus ratio
+  #' @param anchovy.ts time series of anchovy abundance, can be observed or surrogate
+  #' @param sardine.ts time series of sardine abundance, can be observed or surrogate
+  x <- 1:length(anchovy.ts)
+  y <- cbind(anchovy.ts,sardine.ts)
+  scale.exp = 0.5; nscales = get.nscales(x)
+  min.scale = get.min.scale(x); max.scale = get.max.scale(x)
+  scales = log2Bins(min.scale, max.scale, nscales)
+  w = mvcwt(x, y)
+  mr = wmr(w)
+  #image(mr)
+  # eliminate z values outside cone of influence
+  to.trim <- round(scales) # this is the number of cells to trim from the matrix (top and bottom)
+  mmat <- mr$z[,,1]
+  # OMG THIS TOOK ME SO LONG
+  for(c in 1:ncol(mmat)){
+    mmat[1:to.trim[c],c] <- NA
+    mmat[nrow(mmat):(nrow(mmat)-to.trim[c]),c] <- NA
+  }
+  
+  # Synchrony at <5 year scale      
+  ind <- which(mr$y < 5)
+  synch.1 <- mmat[,ind]
+  
+  # Synchrony at 5-10 year scale
+  ind2 <- which(mr$y > 5 & mr$y < 10)
+  synch.5 <- mmat[,ind2]
+  
+  # Synchrony at 10+ year scale
+  ind3 <- which(mr$y > 10)
+  synch.10 <- mmat[,ind3]
+  
+  return(list(less.than.5 = synch.1,
+              five.ten = synch.5,
+              ten.plus = synch.10))
+}
+
+get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1])
+
+
+
+
+
+# Analysis from dissertation chapter --------------------------------------
+# THis section involves a lot of awkward for() loops because it was written hastily!
+
 variables = c("landings","ssb","rec")
 regions = c("Benguela", "California","Humboldt", "Kuroshio-Oyashio", "NE Atlantic")
 dsources = c("RAM","Barange")
 d = 2; # set datasource if needed
 r=1;v=1; #set region and variable
-wmr.thresh <- 0.5 #cutoff for whether something is "more asynchronous" - should be determined in a rigorous way but is currently arbitrary
+wmr.thresh <- 0.5 #cutoff for whether something is "asynchronous" - eventually this will be replaced with the KL divergence test
 
 sp2 <- data.frame()
 true.df <- data.frame()
@@ -50,31 +133,22 @@ for(r in 1:length(regions)){
     mean(std_anchovy)
     
     # Plot an example of standardized time series
-    pd <- data.frame(year = c(1:length(std_anchovy),1:length(std_sardine)),
-                    sp= c(rep("Anchovy",times=length(std_anchovy)),
-                          rep("Sardine",times=length(std_sardine))),
-                    std.B = c(std_anchovy,std_sardine))
-    
-                # ggplot(pd,aes(x=year,y=std.B,colour=sp)) + 
-                # geom_line(lwd=1.2) + 
-                # scale_colour_manual(values=c("#ef8a62","#67a9cf")) +theme_classic()
-                # dev.off()
-    
-    # Simulate time series of the same spectral characteristics as sardine and anchovy.
-    sardine_phase <- surrogate(data.points$Sardine.est,method = 'phase')
-    anchovy_phase <- surrogate(data.points$Anchovy.est,method = 'phase')
 
-    # Plot surrogate time series
-    pd <- data.frame(year = c(1:length(anchovy_phase),1:length(sardine_phase)),
-    sp = c(rep("Anchovy",times=length(anchovy_phase)),
-          rep("Sardine",times=length(sardine_phase))),
-    std.B = c(as.numeric(scale(anchovy_phase)),as.numeric(scale(sardine_phase))))
-    # pdf("EgPlot_Surrogates2.pdf",width=8,height=5,useDingbats = F)
-     ggplot(pd,aes(x=year,y=std.B,colour=sp)) + 
-       geom_line(lwd=1.2) + 
-       scale_colour_manual(values=c("#ef8a62","#67a9cf")) +
-       theme_classic()
-    # dev.off()
+                # Just get and plot one of each of the surrogates
+                sardine_phase <- surrogate(data.points$Sardine.est,method = 'phase')
+                anchovy_phase <- surrogate(data.points$Anchovy.est,method = 'phase')
+            
+                # Plot surrogate time series
+                pd <- data.frame(year = c(1:length(anchovy_phase),1:length(sardine_phase)),
+                                  sp = c(rep("Anchovy",times=length(anchovy_phase)),
+                                  rep("Sardine",times=length(sardine_phase))),
+                                  std.B = c(as.numeric(scale(anchovy_phase)),as.numeric(scale(sardine_phase))))
+                
+               surrogate.plot <- ggplot(pd,aes(x=year,y=std.B,colour=sp)) +
+               geom_line(lwd=1.2) +
+               scale_colour_manual(values=c("#ef8a62","#67a9cf")) +
+               theme_classic()
+              #surrogate.plot
     
     # Generate surrogate time series from the data
     nsims = 1000
@@ -104,24 +178,23 @@ for(r in 1:length(regions)){
                 mmat[1:to.trim[c],c] <- NA
                 mmat[nrow(mmat):(nrow(mmat)-to.trim[c]),c] <- NA
               }
-              
+        
+        # Degree of synchrony at <5 year scale      
         ind <- which(mr$y < 5)
-        synch.1[[s]] <- mmat[,ind] #
+        synch.1[[s]] <- mmat[,ind]
     
+        # Synchrony at 5-10 year scale
         ind2 <- which(mr$y > 5 & mr$y < 10)
-        synch.5[[s]] <- mmat[,ind2] #
-    
+        synch.5[[s]] <- mmat[,ind2]
+        
+        # Synchrony at 10+ year scale
         ind3 <- which(mr$y > 10)
-        synch.10[[s]] <- mmat[,ind3] #
+        synch.10[[s]] <- mmat[,ind3]
       }
     
     sa.range <- range(c(std_anchovy,std_sardine))
-                       
-          # plot(1:nyears,std_anchovy, type='l',col=sa.col[1],lwd=1.5,
-          #      ylab=paste("Standardized",ylabel[v]),
-          #      xlab="Year")
-          # lines(1:nyears,std_sardine,type='l',col=sa.col[2],lwd=1.5)
-          # legend("topleft",lty=c(1,1),lwd=c(1.5,1.5),legend = c("Anchovy","Sardine"),col=sa.col)
+    
+    
     
     # On average, at each time scale, what is the density below 0.5 (asynchronous)?
     # This cutoff can be flexible... it can be something else; we need to figure out what the right cutoff is (see appendix)
@@ -206,16 +279,5 @@ for(r in 1:length(regions)){
 } # end regions loop 
 
 
-
-list.results <- list()
-list.results[[1]] <- sp2
-list.results[[2]] <- sp2
-list.results[[3]] <-sp2
-list.results[[4]] <- sp2
-
-df <- ldply (list.results, data.frame)
-df <- subset(df, datasource=="Barange")
-save(df,file = paste("NullModelDistributions_Thresh=",wmr.thresh,".RData",sep=""))
-save(true.df,file = "TrueDF.RData")
 
 
