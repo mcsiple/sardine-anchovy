@@ -4,11 +4,12 @@
 # For example, there is a time series of sardine in land area "Europe" and one in land area "-"
 
 #basedir <- "~/Dropbox/Chapter3-SardineAnchovy"
-datadir <- "C:/Users/Megsie Siple/Dropbox/Chapter3-SardineAnchovy/Datasets"
+datadir <- "C:/Users/siplem/Dropbox/Chapter3-SardineAnchovy/Datasets"
 
 load(file.path(datadir,"RAM/RAM.RData"))      #RAM
 load(file.path(datadir,"FAO/FAO.RData"))      #FAO
-load(file.path(datadir,"Barange/Barange_mystocks.RData"))   #barange_noNAs
+load(file.path(datadir,"Barange/BARANGE_ALL.RData"))   #ALLDAT
+#load(file.path(datadir,"Barange/Barange_mystocks.RData"))   #barange_noNAs
 b <- which(colnames(barange_noNAs)=='b')
 colnames(barange_noNAs)[b] <- 'sp'
 
@@ -19,7 +20,7 @@ library(tidyverse)
 
 # Combine all data so that it has all the same columns --------------------
 
-# Stock  year  ssb   rec   landings    fishing.mortality   sp    region    subregion
+# stock  year  ssb   rec   landings    fishing.mortality   sp    region    subregion
 # Following format of barange_noNAs
 
 barange.new <- data.frame(datasource=rep("Barange",times=nrow(barange_noNAs)),
