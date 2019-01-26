@@ -1,12 +1,12 @@
 
 # Annoying code for summarizing data. It's very untidy but it will have to do for now.
-
-setwd("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/Corrs")
+rootdir <- ("C:/Users/siplem/Dropbox/")
+setwd(file.path(rootdir,"Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/Corrs"))
 source("ExtractMaxes.R")
 library(reshape2)
 library(ggplot2)
 
-load("~/Dropbox/Chapter3-SardineAnchovy/Datasets/allsardineanchovy.RData") # all the data!
+load(file.path(rootdir,"/Chapter3-SardineAnchovy/Datasets/allsardineanchovy.RData")) # all the data!
 data.all <- alldat 
 
 region.max.ssb <- matrix(NA,nrow=nrow(data.all),ncol=2)
