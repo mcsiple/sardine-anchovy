@@ -5,27 +5,34 @@
 
 #basedir <- "~/Dropbox/Chapter3-SardineAnchovy"
 datadir <- "C:/Users/siplem/Dropbox/Chapter3-SardineAnchovy/Datasets"
+datadir <- "~/Dropbox/Chapter3-SardineAnchovy/Datasets/"
 
 load(file.path(datadir,"RAM/RAM.RData"))      #RAM
 load(file.path(datadir,"FAO/FAO.RData"))      #FAO
 load(file.path(datadir,"Barange/BARANGE_ALL.RData"))   #ALLDAT
+barange <- alldat
 #load(file.path(datadir,"Barange/Barange_mystocks.RData"))   #barange_noNAs
-b <- which(colnames(barange_noNAs)=='b')
-colnames(barange_noNAs)[b] <- 'sp'
+
 
 library(reshape2)
 library(tidyverse)
-
-
 
 # Combine all data so that it has all the same columns --------------------
 
 # stock  year  ssb   rec   landings    fishing.mortality   sp    region    subregion
 # Following format of barange_noNAs
 
-barange.new <- data.frame(datasource=rep("Barange",times=nrow(barange_noNAs)),
-                          scientificname=rep(NA,times=nrow(barange_noNAs)),
-                          barange_noNAs)
+barange.new <- data.frame(datasource = rep("Barange",times=nrow(barange)),
+                          scientificname= rep(NA, times = nrow(barange)),
+                          stock=barange$stock,
+                          year=barange$year,
+                          ssb=barange$SSB,
+                          rec=barange$Rec,
+                          landings=barange$landings,
+                          fishing.mortality=barange$fishing.mortality,
+                          sp=barange$sp,
+                          region=barange$region,
+                          subregion=barange$subregion)
 
 RAM.new <- data.frame(datasource=rep("RAM",times=nrow(RAM)),
                       scientificname=RAM$scientificname,
@@ -60,7 +67,8 @@ barange.new %>%
   summarize(max.ssb = max(ssb,na.rm=T), 
             max.rec = max(rec,na.rm=T),
             max.landings=max(landings,na.rm=T),
-            max.f=max(fishing.mortality,na.rm=T))
+            max.f=max(fishing.mortality,na.rm=T)) %>%
+            as.data.frame()
 
 
 
@@ -72,6 +80,13 @@ barange.new %>%
 
 colnames(barange.new)
 alldat <- plyr::rbind.fill(list(barange.new,RAM.new,FAO.new))
+
+m <- melt(alldat,
+          id.vars = c("datasource","scientificname","stock","year","sp","region","subregion")) %>% subset(variable=="ssb")
+  
+ggplot(m, aes(x=year,y=value,colour=stock)) +
+  geom_line() %>% facet_grid(region~variable)
+
 
 # Save the huge dataset!
 save(alldat,file="allsardineanchovy.RData")
