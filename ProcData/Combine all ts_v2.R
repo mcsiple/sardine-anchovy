@@ -3,19 +3,20 @@
 # NOTE: One important thing this code does is turn the "NA" stocks in the FAO database into fake stocks.
 # For example, there is a time series of sardine in land area "Europe" and one in land area "-"
 
-#basedir <- "~/Dropbox/Chapter3-SardineAnchovy"
 datadir <- "C:/Users/siplem/Dropbox/Chapter3-SardineAnchovy/Datasets"
-datadir <- "~/Dropbox/Chapter3-SardineAnchovy/Datasets/"
+
+# For unix OS:
+# datadir <- "~/Dropbox/Chapter3-SardineAnchovy/Datasets/"
 
 load(file.path(datadir,"RAM/RAM.RData"))      #RAM
 load(file.path(datadir,"FAO/FAO.RData"))      #FAO
 load(file.path(datadir,"Barange/BARANGE_ALL.RData"))   #ALLDAT
 barange <- alldat
-#load(file.path(datadir,"Barange/Barange_mystocks.RData"))   #barange_noNAs
-
+#load(file.path(datadir,"Barange/Barange_mystocks.RData"))   #barange_noNAs - DEPRACATED
 
 library(reshape2)
 library(tidyverse)
+library(taxize) # to get common names from scientific names
 
 # Combine all data so that it has all the same columns --------------------
 
@@ -32,7 +33,7 @@ barange.new <- data.frame(datasource = rep("Barange",times=nrow(barange)),
                           fishing.mortality=barange$fishing.mortality,
                           sp=barange$sp,
                           region=barange$region,
-                          subregion=barange$subregion)
+                          subregion=barange$subregion) %>% filter(!is.na(year)) # had to remove entries where year is NA
 
 RAM.new <- data.frame(datasource=rep("RAM",times=nrow(RAM)),
                       scientificname=RAM$scientificname,
@@ -46,19 +47,43 @@ RAM.new <- data.frame(datasource=rep("RAM",times=nrow(RAM)),
                       region=RAM$region,
                       subregion=rep(NA,times=nrow(RAM)))
 
-FAO[grep("Southern African pilchard",FAO$Species), 2] <- "Africa"
+
+
 FAO.new <- data.frame(datasource="FAO",
                       scientificname=FAO$Scientific.name,
-                      stock=paste(FAO$Ocean.Area,FAO$Land.Area), # This is just so that there is a stock name - needed for future comparisons
+                      stock=paste(FAO$Ocean.Area), # This is just so that there is a stock name - needed for future comparisons
                       year=FAO$year,
                       ssb=NA,
                       rec=NA,
                       landings=FAO$landings,
                       fishing.mortality=rep(NA,times=nrow(FAO)),
                       sp=FAO$sp,
-                      region=FAO$region,subregion=FAO$Land.Area)
+                      region=FAO$region)
 
-FAO.new$year <- as.numeric(levels(FAO.new$year))[FAO.new$year]
+# We need better stock names for FAO stocks. Going to combine common name and Ocean.area to make a stock name.
+stocktable <- data.frame(scientificname = unique(FAO.new$scientificname),
+                         commonname = c("European anchovy",
+                                        "European pilchard",
+                                        "Sardinella spp",
+                                        " Engraulidae",
+                                        "Round sardinella",
+                                        "Southern African anchovy",
+                                        "Southern African pilchard",
+                                        "California pilchard",
+                                        "California anchovy",
+                                        "Pacific anchoveta",
+                                        "Japanese anchovy",
+                                        "Japanese pilchard",
+                                        "Japanese sardinella",
+                                        "Slender raindbow sardine",
+                                        "Stolephorus spp",
+                                        "Peruvian anchoveta",
+                                        "Longnose anchovy",
+                                        "South American pilchard")  ) # These common names are not from taxize, but should be very close. 
+
+FAO.new <- inner_join(FAO.new,stocktable) %>% mutate(stock = paste(commonname,stock,sep=" - "))                       
+                         
+#FAO.new$year <- as.numeric(levels(FAO.new$year))[FAO.new$year]
 
 
 # Do some summary stats to double check data ------------------------------
@@ -79,15 +104,20 @@ barange.new %>%
 # write.csv(x = Ssagax,file = "Sardinops_sagax.csv")
 
 colnames(barange.new)
-alldat <- plyr::rbind.fill(list(barange.new,RAM.new,FAO.new))
+alldat <- plyr::rbind.fill(list(barange.new,RAM.new,FAO.new)) %>% select(datasource,scientificname,stock,year,ssb,rec,landings,fishing.mortality,sp,region,subregion,totalcatch)
 
-m <- melt(alldat,
-          id.vars = c("datasource","scientificname","stock","year","sp","region","subregion")) %>% subset(variable=="ssb")
+  melt(alldat,
+          id.vars = c("datasource","scientificname","stock","year","sp","region","subregion")) %>% 
+  subset(variable !="rec") %>%
+  ggplot(aes(x=year,y=value,linetype=datasource,colour=stock)) +
+  geom_line() +
+  facet_grid(variable~region,scales="free_y") +
+  theme_classic() +
+  theme(legend.position = "none")
+
   
-ggplot(m, aes(x=year,y=value,colour=stock)) +
-  geom_line() %>% facet_grid(region~variable)
-
-
+# some time series have subregion info, so plotting by region needs to be preceded by summing by 
+  
 # Save the huge dataset!
 save(alldat,file="allsardineanchovy.RData")
 
