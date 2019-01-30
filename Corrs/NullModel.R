@@ -13,7 +13,7 @@ library(biwavelet)
 library(mvcwt)
 
 # Load all the data
-load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Barange_States.RData") # data frame: RB 
+load(here::here("ProcData/RAM_Barange_States.RData")) # data frame: RB 
 
 
 get_surrogates <- function(dat=RB, dsource, reg, var, nsurrogates){
@@ -90,9 +90,37 @@ get_wmr <- function(anchovy.ts,sardine.ts){
               ten.plus = synch.10))
 }
 
-get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1])
+m.null = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1])
 
 
+test_wmr <- function(dat=RB, dsource, reg, var, m.null){
+  data.points <- subset(dat,datasource == dsource & 
+                          region == reg & 
+                          variable == var)
+  if(nrow(data.points)==0 | 
+     length(unique(data.points$Sardine.est))==1 |
+     length(unique(data.points$Anchovy.est))==1){stop("Error: one time series missing")}
+  
+  # Standardize data
+  std_sardine <- as.numeric(scale(data.points$Sardine.est)) # scale so center is 0
+  if(all(is.na(std_sardine))) std_sardine <- rep(NA, times=length(std_sardine)) # In case all values are the same
+  std_anchovy <- as.numeric(scale(data.points$Anchovy.est)) 
+  if(all(is.na(std_anchovy))) std_sardine <- rep(NA, times=length(std_anchovy))
+  
+  # get observed wmr
+  m <- get_wmr(std_anchovy, std_sardine)
+  
+  # compare medians of observed and null wmrs
+  test.1 = wilcox.test(m$less.than.5, m.null$less.than.5)
+  test.5 = wilcox.test(m$five.ten, m.null$five.ten)
+  test.10 = wilcox.test(m$ten.plus, m.null$ten.plus)
+  
+  test.df = data.frame(Region = reg, DataSource = dsource, Variable = var,
+                       period = c("less.than.5","five.ten","ten.plus"), 
+                       test.stat = c(test.1$statistic,test.5$statistic,test.10$statistic), 
+                       p.value = c(test.1$p.value,test.5$p.value,test.10$p.value))
+  
+  return(test.df)
+}
 
-
-
+test_wmr(dat = RB,dsource = "Barange",reg = "California",var = "ssb",m.null = m.null)
