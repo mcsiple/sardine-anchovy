@@ -13,12 +13,13 @@ library(biwavelet)
 library(mvcwt)
 
 # Load all the data
-load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Barange_States.RData") # data frame: RB 
+#load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Barange_States.RData") # data frame: RB 
+load("C:/Users/siplem/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Barange_States.RData") # data frame: RB 
 
 
 get_surrogates <- function(dat=RB, dsource, reg, var, nsurrogates){
   #' @description takes a pair of sardine-anchovy time series from the bigger dataset and generates surrogate time series that have the same time series properties but none of the phase information (i.e., no info about the relationship between the two time series).
-  #' @param dat the dataset to extract from. Default "RB" which includes RAM and Barange data, already interpolated where necessary.
+  #' @param dat the dataset to extract from. NOTE: This time series should be continuous (i.e., no NAs!). Default "RB" which includes RAM and Barange data, already interpolated where necessary.
   #' @param dsource which dataset the data should come from. Eventually, choose between, FAO, RAM, Barange et al.
   #' @param reg region
   #' @param var variable - choose between (ssb, landings, rec)
@@ -29,20 +30,20 @@ get_surrogates <- function(dat=RB, dsource, reg, var, nsurrogates){
                           variable == var)
   #print(data.points)
   if(nrow(data.points)==0 | 
-     length(unique(data.points$Sardine.est))==1 |
-     length(unique(data.points$Anchovy.est))==1){stop("Error: one time series missing")}
+     length(unique(data.points$Sardine))==1 |
+     length(unique(data.points$Anchovy))==1){stop("Error: one time series missing")}
   
   # Standardize data
-  std_sardine <- as.numeric(scale(data.points$Sardine.est)) # scale so center is 0
+  std_sardine <- as.numeric(scale(data.points$Sardine)) # scale so center is 0
   if(all(is.na(std_sardine))) std_sardine <- rep(NA, times=length(std_sardine)) # In case all values are the same
-  std_anchovy <- as.numeric(scale(data.points$Anchovy.est)) 
+  std_anchovy <- as.numeric(scale(data.points$Anchovy)) 
   if(all(is.na(std_anchovy))) std_sardine <- rep(NA, times=length(std_anchovy))
   
   nyears = length(std_anchovy)
   a.sims <- s.sims <- matrix(NA, nrow = nyears,ncol = nsurrogates)
   for(s in 1:nsurrogates){
-    a.sims[,s] <- as.numeric(surrogate(data.points$Anchovy.est,method = 'phase'))
-    s.sims[,s] <- as.numeric(surrogate(data.points$Sardine.est,method = 'phase'))
+    a.sims[,s] <- as.numeric(surrogate(data.points$Anchovy,method = 'phase'))
+    s.sims[,s] <- as.numeric(surrogate(data.points$Sardine,method = 'phase'))
   }
   return(list(Region=reg,DataSource=dsource,Variable=var, Anchovy.surrogates = a.sims,Sardine.surrogates = s.sims))
 }
