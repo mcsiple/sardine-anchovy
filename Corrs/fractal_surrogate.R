@@ -9,21 +9,18 @@ library(biwavelet)
 
 sessionInfo()
 
-# Data
+# Example
 MEI_raw <- read.table("~/Dropbox/Chapter3-SardineAnchovy/R files/resomewaveletresults/MEI.txt", header = TRUE, sep = "\t", fill = TRUE)
-
 mei_raw <- tbl_df(MEI_raw)
-
 mei_raw_m <- melt(mei_raw, id.vars="YEAR")
-
 names(mei_raw_m)[2:3] <- c("MON", "VALUE")
-
 ann_mei <- mei_raw_m %>%
   filter(!is.na(VALUE )) %>%
   group_by(YEAR) %>%
   summarize(mean_val = mean(VALUE))
-
 names(ann_mei)[1] <- "year"
+
+# Need to get Sardine.est and Anchovy.est **********
 
 # Calculate annual mean
 # ann_MEI <- scale(rowMeans(MEI_raw[,-1], na.rm = TRUE)) #scale(rowMeans(MEI_raw[,c(2,4,6,8,10,12)], na.rm = TRUE)) # mean of 0, sd of 1, 
