@@ -152,14 +152,12 @@ ggplot(md3,aes(x=year,y=value2,linetype=datasource,colour=stock)) +
   theme_classic() +
   theme(legend.position = "none")
 
-md2 %>% subset(variable !="rec") %>%
-  ggplot(aes(x=year,y=value,linetype=datasource,colour=stock)) +
-  geom_line() +
-  facet_grid(variable~region,scales="free_y") +
-  theme_classic() +
-  theme(legend.position = "none")
+colnames(md3)[9:10] <- c("original","imputed")
 
-save()
+dat <- md3
+
+save(dat,file="allsardineanchovy_imputed.RData")
+
 
 ########################################################################
 #Side note: Pacific sardine in RAM does not look like the one in Barange et al. -- is it possible that they are from different sources? Different maxima, years covered; same overall pattern.
