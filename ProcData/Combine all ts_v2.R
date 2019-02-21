@@ -8,7 +8,7 @@ datadir <- "C:/Users/siplem/Dropbox/Chapter3-SardineAnchovy/Datasets"
 # For unix OS:
 # datadir <- "~/Dropbox/Chapter3-SardineAnchovy/Datasets/"
 
-load(file.path(datadir,"RAM/RAM.RData"))      #RAM
+load(file.path(datadir,"RAM/RAM_2.RData"))      #RAM
 load(file.path(datadir,"FAO/FAO.RData"))      #FAO
 load(file.path(datadir,"Barange/BARANGE_ALL.RData"))   #ALLDAT
 barange <- alldat
@@ -119,7 +119,7 @@ alldat <- plyr::rbind.fill(list(barange.new,RAM.new,FAO.new)) %>% select(datasou
 # some time series have subregion info, so plotting by region needs to be preceded by summing by 
   
 # Save the huge dataset!
-save(alldat,file="allsardineanchovy.RData")
+save(alldat,file="~/Dropbox/Chapter3-SardineAnchovy/Datasets/allsardineanchovy_3.RData")
 
 
 
@@ -131,6 +131,7 @@ md <- melt(alldat,id.vars=c("datasource","scientificname","stock","year","sp","r
 
 # Replace NAs with long-term means:
 impute.mean <- function(x) replace(x, is.na(x), mean(x, na.rm = TRUE))
+
 impute.sa <- function(x,thresh=0.3){
   #' @description  This function can be applied to any time series. It imputes the mean for any NA-valued years after the start of the time series
   #' @param x is a vector of time series values for a certain variable
@@ -145,6 +146,11 @@ impute.sa <- function(x,thresh=0.3){
       }
   return(new)
 }
+
+
+
+
+
 
 ggplot(md3,aes(x=year,y=value2,linetype=datasource,colour=stock)) +
   geom_line() +
