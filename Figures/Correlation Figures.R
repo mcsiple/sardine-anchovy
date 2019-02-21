@@ -6,6 +6,7 @@ library(plyr)
 library(reshape2)
 library(ggplot2)
 library(beyonce)
+library(RCurl)
 #   -----------------------------------------------------------------------
 filter(alldat,datasource=="Barange" & stock == "California anchovy")
 # Make a function to look at correlations and time series --------
@@ -323,3 +324,57 @@ ggplot(sample,aes(x=year,y=ssb/1000,colour=sp)) +
   theme_classic(base_size = 16) +
   ylab("Biomass (x 1000 t)")
 dev.off()
+
+
+
+# Distributions for null vs. observed data --------------------------------
+obs <- get_obs(dat = RB,dsource = "Barange",reg = "California",var = "ssb")
+obstest <- get_wmr(obs$std_anchovy, obs$std_sardine)
+nulltest1 = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1])
+nulltest2 = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,2],sardine.ts=xx$Sardine.surrogates[,2])
+
+
+get_large_null <- function(dat = RB,dsource = "Barange",reg = "California",var = "ssb",nsims){
+  #generate as many surrogates as you need to get your full sims:
+  yy <- get_surrogates(dat = dat,dsource = dsource,reg = reg,var = var,nsurrogates = nsims) 
+  # Combine multiple null runs to get a good null dist:
+  null.combined <- get_wmr(anchovy.ts=yy$Anchovy.surrogates[,1],sardine.ts=yy$Sardine.surrogates[,1])
+  for (i in 2:nsims){
+    newlist <- get_wmr(anchovy.ts=yy$Anchovy.surrogates[,i],sardine.ts=yy$Sardine.surrogates[,i])
+    null.combined <- mapply(c, null.combined, newlist, SIMPLIFY=FALSE)
+  }
+  return(null.combined)
+}
+
+giantnull <- get_large_null(dat = RB,dsource = "Barange",reg = "California",var = "ssb",nsims=50)
+str(giantnull)
+
+
+
+
+
+distfig <- function(null, observed){
+  #' @description plots a histogram of observed WMRs vs. "null" WMR
+  #' @param null is a list of three WMR matrices, each of which represents one time window (from a null surrogate)
+  #' @param obs is a list of three WMR matrices, each of which represents one time window (observed time series)
+  
+  nl <- data.frame(ID = rep(names(null), sapply(null, length)),
+                 wmrdens = unlist(null))
+  obsl <- data.frame(ID = rep(names(observed), sapply(observed, length)),
+                     wmrdens = unlist(observed))
+  nl$ID_ord = factor(nl$ID, levels=c('less.than.5','five.ten','ten.plus'))
+  obsl$ID_ord = factor(obsl$ID, levels=c('less.than.5','five.ten','ten.plus'))
+  
+  nl$ID_ord <- recode(nl$ID_ord, less.than.5 = "< 5 yr", five.ten = "5-10 yr",ten.plus="10+ yr" )
+  obsl$ID_ord <- recode(obsl$ID_ord, less.than.5 = "< 5 yr", five.ten = "5-10 yr",ten.plus="10+ yr" )
+  
+  ggplot(nl,aes(x=wmrdens)) + 
+    geom_density(fill="grey",colour="darkgrey",alpha=0.5) + 
+    geom_density(data=obsl,fill="yellow",colour="yellow",alpha=0.5) +
+    facet_wrap(~ID_ord,ncol = 1) +
+    ylab("Density") +
+    xlab("Wavelet modulus ratio (WMR)") +
+    theme_classic(base_size=14)
+}
+
+distfig(null = giantnull,observed = obstest)
