@@ -24,7 +24,7 @@ impute.sa <- function(x,thresh=0.3){
 }
 
 # Replace NAs with MARSS states OR means (if get.mean.instead=T):
-getMARSSstates <- function(data = alldat, region_or_subregion = "Benguela", scale = "Region", data_source = "Barange", variable = "landings",MARSS.cov = FALSE, plot = FALSE, ccf.calc = FALSE,get.mean.instead = FALSE){
+getMARSSstates <- function(data = alldat, region_or_subregion = "California", scale = "Region", data_source = "FAO", variable = "landings",MARSS.cov = FALSE, plot = FALSE, ccf.calc = FALSE,get.mean.instead = FALSE){
   #' @param data - time series of sardine and anchovy time series - 
   # param  data = dataset including the time series you're interested in; 
   # Region = 1 of 5 LMEs (Benguela, California, NE Atlantic, Kuroshio-Oyashio, Humboldt)
@@ -36,16 +36,23 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "Benguela", scal
   
   #dataset <- subset(dataset,datasource == datasource)
   #print(dataset)
-  # special case for FAO, which doesn't have stock names, only land areas:
-  if(data_source == "FAO") {dataset$stock <- paste(dataset$scientificname, dataset$region)
-                            dataset <- dataset %>% subset(!is.na(landings))}
+  # special case for FAO, which doesn't have stock names, only land areas: (need to make sure this is correct!)
+  # if(data_source == "FAO") {dataset$stock <- paste(dataset$scientificname, dataset$region)
+  #                           dataset <- dataset %>% subset(!is.na(landings))}
+  
+  if(data_source == "RAM"){ 
+  #special allowance bc RAM often has total catch instead of landings
+    dataset$landings[is.na(dataset$landings)] <- dataset$totalcatch
+  }
+  
   
   if(variable=="landings"){ 
     lt.maxes <- dataset %>% 
       group_by(sp,stock) %>% 
       summarize(max.var=round(max(landings,na.rm=T),2)) %>% 
       as.data.frame()
-    } 
+  } 
+  
   if(variable=="ssb"){
     lt.maxes <- dataset %>% 
       group_by(sp,stock) %>% 
@@ -74,15 +81,31 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "Benguela", scal
   lt.max.s <- max(lt.maxes[which(lt.maxes$sp=="Sardine"),ncol(lt.maxes)])
   lt.max.sp.sar <- lt.maxes[lt.maxes$max.var==lt.max.s,2]     # "Dominant sardine species"
   
-  dom.s.ts <- dataset[which(dataset$stock==lt.max.sp.sar),]
-  dom.a.ts <- dataset[which(dataset$stock==lt.max.sp),]
-
+  if(is.inf(lt.max.s) & is.inf(lt.max.a)){
+    stop("both sardine and anchovy are NA")
+  }
   
-  if(variable=="landings"){sar = dom.s.ts$landings
-  anch = dom.a.ts$landings}
-  if(variable=="ssb"){sar = dom.s.ts$ssb
+  if(is.inf(lt.max.s)){
+    dom.s.ts <- dataset[which(dataset$stock==lt.max.sp.sar[1]),] # just put in a random stock bc it doesn't matter
+  }else{
+    dom.s.ts <- dataset[which(dataset$stock==lt.max.sp.sar),]
+  }
+  
+  if(is.inf(lt.max.a)){
+    dom.a.ts <- dataset[which(dataset$stock==lt.max.sp[1]),] # just put in a random stock bc it doesn't matter
+  }else{
+      dom.a.ts <- dataset[which(dataset$stock==lt.max.sp),]
+  }
+  
+  
+  if(variable=="landings"){
+    sar = dom.s.ts$landings
+    anch = dom.a.ts$landings}
+  if(variable=="ssb"){
+    sar = dom.s.ts$ssb
   anch = dom.a.ts$ssb}
-  if(variable=="rec"){sar = dom.s.ts$rec
+  if(variable=="rec"){
+    sar = dom.s.ts$rec
   anch = dom.a.ts$rec}
   if(variable=="fishing.mortality"){
     sar = dom.s.ts$fishing.mortality
@@ -146,12 +169,15 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "Benguela", scal
   }else{
   
   source("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/Fill_NAs_SA.R")
+  
   sard.mars <- FillNAs.ts(cbind(dom.s.ts$year,sar),
                           startyear=min(c(dom.s.ts$year,dom.a.ts$year)),
                           endyear=max(c(dom.s.ts$year,dom.a.ts$year)))
+                                        
   anch.mars <- FillNAs.ts(cbind(dom.a.ts$year,anch),
                           startyear=min(c(dom.s.ts$year,dom.a.ts$year)),
                           endyear=max(c(dom.s.ts$year,dom.a.ts$year)))
+    
   # replace zeroes with a very low value
   # sar and anch are rows, columns are years:
   sard.mars[2,] <- replace(sard.mars[2,], sard.mars[2,]==0, 0.0001)
@@ -176,7 +202,7 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "Benguela", scal
 }  #End getMARSSstates function
 
 
-getMARSSstates(data = alldat,region_or_subregion = "Benguela",scale = "Region",data_source = "Barange",variable = "ssb",ccf.calc=FALSE)
+#getMARSSstates(data = alldat,region_or_subregion = "California",scale = "Region",data_source = "FAO",variable = "landings",ccf.calc=FALSE)
 # 
 # plot(output$Year,output$Sardine.est,type='l')
 # lines(output$Year,output$Anchovy.est,col="red")
