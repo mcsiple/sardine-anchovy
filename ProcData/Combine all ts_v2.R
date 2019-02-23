@@ -1,7 +1,7 @@
 # Combine all data from RAM, FAO, Barange et al.
 # The resulting dataset is "allsardineanchovy.RData" which is used in all subsequent analyses
 # NOTE: One important thing this code does is turn the "NA" stocks in the FAO database into fake stocks.
-# For example, there is a time series of sardine in land area "Europe" and one in land area "-"
+
 
 datadir <- "C:/Users/siplem/Dropbox/Chapter3-SardineAnchovy/Datasets"
 
