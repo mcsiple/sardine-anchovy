@@ -1,16 +1,46 @@
 
-load("~/Dropbox/Chapter3-SardineAnchovy/R files/allsardineanchovy.RData")
-source("/Users/mcsiple/Dropbox/ChapterX-synthesis/Theme_Black.R")
+load("~/Dropbox/Chapter3-SardineAnchovy/Datasets/allsardineanchovy_3.RData") # dataframe: alldat
+figwd <- ("~/Dropbox/Chapter3-SardineAnchovy/Submission/Figures")
 library(dplyr)
-library(plyr)
 library(reshape2)
 library(ggplot2)
 library(beyonce)
 library(RCurl)
-#   -----------------------------------------------------------------------
+library(RColorBrewer)
+
+# Test data ---------------------------------------------------------------
 filter(alldat,datasource=="Barange" & stock == "California anchovy")
+unique(alldat$stock)
+
+# Set region palette ------------------------------------------------------
+pal <- beyonce_palette(18)[2:6]
+
+# FIGURE 1: raw time series data ------------------------------------------
+sacols <- c("#3288bd","#d53e4f") #blue = sardine, red = anchovy
+
+mf <- melt(alldat,id.vars = c("datasource", "scientificname", "stock", "year", "sp", "region", "subregion"))
+mf$variable <- recode(mf$variable,ssb="Biomass",rec="Recruitment",landings="Landings")
+
+fig1 <- mf %>%
+  group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% mutate(std.value=value/mean(value,na.rm=T)) %>% #as.data.frame() value/mean(value,na.rm=T)
+  filter(variable %in% c("Biomass","Recruitment","Landings"))  %>%
+    ggplot(aes(x=year,y=std.value,colour=sp,lty=datasource,group=stock)) +
+      geom_line(lwd=0.6) +
+      scale_color_manual(values=sacols) +
+  facet_grid(region~variable,scales="free_y") +
+  ylab("Standardized value") +
+  theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank())
+     
+pdf(file.path(figwd,"Figure1.pdf"),width = 10, height = 8,useDingbats = F)
+fig1 
+dev.off()
+
+
+# FIGURE 2: schematic of spectral analysis --------------------------------
+# This figure is composed in Adobe Illustrator
+
 # Make a function to look at correlations and time series --------
-# This function takes variable, region, and returns a time series figure of the two dominant spps, correlations, and ACFs of each ts
+# This function takes variable, region, and returns a time series of the two dominant spps, correlations, and ACFs of each ts
 
 corr.fig <- function(data = alldat, region_or_subregion = "Benguela", scale = "Region", data_source = "Barange", variable = "landings",MARSS.cov = FALSE, plot = FALSE, ccf.calc = FALSE){
   # data = dataset including the time series you're interested in
@@ -24,23 +54,24 @@ corr.fig <- function(data = alldat, region_or_subregion = "Benguela", scale = "R
   
     #dataset <- subset(dataset,datasource == datasource)
     #print(dataset)
+  # This is a little janky and old-fashioned because I wrote it a while ago. In the interest of time, I am not re-writing because it works.
   if(variable=="landings"){
-    lt.maxes <- ddply(.data=dataset,.(sp,stock),summarize,max.var=round(max(landings,na.rm=TRUE),2))
-    lt.medians <- ddply(.data=dataset,.(sp,stock),summarize,median.var=round(median(landings,na.rm=TRUE),2))
+    lt.maxes <- dataset %>% group_by(sp,stock) %>% summarize(max.var=round(max(landings,na.rm=T),2)) %>% as.data.frame()
+    lt.medians <- dataset %>% group_by(sp,stock) %>% summarize(median.var=round(median(landings,na.rm=T),2)) %>% as.data.frame()
     } 
   if(variable=="ssb"){
-    lt.maxes <- ddply(.data=dataset,.(sp,stock),summarize,max.var=round(max(ssb,na.rm=TRUE),2))
-    lt.medians <- ddply(.data=dataset,.(sp,stock),summarize,median.var=round(median(ssb,na.rm=TRUE),2))
+    lt.maxes <- dataset %>% group_by(sp,stock) %>% summarize(max.var=round(max(ssb,na.rm=T),2)) %>% as.data.frame()
+    lt.medians <- dataset %>% group_by(sp,stock) %>% summarize(median.var=round(median(ssb,na.rm=T),2)) %>% as.data.frame()
     }
   if(variable=="rec"){
-    lt.maxes <- ddply(.data=dataset,.(sp,stock),summarize,max.var=round(max(rec,na.rm=TRUE),2))
-    lt.medians <- ddply(.data=dataset,.(sp,stock),summarize,median.var=round(median(rec,na.rm=TRUE),2))
+    lt.maxes <- dataset %>% group_by(sp,stock) %>% summarize(max.var=round(max(rec,na.rm=T),2)) %>% as.data.frame()
+    lt.medians <- dataset %>% group_by(sp,stock) %>% summarize(median.var=round(median(rec,na.rm=T),2)) %>% as.data.frame()
     }
   if(variable=="fishing.mortality"){
-    lt.maxes <- ddply(.data=dataset,.(sp,stock),summarize,max.var=round(max(fishing.mortality,na.rm=TRUE),2))
-    lt.medians <- ddply(.data=dataset,.(sp,stock),summarize,median.var=round(median(fishing.mortality,na.rm=TRUE),2))
+    lt.maxes <- dataset %>% group_by(sp,stock) %>% summarize(max.var=round(max(fishing.mortality,na.rm=T),2)) %>% as.data.frame()
+    lt.medians <- dataset %>% group_by(sp,stock) %>% summarize(median.var=round(median(fishing.mortality,na.rm=T),2)) %>% as.data.frame()
     }
-  #print(lt.maxes)
+
   print(lt.medians)
   #anchovy stats
   #if(!"Anchovy" %in% lt.maxes.sp){print("No anchovy time series")}
@@ -129,8 +160,7 @@ corr.fig(region_or_subregion="Benguela",variable="landings",scale = "Region",dat
 corr.fig(region_or_subregion="California",variable="ssb",scale = "Region",data_source="RAM")
 
 
-
-# Summarize peak variables for all the regions (to make comparison --------
+# Summarize peak variables for all the regions (to make comparison)
 
 regions <- c("Benguela","California","Humboldt","Kuroshio-Oyashio","NE Atlantic")
 variables <- c("ssb","rec","landings","fishing.mortality")
@@ -140,8 +170,8 @@ megatable <- vector(length=6)
 
 for (r in 1:nregions){
 for (v in 1: nvariables){
-  xx <- try(corr.fig(region_or_subregion=regions[r],variable=variables[v],scale = "Region",data_source="Barange"))
-  mt <- xx$median.table    #xx$max.table
+  xx <- try(corr.fig(region_or_subregion=regions[r],variable=variables[v],scale = "Region",data_source="RAM"))
+  mt <-  xx$max.table #xx$median.table   
   mt$variable=rep(variables[v],times=nrow(mt))
   mt$region=rep(regions[r],times=nrow(mt))  
   mt$domsard <- xx$Dom_sard_LTmax
@@ -151,90 +181,125 @@ for (v in 1: nvariables){
 }
 
 RAM.summary <- megatable[-1,]
-barange.summary <- megatable[-1,]
 RAM.summary$datasource <- "RAM"
+# RAM summary is missing some values; fill in with NA
+RAM.summary <- RAM.summary[-which(is.infinite(RAM.summary$max.var)),]
+
+barange.summary <- megatable[-1,]
 barange.summary$datasource <- "Barange"
 
-Both <- rbind(RAM.summary,barange.summary)
-# RAM summary is missing some values; fill in with NA
-# RAM.summary <- RAM.summary[-which(is.inf(RAM.summary$max.var)),]
-Both <- Both[-which(is.infinite(Both$median.var)),]
-#Both <- Both[-which(is.infinite(Both$max.var)),]
-save(Both,file = "Replacement_RAM_Barange_MEDIAN.Rdata")
-load("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/Replacement_RAM_Barange.Rdata")
-# Plot peak biomass, landings, recruitment --------------------------------
+FAO.summary <-megatable[-1,]
+FAO.summary$datasource <- "FAO"
+
+Both <- rbind(RAM.summary,barange.summary,FAO.summary)
+#Both <- Both[-which(is.infinite(Both$median.var)),]
+Both <- Both[-which(is.infinite(Both$max.var)),]
+
+#save(Both,file = "Replacement_RAM_Barange_MAX.Rdata")
+
+load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/Replacement_RAM_Barange_MAX.Rdata") #df: Both
+
+
+# FIGURE 3: replacement; log-ratios of maximums and medians ---------------
+# Plot peak biomass, landings, recruitment
 #Change order of x axis tick labels so that sardines/anchovy in similar ecosystems are close together
 desired_order <- c("Northern Benguela anchovy","Northern Benguela sardine","Southern Benguela anchovy","Southern Benguela sardine","Anchovy South Africa","Sardine South Africa","California anchovy","California sardine","N Anchovy E Pacific","Pacific sardine Pacific Coast","Humboldt anchovy - Central Peru","Humboldt sardine - N Central Peru","Humboldt anchovy - South Peru N Chile","Humboldt sardine - South Peru N Chile","Chilean common sardine","Japanese anchovy","Japanese sardine","Bay of Biscay anchovy","European sardine")
 
-                barange.summary <- filter(barange.summary,stock != "Northern Benguela sardine" & 
+                summary <- filter(Both,stock != "Northern Benguela sardine" & 
                                             stock != "Humboldt sardine - South Peru N Chile" & 
                                             stock != "Humboldt anchovy - South Peru N Chile" & 
                                             stock != "Chilean common sardine" )
                                             #variable != "fishing.mortality" & 
                                             #variable != "rec")
-                barange.summary$stock2 <- factor(barange.summary$stock,desired_order)
-                plot.barange <- filter(barange.summary,variable != "fishing.mortality")  #Take out fishing mortality
-                plot.barange <- mutate(plot.barange,variable = revalue(variable, c("ssb" = "SSB",
-                                                                                   'rec' = 'Recruitment',
-                                                                                   'landings' = 'Landings')))
+                summary$stock2 <- factor(summary$stock,desired_order)
+                # plot.barange <- filter(barange.summary,variable != "fishing.mortality")  #Take out fishing mortality
+                # plot.barange$variable = recode(plot.barange$variable,ssb = "SSB",
+                #                                          rec = 'Recruitment',
+                #                                          landings = 'Landings')
 
-both.summary <- filter(Both, variable != "fishing.mortality" &
-                              stock != "Northern Benguela sardine" & 
-                              stock != "Humboldt sardine - South Peru N Chile" & 
-                              stock != "Humboldt anchovy - South Peru N Chile" & 
-                              stock != "Chilean common sardine" )
-both.summary$stock2 <- factor(both.summary$stock,desired_order)
-plot.both <- mutate(both.summary,variable = revalue(variable, c("ssb" = "SSB",
-                                                                'rec' = 'Recruitment',
-                                                                'landings' = 'Landings')))
+summary$stock2 <- factor(summary$stock,desired_order)
+# summary$variable <- recode(both.summary$variable,ssb = "SSB",
+#                                                 rec = 'Recruitment',
+#                                                 landings = 'Landings')
 
 sa.col <- c("#ef8a62","#67a9cf")
 
 # Add percent differences to 'both' figure:
-tp <- plot.both[,c("sp","stock","median.var","variable","region","datasource")] #"max.var"
-tp2 <- dcast(tp,region+variable+datasource ~ sp,value.var="median.var")
-#tp2$log.diff <- log(tp2$Anchovy)
-tp3 <- tp2 %>% mutate(log.diff = log(Anchovy/Sardine)) %>% subset(variable != "Recruitment") 
+tp <- summary %>% select(sp,stock,max.var,variable,region,datasource) #"max.var"
+tp2 <- dcast(tp,region+variable+datasource ~ sp,value.var="max.var",fun.aggregate = sum,na.rm=T)
+tp3 <- tp2 %>% mutate(log.diff = log(Anchovy/Sardine)) 
 tp3$percent.diff <- (abs(tp3$Anchovy-tp3$Sardine) / rowMeans(cbind(tp3$Anchovy,tp3$Sardine),na.rm=T) )* 100
 tp3$zeroes <- 0
-tp3$variable <- revalue(tp3$variable,c("SSB"="Biomass"))
-# New replacement plot for paper
-pdf("NewReplacementPlot_medians.pdf",width=10,height=3,useDingbats = FALSE)
-newpal <- c("darkgrey",beyonce_palette(78)[-1],"#F8A02E")
-ggplot(tp3,aes(x=log.diff,y=zeroes,colour=region,shape = datasource)) + 
-  geom_vline(xintercept=0,lty=2) + 
-  geom_point(size = 5) +
-  scale_colour_manual(values = newpal) +
-  #scale_shape_manual(values = c(21,24)) +
-  facet_wrap(~variable,ncol = 1) + 
-  theme_classic(base_size = 14) + 
-  xlim(c(-3,3)) +
-  xlab("Log(Anchovy / Sardine)") + 
-  ylab("") +
-  scale_y_discrete(breaks=c(-0.1,0,0.1),labels=c("","","")) +
-  annotate("text",label="Sardine dominant",x=-1.75,y=.5,colour='white') + 
-  annotate("text",label="Anchovy dominant",x=1.75,y=.5,colour='white')
+tp3$variable <- recode(tp3$variable,
+                       fishing.mortality="Fishing mortality",
+                       ssb="Spawning stock biomass",
+                       landings="Landings",
+                       rec="Recruitment")
+tp3$newvar = factor(tp3$variable, levels=c("Recruitment","Spawning stock biomass","Landings","Fishing mortality"))
+#newpal <- c("darkgrey",beyonce_palette(78)[-1],"#F8A02E") #old palette
+
+newblue <- c("#c6dbef","#4292c6","#08519c")
+fig3 <- tp3 %>% 
+        filter(variable != "Recruitment") %>%
+        ggplot(aes(x=log.diff,y=region,colour=datasource)) + 
+        geom_vline(xintercept=0,lty=2) + 
+        geom_point(size = 3) +
+        scale_colour_manual("Data source",values=rev(newblue)) +
+        #scale_colour_brewer(palette = "Blues") +
+        facet_wrap(~newvar,ncol = 1) + 
+        theme_classic(base_size = 14) %+replace% theme(strip.background  = element_blank()) +
+        xlim(-3,3) +
+        xlab("Log(Anchovy / Sardine)") + 
+        ylab("") 
+
+(st <- tp3 %>% filter(!is.infinite(log.diff))%>% 
+    group_by(region,newvar) %>% 
+    summarise(ml = median(log.diff,na.rm=T)) %>% 
+  filter(newvar != "Recruitment") %>%
+  droplevels() )
+  
+
+fig3_option2 <- tp3 %>% 
+      filter(variable != "Recruitment") %>%
+      droplevels() %>%
+      ggplot(aes(x=log.diff,y=region)) + 
+      geom_vline(xintercept=0,lty=2) + 
+      geom_point(size = 3,colour='lightgrey') +
+      scale_colour_manual(values=rev(newblue)) +
+      #scale_colour_brewer(palette = "Blues") +
+      theme_classic(base_size = 14) %+replace% theme(strip.background  = element_blank()) +
+      facet_wrap(~newvar,ncol = 1) + 
+      geom_point(size=3,data=st,aes(x=ml,y=region,colour=region)) +
+      scale_colour_manual("Region",values=pal)+
+      xlim(-3,3) +
+      theme(legend.position = "none") +
+      xlab("Log(Anchovy / Sardine)") + 
+      ylab("") 
+
+pdf(file.path(figwd,"Figure3_option2.pdf"),width = 8, height = 5,useDingbats = F)
+fig3_option2
 dev.off()
+
 
 # New replacement plot for defense slides
-pdf("NewReplacementPlot_black2.pdf",width=10,height=3,useDingbats = FALSE)
-newpal <- c("lightyellow",beyonce_palette(78)[-1],"#F8A02E")
-ggplot(tp3,aes(x=log.diff,y=zeroes)) + #colour=region,shape = datasource
-  geom_vline(xintercept=0,lty=2,colour="white") + 
-  geom_point(size = 5,colour="white",alpha=0.7) + #
-  scale_color_manual(values = newpal) +
-  facet_wrap(~variable,ncol = 1) + 
-  #theme_classic(base_size = 14) + 
-  theme_black(base_size=12) +
-  xlim(c(-3,3)) +
-  xlab("Log(Anchovy / Sardine)") + 
-  ylab("") +
-  scale_y_discrete(breaks=c(-0.1,0,0.1),labels=c("","","")) +
-  annotate("text",label="Sardine dominant",x=-1.75,y=.5,colour='white') + 
-  annotate("text",label="Anchovy dominant",x=1.75,y=.5,colour='white')
-dev.off()
-      
-
+        #pdf("NewReplacementPlot_black2.pdf",width=10,height=3,useDingbats = FALSE)
+        newpal <- c("lightyellow",beyonce_palette(78)[-1],"#F8A02E")
+        ggplot(tp3,aes(x=log.diff,y=zeroes)) + #colour=region,shape = datasource
+          geom_vline(xintercept=0,lty=2,colour="white") + 
+          geom_point(size = 5,colour="white",alpha=0.7) + #
+          scale_color_manual(values = newpal) +
+          facet_wrap(~variable,ncol = 1) + 
+          #theme_classic(base_size = 14) + 
+          theme_black(base_size=12) +
+          xlim(c(-3,3)) +
+          xlab("Log(Anchovy / Sardine)") + 
+          ylab("") +
+          scale_y_discrete(breaks=c(-0.1,0,0.1),labels=c("","","")) +
+          annotate("text",label="Sardine dominant",x=-1.75,y=.5,colour='white') + 
+          annotate("text",label="Anchovy dominant",x=1.75,y=.5,colour='white')
+        #dev.off()
+              
+        
 
 # Back to bar plots -------------------------------------------------------
 # Add percent differences to figure
@@ -315,20 +380,20 @@ dev.off()
 
 # Sample time series for talks --------------------------------------------
 
-sample <- subset(alldat,datasource=="RAM" & region =="California" )
-setwd("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures")
-pdf("SampleCA_presentation.pdf",width=12,height = 7)
-ggplot(sample,aes(x=year,y=ssb/1000,colour=sp)) + 
-  geom_line(lwd=1.7) + 
-  scale_colour_manual(values = c("#ef8a62","#67a9cf")) +
-  theme_classic(base_size = 16) +
-  ylab("Biomass (x 1000 t)")
-dev.off()
+# sample <- subset(alldat,datasource=="RAM" & region =="California" )
+# setwd("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures")
+# pdf("SampleCA_presentation.pdf",width=12,height = 7)
+# ggplot(sample,aes(x=year,y=ssb/1000,colour=sp)) + 
+#   geom_line(lwd=1.7) + 
+#   scale_colour_manual(values = c("#ef8a62","#67a9cf")) +
+#   theme_classic(base_size = 16) +
+#   ylab("Biomass (x 1000 t)")
+# dev.off()
 
 
 
 # Distributions for null vs. observed data --------------------------------
-obs <- get_obs(dat = RB,dsource = "Barange",reg = "California",var = "ssb")
+obs <- get_obs(dat = RB,dsource = "Barange",reg = "California",var = "landings")
 obstest <- get_wmr(obs$std_anchovy, obs$std_sardine)
 nulltest1 = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1])
 nulltest2 = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,2],sardine.ts=xx$Sardine.surrogates[,2])
@@ -336,7 +401,7 @@ nulltest2 = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,2],sardine.ts=xx$Sardine.s
 
 get_large_null <- function(dat = RB,dsource = "Barange",reg = "California",var = "ssb",nsims){
   #generate as many surrogates as you need to get your full sims:
-  yy <- get_surrogates(dat = dat,dsource = dsource,reg = reg,var = var,nsurrogates = nsims) 
+  yy <- get_surrogates(obs = get_obs(dat = dat,dsource = dsource,reg = reg,var = var),nsurrogates = nsims) 
   # Combine multiple null runs to get a good null dist:
   null.combined <- get_wmr(anchovy.ts=yy$Anchovy.surrogates[,1],sardine.ts=yy$Sardine.surrogates[,1])
   for (i in 2:nsims){
@@ -346,14 +411,14 @@ get_large_null <- function(dat = RB,dsource = "Barange",reg = "California",var =
   return(null.combined)
 }
 
-giantnull <- get_large_null(dat = RB,dsource = "Barange",reg = "California",var = "ssb",nsims=50)
+giantnull <- get_large_null(dat = RBF,dsource = "Barange",reg = "California",var = "landings",nsims=50)
 str(giantnull)
 
 
 
 
 
-distfig <- function(null, observed){
+distfig <- function(null, observed, return.dataframe = F){
   #' @description plots a histogram of observed WMRs vs. "null" WMR
   #' @param null is a list of three WMR matrices, each of which represents one time window (from a null surrogate)
   #' @param obs is a list of three WMR matrices, each of which represents one time window (observed time series)
@@ -370,11 +435,121 @@ distfig <- function(null, observed){
   
   ggplot(nl,aes(x=wmrdens)) + 
     geom_density(fill="grey",colour="darkgrey",alpha=0.5) + 
-    geom_density(data=obsl,fill="yellow",colour="yellow",alpha=0.5) +
+    geom_density(data=obsl,fill="#41b6c4",colour="#41b6c4",alpha=0.5) +
     facet_wrap(~ID_ord,ncol = 1) +
     ylab("Density") +
     xlab("Wavelet modulus ratio (WMR)") +
     theme_classic(base_size=14)
+  
+  if(return.dataframe == TRUE){
+    nl$nv <- "null"
+    obsl$nv <- "obs"
+    all <- rbind.fill(nl,obsl)
+    return(all)
+  }
 }
 
-distfig(null = giantnull,observed = obstest)
+test <- distfig(null = giantnull,observed = obstest,return.dataframe = T)
+
+# Need to get data into the following format for analysis:
+# Year Sardine.est Anchovy.est      region datasource variable
+newmelt <- alldat %>%  
+  select(datasource,stock,year,ssb,rec,landings,sp, region, subregion) %>%  
+  melt(id.vars = c("datasource","stock","region", "subregion","year"))
+
+
+# Get a giant dataframe of all the WMRs for each of the regions.
+stocks <- alldat %>% 
+  distinct(sp, stock, region, datasource) # get unique stock-region combos
+n <- nrow(stocks) # there should be 15 combos of region and datasource
+
+compares <- alldat %>% 
+  distinct(region, datasource)
+
+
+# LANDINGS ----------------------------------------------------------------
+landings.wmrs <- vector()
+for(s in 1:nrow(compares)){ 
+  tryCatch ({
+  obs <- get_obs(dat = RBF,dsource = compares$datasource[s],reg = compares$region[s],var = "landings")
+  obstest <- get_wmr(obs$std_anchovy, obs$std_sardine)
+  giantnull <- get_large_null(dat = RBF,dsource = compares$datasource[s],reg = compares$region[s],var = "landings",nsims=10)
+  null=giantnull
+  observed=obstest
+  test <- distfig(null = giantnull,observed = obstest,return.dataframe = T)
+  test$region <- compares$region[s]
+  test$datasource <- compares$datasource[s]
+  test$variable <- "landings"
+  # NEED TO ADD THESE OR SIMILAR TO FIND OUT WHICH TWO STOCKS ARE BEING COMPARED
+  #test$sardstock <- subset(stocks,region==compares$region[s] & datasource==compares$datasource[s] & sp =="Sardine")$stock
+  #test$anchstock <- subset(stocks,region==compares$region[s] & datasource==compares$datasource[s] & sp =="Anchovy")$stock
+  landings.wmrs <- rbind(landings.wmrs,test)
+  }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+}
+
+
+# BIOMASS -----------------------------------------------------------------
+ssb.wmrs <- vector()
+for(s in 1:nrow(compares)){ 
+  tryCatch ({
+    obs <- get_obs(dat = RBF,dsource = compares$datasource[s],reg = compares$region[s],var = "ssb")
+    obstest <- get_wmr(obs$std_anchovy, obs$std_sardine)
+    giantnull <- get_large_null(dat = RBF,dsource = compares$datasource[s],reg = compares$region[s],var = "ssb",nsims=10)
+    null=giantnull
+    observed=obstest
+    test <- distfig(null = giantnull,observed = obstest,return.dataframe = T)
+    test$region <- compares$region[s]
+    test$datasource <- compares$datasource[s]
+    test$variable <- "ssb"
+    ssb.wmrs <- rbind(ssb.wmrs,test)
+  }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+}
+
+# RECRUITMENT -----------------------------------------------------------------
+rec.wmrs <- vector()
+for(s in 1:nrow(compares)){ 
+  tryCatch ({
+    obs <- get_obs(dat = RBF,dsource = compares$datasource[s],reg = compares$region[s],var = "rec")
+    obstest <- get_wmr(obs$std_anchovy, obs$std_sardine)
+    giantnull <- get_large_null(dat = RBF,dsource = compares$datasource[s],reg = compares$region[s],var = "rec",nsims=10)
+    null=giantnull
+    observed=obstest
+    test <- distfig(null = giantnull,observed = obstest,return.dataframe = T)
+    test$region <- compares$region[s]
+    test$datasource <- compares$datasource[s]
+    test$variable <- "rec"
+    rec.wmrs <- rbind(rec.wmrs,test)
+  }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+}
+
+
+
+# PLOTS -------------------------------------------------------------------
+pal <- beyonce_palette(18)[2:6]
+#tiff("WMRS_Rec.tiff",width = 8,height = 10,units = 'in',res = 150)
+landings.wmrs %>% subset(datasource=="Barange" & nv=="obs") %>%
+ggplot(aes(x=wmrdens,colour=region,fill=region)) + 
+  geom_density(alpha=0.5,lwd=1.2,trim=F) + 
+  scale_colour_manual(values=pal) +
+  scale_fill_manual(values=pal) +
+  facet_wrap(~ID_ord,ncol=1,scales = "free_y") +
+  ylab("Density") +
+  xlab("Wavelet modulus ratio (WMR)") +
+  theme_classic(base_size=14) +
+  ggtitle("landings")
+#dev.off()
+
+
+
+# Junk plots --------------------------------------------------------------
+fs <- subset(alldat, !is.na(fishing.mortality)) %>% melt(id.vars=c("datasource","stock","year","sp","region","subregion","scientificname"))
+colnum <- length(unique(fs$stock))
+getPalette = colorRampPalette(brewer.pal(9, "Set1"))
+
+fs %>% filter(variable=="fishing.mortality") %>% 
+  ggplot(aes(x=year,y=value,colour=stock,lty=datasource)) + 
+  geom_line(lwd=1.2) + 
+  scale_colour_manual(values = getPalette(colnum)) + 
+  theme_classic(base_size=14) +
+  ylab("Fishing mortality")
+
