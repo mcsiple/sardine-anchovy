@@ -1,7 +1,7 @@
 #install.packages(c("fractal","DescTools","biwavelet"))
 library(fractal) # contains surrogate function
 library(ggplot2)
-library(plyr)
+#library(plyr)
 library(dplyr)
 library(reshape2)
 library(DescTools)
@@ -10,7 +10,7 @@ library(biwavelet)
 sessionInfo()
 
 # Example
-MEI_raw <- read.table("~/Dropbox/Chapter3-SardineAnchovy/R files/resomewaveletresults/MEI.txt", header = TRUE, sep = "\t", fill = TRUE)
+MEI_raw <- read.table("C:/Users/siplem/Dropbox/Chapter3-SardineAnchovy/R files/resomewaveletresults/MEI.txt", header = TRUE, sep = "\t", fill = TRUE)
 mei_raw <- tbl_df(MEI_raw)
 mei_raw_m <- melt(mei_raw, id.vars="YEAR")
 names(mei_raw_m)[2:3] <- c("MON", "VALUE")
@@ -82,11 +82,6 @@ ann_mei_df <- as.data.frame(ann_mei)
 plot(ann_mei_df$year,ann_mei_df$mean_val,type='l')
 #lines(ann_mei$year, surr_phase, lwd=2, type="l", col=rgb(0,0,1,0.65), ylim=c(-2,2))
 
-PlotDesc(ann_mei$mean_val) # not sure if "Plot" should be at the front of this
-PlotDesc(surr_ce)
-PlotDesc(surr_aaft)
-PlotDesc(surr_phase)
-PlotDesc(surr_dh)
 
 
 
