@@ -82,7 +82,8 @@ get_wmr <- function(anchovy.ts,sardine.ts){
               ten.plus = synch.10))
 }
 
-
+( xx <- get_surrogates(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
+                       nsurrogates = 10) )
 m.null = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1])
 
 get_surrogates <- function(obs, nsurrogates){
@@ -103,8 +104,7 @@ get_surrogates <- function(obs, nsurrogates){
   return(list(Anchovy.surrogates = a.sims,Sardine.surrogates = s.sims))
 }
 
-( xx <- get_surrogates(obs = get_obs(dat = RB,dsource = "Barange",reg = "California",var = "ssb"),
-                       nsurrogates = 10) )
+
 
 
 test_wmr <- function(obs, m.null){
@@ -125,6 +125,20 @@ test_wmr <- function(obs, m.null){
   return(test.df)
 }
 
-test_wmr(obs = get_obs(dat = RB,dsource = "Barange",reg = "California",var = "ssb"),
+test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
          m.null = m.null)
+
+
+
+get_large_null <- function(dat = RB,dsource = "Barange",reg = "California",var = "ssb",nsims){
+  #generate as many surrogates as you need to get your full sims:
+  yy <- get_surrogates(obs = get_obs(dat = dat,dsource = dsource,reg = reg,var = var),nsurrogates = nsims) 
+  # Combine multiple null runs to get a good null dist:
+  null.combined <- get_wmr(anchovy.ts=yy$Anchovy.surrogates[,1],sardine.ts=yy$Sardine.surrogates[,1])
+  for (i in 2:nsims){
+    newlist <- get_wmr(anchovy.ts=yy$Anchovy.surrogates[,i],sardine.ts=yy$Sardine.surrogates[,i])
+    null.combined <- mapply(c, null.combined, newlist, SIMPLIFY=FALSE)
+  }
+  return(null.combined)
+}
 
