@@ -1,12 +1,8 @@
 # Plotting code! I just dumped all this code here for now
 #library(beyonce)
 #source("/Users/mcsiple/Dropbox/ChapterX-synthesis/Theme_Black.R")
-
 #sa.col <- c("red","darkblue")
 #ylabel <- c("Landings","SSB","Recruitment")
-
-
-
 # pal <- beyonce_palette(11)
 # plot(1:3,sp[,2],xaxt='n',ylim=c(0,1),pch=21,bg = pal[c(1,3,5)],ylab="Prob(WMR < 0.5)", xlab="")
 # axis(1, at = c(1,2,3), labels = c("<5 yr","5-10 yr","10+ yr"))

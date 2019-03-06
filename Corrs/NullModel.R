@@ -1,3 +1,4 @@
+
 # Take original time series, compare wavelet modulus ratio distribution between null model (no synchrony)
 # If you have two time series of the same spectral characteristics, randomly starting, how often do you observe asynchrony by accident at each time scale? This can be referred to as the "null model" - how much synchronicity would you see at random.
 
@@ -13,21 +14,22 @@ library(biwavelet)
 library(mvcwt)
 
 # Load all the data
-load(here::here("ProcData/RAM_Barange_States.RData")) # data frame: RB 
+#load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Barange_States.RData") # data frame: RB 
+load(here::here("ProcData/RAM_Barange_FAO_States.RData")) # data frame: RBF (RBF is MARSS states, RBF2 is replacing NAs with the mean)
+
+# Take original time series, compare wavelet modulus ratio distribution between null model (no synchrony)
+# If you have two time series of the same spectral characteristics, randomly starting, how often do you observe asynchrony by accident at each time scale? This can be referred to as the "null model" - how much synchronicity would you see at random.
 
 
-get_surrogates <- function(dat=RB, dsource, reg, var, nsurrogates){
-  #' @description takes a pair of sardine-anchovy time series from the bigger dataset and generates surrogate time series that have the same time series properties but none of the phase information (i.e., no info about the relationship between the two time series).
-  #' @param dat the dataset to extract from. Default "RB" which includes RAM and Barange data, already interpolated where necessary.
+get_obs <- function(dat=RBF, dsource, reg, var){
+  #' @description a function that subsets the data to the variable and region that the user specifies and returns the standardized biomass, landings, etc. time series
+  #' #' @param dat the dataset to extract from. Default "RB" which includes RAM and Barange data, already interpolated where necessary.
   #' @param dsource which dataset the data should come from. Eventually, choose between, FAO, RAM, Barange et al.
   #' @param reg region
   #' @param var variable - choose between (ssb, landings, rec)
-  #' @param nsurrogates - number of surrogate time series to generate
-  #' @return a list of time series info (region, datasource, variable) and a matrix of surrogates for each fish. The surrogates are organized as having rows=years, columns=surrogates
   data.points <- subset(dat,datasource == dsource & 
                           region == reg & 
                           variable == var)
-  #print(data.points)
   if(nrow(data.points)==0 | 
      length(unique(data.points$Sardine.est))==1 |
      length(unique(data.points$Anchovy.est))==1){stop("Error: one time series missing")}
@@ -37,18 +39,8 @@ get_surrogates <- function(dat=RB, dsource, reg, var, nsurrogates){
   if(all(is.na(std_sardine))) std_sardine <- rep(NA, times=length(std_sardine)) # In case all values are the same
   std_anchovy <- as.numeric(scale(data.points$Anchovy.est)) 
   if(all(is.na(std_anchovy))) std_sardine <- rep(NA, times=length(std_anchovy))
-  
-  nyears = length(std_anchovy)
-  a.sims <- s.sims <- matrix(NA, nrow = nyears,ncol = nsurrogates)
-  for(s in 1:nsurrogates){
-    a.sims[,s] <- as.numeric(surrogate(data.points$Anchovy.est,method = 'phase'))
-    s.sims[,s] <- as.numeric(surrogate(data.points$Sardine.est,method = 'phase'))
-  }
-  return(list(Region=reg,DataSource=dsource,Variable=var, Anchovy.surrogates = a.sims,Sardine.surrogates = s.sims))
+  return(list(std_anchovy=std_anchovy,std_sardine=std_sardine))
 }
-
-( xx <- get_surrogates(dat = RB,dsource = "Barange",reg = "California",var = "ssb",nsurrogates = 10) )
-
 
 
 get_wmr <- function(anchovy.ts,sardine.ts){ 
@@ -90,23 +82,35 @@ get_wmr <- function(anchovy.ts,sardine.ts){
               ten.plus = synch.10))
 }
 
+( xx <- get_surrogates(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
+                       nsurrogates = 10) )
 m.null = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1])
 
+get_surrogates <- function(obs, nsurrogates){
+  #' @description takes a pair of sardine-anchovy time series from the bigger dataset and generates surrogate time series that have the same time series properties but none of the phase information (i.e., no info about the relationship between the two time series).
+  #' @param obs a list of two vectors, which are standardized sardine (std_sardine) and anchovy (std_anchovy) time series
+  #' @param nsurrogates - number of surrogate time series to generate
+  #' @return a list of time series info (region, datasource, variable) and a matrix of surrogates for each fish. The surrogates are organized as having rows=years, columns=surrogates
+  #' 
+  std_anchovy <- obs$std_anchovy
+  std_sardine <- obs$std_sardine
+  
+  nyears = length(std_anchovy) # both vectors should be the same length
+  a.sims <- s.sims <- matrix(NA, nrow = nyears,ncol = nsurrogates)
+  for(s in 1:nsurrogates){
+    a.sims[,s] <- as.numeric(surrogate(std_anchovy,method = 'phase'))
+    s.sims[,s] <- as.numeric(surrogate(std_sardine,method = 'phase'))
+  }
+  return(list(Anchovy.surrogates = a.sims,Sardine.surrogates = s.sims))
+}
 
-test_wmr <- function(dat=RB, dsource, reg, var, m.null){
-  data.points <- subset(dat,datasource == dsource & 
-                          region == reg & 
-                          variable == var)
-  if(nrow(data.points)==0 | 
-     length(unique(data.points$Sardine.est))==1 |
-     length(unique(data.points$Anchovy.est))==1){stop("Error: one time series missing")}
-  
-  # Standardize data
-  std_sardine <- as.numeric(scale(data.points$Sardine.est)) # scale so center is 0
-  if(all(is.na(std_sardine))) std_sardine <- rep(NA, times=length(std_sardine)) # In case all values are the same
-  std_anchovy <- as.numeric(scale(data.points$Anchovy.est)) 
-  if(all(is.na(std_anchovy))) std_sardine <- rep(NA, times=length(std_anchovy))
-  
+
+
+
+test_wmr <- function(obs, m.null){
+  #' @param obs a list of two vectors, which are standardized sardine (std_sardine) and anchovy (std_anchovy) time series
+  std_anchovy <- obs$std_anchovy
+  std_sardine <- obs$std_sardine
   # get observed wmr
   m <- get_wmr(std_anchovy, std_sardine)
   
@@ -115,12 +119,26 @@ test_wmr <- function(dat=RB, dsource, reg, var, m.null){
   test.5 = wilcox.test(m$five.ten, m.null$five.ten)
   test.10 = wilcox.test(m$ten.plus, m.null$ten.plus)
   
-  test.df = data.frame(Region = reg, DataSource = dsource, Variable = var,
-                       period = c("less.than.5","five.ten","ten.plus"), 
+  test.df = data.frame(period = c("less.than.5","five.ten","ten.plus"), 
                        test.stat = c(test.1$statistic,test.5$statistic,test.10$statistic), 
                        p.value = c(test.1$p.value,test.5$p.value,test.10$p.value))
-  
   return(test.df)
 }
 
-test_wmr(dat = RB,dsource = "Barange",reg = "California",var = "ssb",m.null = m.null)
+test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
+         m.null = m.null)
+
+
+
+get_large_null <- function(dat = RB,dsource = "Barange",reg = "California",var = "ssb",nsims){
+  #generate as many surrogates as you need to get your full sims:
+  yy <- get_surrogates(obs = get_obs(dat = dat,dsource = dsource,reg = reg,var = var),nsurrogates = nsims) 
+  # Combine multiple null runs to get a good null dist:
+  null.combined <- get_wmr(anchovy.ts=yy$Anchovy.surrogates[,1],sardine.ts=yy$Sardine.surrogates[,1])
+  for (i in 2:nsims){
+    newlist <- get_wmr(anchovy.ts=yy$Anchovy.surrogates[,i],sardine.ts=yy$Sardine.surrogates[,i])
+    null.combined <- mapply(c, null.combined, newlist, SIMPLIFY=FALSE)
+  }
+  return(null.combined)
+}
+

@@ -1,14 +1,14 @@
 # Combine all data from RAM, FAO, Barange et al.
 # The resulting dataset is "allsardineanchovy.RData" which is used in all subsequent analyses
 # NOTE: One important thing this code does is turn the "NA" stocks in the FAO database into fake stocks.
-# For example, there is a time series of sardine in land area "Europe" and one in land area "-"
+
 
 datadir <- "C:/Users/siplem/Dropbox/Chapter3-SardineAnchovy/Datasets"
 
 # For unix OS:
 # datadir <- "~/Dropbox/Chapter3-SardineAnchovy/Datasets/"
 
-load(file.path(datadir,"RAM/RAM.RData"))      #RAM
+load(file.path(datadir,"RAM/RAM_2.RData"))      #RAM
 load(file.path(datadir,"FAO/FAO.RData"))      #FAO
 load(file.path(datadir,"Barange/BARANGE_ALL.RData"))   #ALLDAT
 barange <- alldat
@@ -119,47 +119,13 @@ alldat <- plyr::rbind.fill(list(barange.new,RAM.new,FAO.new)) %>% select(datasou
 # some time series have subregion info, so plotting by region needs to be preceded by summing by 
   
 # Save the huge dataset!
-save(alldat,file="allsardineanchovy.RData")
+save(alldat,file="~/Dropbox/Chapter3-SardineAnchovy/Datasets/allsardineanchovy_3.RData")
 
 
 
-# Fill NAs with long-term means -------------------------------------------
-load(file.path(datadir,"allsardineanchovy_2.RData")) # alldat
+# Fill NAs with long-term means -- see the getMARSSstates.R file!
 
 
-md <- melt(alldat,id.vars=c("datasource","scientificname","stock","year","sp","region","subregion"))
-
-# Replace NAs with long-term means:
-impute.mean <- function(x) replace(x, is.na(x), mean(x, na.rm = TRUE))
-impute.sa <- function(x,thresh=0.3){
-  #' @description  This function can be applied to any time series. It imputes the mean for any NA-valued years after the start of the time series
-  #' @param x is a vector of time series values for a certain variable
-  #' @param thresh is the threshold of how many NAs to accept in the time series (might not use)
-  n <- length(x)
-  if(all(is.na(x))){new <- x}else{
-      firstvalue <- which(!is.na(x))[1] # first non-NA value in the time series
-      # only apply the NA fill function after the start of the actual ts values
-      newts <- x[firstvalue:n]
-      imputed <- impute.mean(newts)
-      new <- c(rep(NA,times=(firstvalue-1)),imputed)
-      }
-  return(new)
-}
-
-ggplot(md3,aes(x=year,y=value2,linetype=datasource,colour=stock)) +
-  geom_line() +
-  facet_grid(variable~region,scales="free_y") +
-  theme_classic() +
-  theme(legend.position = "none")
-
-md2 %>% subset(variable !="rec") %>%
-  ggplot(aes(x=year,y=value,linetype=datasource,colour=stock)) +
-  geom_line() +
-  facet_grid(variable~region,scales="free_y") +
-  theme_classic() +
-  theme(legend.position = "none")
-
-save()
 
 ########################################################################
 #Side note: Pacific sardine in RAM does not look like the one in Barange et al. -- is it possible that they are from different sources? Different maxima, years covered; same overall pattern.

@@ -18,7 +18,11 @@ FillNAs.ts <- function(ObsMat,startyear,endyear){
   Fill.ts <- cbind(startyear:endyear,rep(NA,times=expanded.length))
   
   for (i in 1:nrow(Fill.ts)){
-    if(Fill.ts[i,1] %in% ObsMat[,1]){Fill.ts[i,2] <- ObsMat[which(ObsMat[,1]==Fill.ts[i,1]),2]}
+    if(Fill.ts[i,1] %in% ObsMat[,1]){
+      Fill.ts[i,2] <- ObsMat[which(ObsMat[,1]==Fill.ts[i,1]),2]
       }
-return(t(Fill.ts))
-}
+  }
+  
+  return(t(Fill.ts))
+  }
+

@@ -1,36 +1,59 @@
 
-library(plyr)
 library(dplyr)
 library(ggplot2)
 library(reshape2)
 library(MARSS)
 
+
+# Make a function to look at correlations and time series --------
+# This function takes variable, region, and returns a time series of the two dominant spps, correlations, and ACFs of each ts
+
 corr.fig <- function(data = alldat, region_or_subregion = "Benguela", scale = "Region", data_source = "Barange", variable = "landings",MARSS.cov = FALSE, plot = FALSE, ccf.calc = FALSE){
-  #'@param data = dataset including the time series you're interested in
-  #'@param Region = 1 of 5 LMEs (Benguela, California, NE Atlantic, Kuroshio-Oyashio, Humboldt)
-  #'@param variable = the variable (rec, biomass, or landings) 
-  #'@param Datasource = FAO, RAM, or Barange
-  
+  # data = dataset including the time series you're interested in
+  # Region = 1 of 5 LMEs (Benguela, California, NE Atlantic, Kuroshio-Oyashio, Humboldt)
+  # variable = the variable (rec, biomass, or landings)
+  # Datasource = FAO, RAM, or Barange
+  if(!region_or_subregion %in% subset(data,region==region_or_subregion | subregion==region_or_subregion)$region){stop("this dataset does not contain this region or subregion")}
   if (scale == "Region") {dataset <- filter(data, region == region_or_subregion & datasource==data_source)}
-  if (scale == "Subregion") {dataset <- filter(data, subregion == region_or_subregion & datasource==data_source)}   
+  if (scale == "Subregion") {dataset <- filter(data, subregion == region_or_subregion & datasource==data_source) }   
+  if (!"Sardine" %in% dataset$sp | !"Anchovy" %in% dataset$sp){stop("missing one of the species")}
   
+  #dataset <- subset(dataset,datasource == datasource)
+  #print(dataset)
+  # This is a little janky and old-fashioned because I wrote it a while ago. In the interest of time, I am not re-writing because it works.
   if(variable=="landings"){
-    lt.maxes <- ddply(.data=dataset,.(sp,stock),summarize,max.var=round(max(landings,na.rm=TRUE),2))} 
+    lt.maxes <- dataset %>% group_by(sp,stock) %>% summarize(max.var=round(max(landings,na.rm=T),2)) %>% as.data.frame()
+    lt.medians <- dataset %>% group_by(sp,stock) %>% summarize(median.var=round(median(landings,na.rm=T),2)) %>% as.data.frame()
+  } 
   if(variable=="ssb"){
-    lt.maxes <- ddply(.data=dataset,.(sp,stock),summarize,max.var=round(max(ssb,na.rm=TRUE),2))}
+    lt.maxes <- dataset %>% group_by(sp,stock) %>% summarize(max.var=round(max(ssb,na.rm=T),2)) %>% as.data.frame()
+    lt.medians <- dataset %>% group_by(sp,stock) %>% summarize(median.var=round(median(ssb,na.rm=T),2)) %>% as.data.frame()
+  }
   if(variable=="rec"){
-    lt.maxes <- ddply(.data=dataset,.(sp,stock),summarize,max.var=round(max(rec,na.rm=TRUE),2))}
+    lt.maxes <- dataset %>% group_by(sp,stock) %>% summarize(max.var=round(max(rec,na.rm=T),2)) %>% as.data.frame()
+    lt.medians <- dataset %>% group_by(sp,stock) %>% summarize(median.var=round(median(rec,na.rm=T),2)) %>% as.data.frame()
+  }
   if(variable=="fishing.mortality"){
-    lt.maxes <- ddply(.data=dataset,.(sp,stock),summarize,max.var=round(max(fishing.mortality,na.rm=TRUE),2))}
-  #print(lt.maxes)
+    lt.maxes <- dataset %>% group_by(sp,stock) %>% summarize(max.var=round(max(fishing.mortality,na.rm=T),2)) %>% as.data.frame()
+    lt.medians <- dataset %>% group_by(sp,stock) %>% summarize(median.var=round(median(fishing.mortality,na.rm=T),2)) %>% as.data.frame()
+  }
   
+  print(lt.medians)
   #anchovy stats
-  lt.max.a <- max(lt.maxes[which(lt.maxes$sp=="Anchovy"),ncol(lt.maxes)])   
-  lt.max.sp <- lt.maxes[lt.maxes$max.var==lt.max.a,2]    #Which anchovy species had biggest long term value for this time series (i.e., the "dominant anchovy species")
+  #if(!"Anchovy" %in% lt.maxes.sp){print("No anchovy time series")}
+  a.only <- subset(lt.maxes, lt.maxes$sp=="Anchovy")
+  a.max.ind <- which.max(a.only$max.var)
+  lt.max.a <- a.only[a.max.ind,ncol(a.only)]
+  lt.max.sp <- a.only$stock[a.max.ind]
+  # Which anchovy species had biggest long term value for this time series (i.e., the "dominant anchovy species")
   
   #sardine stats
-  lt.max.s <- max(lt.maxes[which(lt.maxes$sp=="Sardine"),ncol(lt.maxes)])
-  lt.max.sp.sar <- lt.maxes[lt.maxes$max.var==lt.max.s,2]     # "Dominant sardine species"
+  # if(!"Sardine" %in% lt.maxes.sp){print("No sardine time series")
+  #                                 lt.max.sp.sar = dom.s.ts =  NA}else{
+  s.only <- subset(lt.maxes, lt.maxes$sp=="Sardine")
+  s.max.ind <- which.max(s.only$max.var)
+  lt.max.s <- s.only[s.max.ind,ncol(s.only)]
+  lt.max.sp.sar <- s.only$stock[s.max.ind]     # "Dominant sardine species"
   
   dom.s.ts <- dataset[which(dataset$stock==lt.max.sp.sar),]
   dom.a.ts <- dataset[which(dataset$stock==lt.max.sp),]
@@ -57,8 +80,7 @@ corr.fig <- function(data = alldat, region_or_subregion = "Benguela", scale = "R
   
   # One correlation method: use MARSS to find covariance --------------------------------------------
   if(MARSS.cov == TRUE){
-    source("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/Fill_NAs_SA.R")
-    sard.mars <- FillNAs.ts(cbind(dom.s.ts$year,sar),
+    sard.mars <- FillNAs.ts(cbind(dom.s.ts$year,sar), #This function is from  source("Fill_NAs_SA.R")
                             startyear=min(c(dom.s.ts$year,dom.a.ts$year)),
                             endyear=max(c(dom.s.ts$year,dom.a.ts$year)))
     anch.mars <- FillNAs.ts(cbind(dom.a.ts$year,anch),
@@ -85,7 +107,15 @@ corr.fig <- function(data = alldat, region_or_subregion = "Benguela", scale = "R
   }
   
   return(list(correlation = correlation,Dom_anch_LTmax=as.character(lt.max.sp),
-              Dom_sard_LTmax=as.character(lt.max.sp.sar),dom.anch = dom.a.ts,dom.sard = dom.s.ts,max.table = lt.maxes))
+              Dom_sard_LTmax=as.character(lt.max.sp.sar),
+              dom.anch = dom.a.ts,dom.sard = dom.s.ts,
+              max.table = lt.maxes,
+              median.table = lt.medians))
+  
+  # print(kem.sa.CIs$par.upCI)
+  # print(kem.sa.CIs$par.lowCI)
+  #legend("topright",legend=c("sardine","anchovy"),lty=c(1,1),col=c('black','red'))
+  #table(dataset$Land.Area,dataset$Scientific.name)
   
 }  #End corr.fig function
 
