@@ -105,36 +105,6 @@ get_surrogates <- function(obs, nsurrogates){
 }
 
 
-
-
-test_wmr <- function(obs, null.combined, n.factor = 1){
-  #' @param obs a list of two vectors, which are standardized sardine (std_sardine) and anchovy (std_anchovy) time series
-  std_anchovy <- obs$std_anchovy
-  std_sardine <- obs$std_sardine
-  # get observed wmr
-  m <- get_wmr(std_anchovy, std_sardine)
-  
-  # obtain random samples of large null WMR distributions, with sample size = n.factor * length(observed wmr)
-  m.null <- list("less.than.5" = NA, "five.ten" = NA, "ten.plus" = NA)
-  m.null$less.than.5 <- sample(null.combined$less.than.5, size = n.factor * length(m$less.than.5))
-  m.null$five.ten <- sample(null.combined$five.ten, size = n.factor * length(m$five.ten))
-  m.null$ten.plus <- sample(null.combined$ten.plus, size = n.factor * length(m$ten.plus))
-  # use this sampled null to compare medians of observed and null wmrs
-  test.1 = wilcox.test(m$less.than.5, m.null$less.than.5)
-  test.5 = wilcox.test(m$five.ten, m.null$five.ten)
-  test.10 = wilcox.test(m$ten.plus, m.null$ten.plus)
-  
-  test.df = data.frame(period = c("less.than.5","five.ten","ten.plus"), 
-                       test.stat = c(test.1$statistic,test.5$statistic,test.10$statistic), 
-                       p.value = c(test.1$p.value,test.5$p.value,test.10$p.value))
-  return(list(test.df, m.null))
-}
-
-test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
-         null.combined = null.combined)
-
-
-
 get_large_null <- function(dat = RB,dsource = "Barange",reg = "California",var = "ssb",nsims){
   #generate as many surrogates as you need to get your full sims:
   yy <- get_surrogates(obs = get_obs(dat = dat,dsource = dsource,reg = reg,var = var),nsurrogates = nsims) 
@@ -147,3 +117,62 @@ get_large_null <- function(dat = RB,dsource = "Barange",reg = "California",var =
   return(null.combined)
 }
 
+
+test_wmr <- function(obs, null.combined){
+  #' @param obs a list of two vectors, which are standardized sardine (std_sardine) and anchovy (std_anchovy) time series
+  std_anchovy <- obs$std_anchovy
+  std_sardine <- obs$std_sardine
+  # get observed wmr
+  m <- get_wmr(std_anchovy, std_sardine)
+  
+  # use this sampled null to compare medians of observed and null wmrs
+  test.1 = wilcox.test(m$less.than.5, null.combined$less.than.5, conf.int = TRUE) 
+  test.5 = wilcox.test(m$five.ten, null.combined$five.ten, conf.int = TRUE)
+  test.10 = wilcox.test(m$ten.plus, null.combined$ten.plus, conf.int = TRUE)
+  # get relevant test information, where diff is the median of diff between samples and bounded by CI
+  test.df = data.frame(period = c("less.than.5","five.ten","ten.plus"), 
+                       test.stat = c(test.1$statistic,test.5$statistic,test.10$statistic), 
+                       diff = c(test.1$estimate,test.5$estimate,test.10$estimate), 
+                       CI.L = c(test.1$conf.int[1],test.5$conf.int[1],test.10$conf.int[1]), 
+                       CI.U = c(test.1$conf.int[2],test.5$conf.int[2],test.10$conf.int[2]), 
+                       p.value = c(test.1$p.value,test.5$p.value,test.10$p.value))
+  return(test.df)
+}
+
+
+test_wmr_sub <- function(obs, null.combined, n.factor = 1){
+  #' @param obs a list of two vectors, which are standardized sardine (std_sardine) and anchovy (std_anchovy) time series
+  std_anchovy <- obs$std_anchovy
+  std_sardine <- obs$std_sardine
+  # get observed wmr
+  m <- get_wmr(std_anchovy, std_sardine)
+  
+  # obtain random samples of large null WMR distributions, with sample size = n.factor * length(observed wmr)
+  m.null <- list("less.than.5" = NA, "five.ten" = NA, "ten.plus" = NA)
+  m.null$less.than.5 <- sample(null.combined$less.than.5, size = n.factor * length(m$less.than.5))
+  m.null$five.ten <- sample(null.combined$five.ten, size = n.factor * length(m$five.ten))
+  m.null$ten.plus <- sample(null.combined$ten.plus, size = n.factor * length(m$ten.plus))
+  # use this sampled null to compare medians of observed and null wmrs
+  test.1 = wilcox.test(m$less.than.5, m.null$less.than.5, conf.int = TRUE) 
+  test.5 = wilcox.test(m$five.ten, m.null$five.ten, conf.int = TRUE)
+  test.10 = wilcox.test(m$ten.plus, m.null$ten.plus, conf.int = TRUE)
+  # get relevant test information, where diff is the median of diff between samples and bounded by CI
+  test.df = data.frame(period = c("less.than.5","five.ten","ten.plus"), 
+                       test.stat = c(test.1$statistic,test.5$statistic,test.10$statistic), 
+                       diff = c(test.1$estimate,test.5$estimate,test.10$estimate), 
+                       CI.L = c(test.1$conf.int[1],test.5$conf.int[1],test.10$conf.int[1]), 
+                       CI.U = c(test.1$conf.int[2],test.5$conf.int[2],test.10$conf.int[2]), 
+                       p.value = c(test.1$p.value,test.5$p.value,test.10$p.value))
+  return(list(test.df, m.null))
+}
+
+# playing with tests here
+null.combined <- get_large_null(dat = RBF,dsource = "Barange",reg = "California",var = "ssb",nsims=50)
+test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
+         null.combined = null.combined)
+for(i in 1:20){
+  blah = test_wmr_sub(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
+         null.combined = null.combined, n.factor = 1)[[1]]
+  print(blah)
+}
+# results appear consistent (diff stable), but can also try to get threshold test statistic by percentile method bootstrap
