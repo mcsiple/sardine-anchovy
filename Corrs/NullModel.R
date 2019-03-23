@@ -15,7 +15,7 @@ library(mvcwt)
 
 # Load all the data
 #load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Barange_States.RData") # data frame: RB 
-load(here::here("ProcData/RAM_Barange_FAO_States.RData")) # data frame: RBF (RBF is MARSS states, RBF2 is replacing NAs with the mean)
+#load(here::here("ProcData/RAM_Barange_FAO_States.RData")) # data frame: RBF (RBF is MARSS states, RBF2 is replacing NAs with the mean)
 
 # Take original time series, compare wavelet modulus ratio distribution between null model (no synchrony)
 # If you have two time series of the same spectral characteristics, randomly starting, how often do you observe asynchrony by accident at each time scale? This can be referred to as the "null model" - how much synchronicity would you see at random.
@@ -82,9 +82,6 @@ get_wmr <- function(anchovy.ts,sardine.ts){
               ten.plus = synch.10))
 }
 
-( xx <- get_surrogates(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
-                       nsurrogates = 10) )
-m.null = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1])
 
 get_surrogates <- function(obs, nsurrogates){
   #' @description takes a pair of sardine-anchovy time series from the bigger dataset and generates surrogate time series that have the same time series properties but none of the phase information (i.e., no info about the relationship between the two time series).
@@ -129,7 +126,7 @@ test_wmr <- function(obs, null.combined){
   test.1 = wilcox.test(m$less.than.5, null.combined$less.than.5, conf.int = TRUE) 
   test.5 = wilcox.test(m$five.ten, null.combined$five.ten, conf.int = TRUE)
   test.10 = wilcox.test(m$ten.plus, null.combined$ten.plus, conf.int = TRUE)
-  
+
   # get relevant test information, 
   # where U is Mann-Whitney test stat (equivalent to Wilcoxson W here): n of all pairs where y =< x
   # diff is the median of diff between all pairs and bounded by CI,

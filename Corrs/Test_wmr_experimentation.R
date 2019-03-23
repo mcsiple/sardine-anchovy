@@ -58,5 +58,3 @@ abline(v=full[3,4], col = "red")
 # could also try to get threshold values by percentile method of bootstrapped medians but seems unnecessary 
 # unless we really want test of diff in medians vs medians of diffs, but estimated differences are likely similar
 # (also, this test is already a form of permutation test)
-
-
