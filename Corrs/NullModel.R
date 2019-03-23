@@ -130,9 +130,10 @@ test_wmr <- function(obs, null.combined){
   test.5 = wilcox.test(m$five.ten, null.combined$five.ten, conf.int = TRUE)
   test.10 = wilcox.test(m$ten.plus, null.combined$ten.plus, conf.int = TRUE)
   
-  # get relevant test information, where U is Mann-Whitney test statistic (equivalent to Wilcoxson W here)
+  # get relevant test information, 
+  # where U is Mann-Whitney test stat (equivalent to Wilcoxson W here): n of all pairs where y =< x
   # diff is the median of diff between all pairs and bounded by CI,
-  # Z is a standardized test statistic
+  # Z is a standard normal test statistic derived from U, based on normal approximation
   test.df = data.frame(period = c("less.than.5","five.ten","ten.plus"), 
                        U = c(test.1$statistic,test.5$statistic,test.10$statistic), 
                        diff = c(test.1$estimate,test.5$estimate,test.10$estimate), 
@@ -142,9 +143,15 @@ test_wmr <- function(obs, null.combined){
                        p.value = c(test.1$p.value,test.5$p.value,test.10$p.value),
                        N = c(length(m$less.than.5)+length(null.combined$less.than.5),
                              length(m$five.ten)+length(null.combined$five.ten),
-                             length(m$ten.plus)+length(null.combined$ten.plus)))
-  # effect size r (Cohen's benchmarks: small effect: abs(r)=.10 -- medium effect: r=.30 -- large effect: r=.50)
-  test.df$r = abs(test.df$Z)/sqrt(test.df$N)
+                             length(m$ten.plus)+length(null.combined$ten.plus)),
+                       n1n2 = c(length(m$less.than.5)*length(null.combined$less.than.5),
+                             length(m$five.ten)*length(null.combined$five.ten),
+                             length(m$ten.plus)*length(null.combined$ten.plus)))
+  # effect sizes
+  test.df$r_p = test.df$U / test.df$n1n2 # common language effect size: proportion of pairs where y =< x
+  test.df$r_bi = 1 - (2*test.df$U / test.df$n1n2) # another method (Wendt (1972)), rank biserial correlation
+  test.df$r_z = test.df$Z/sqrt(test.df$N) # rank biserial correlation, relying on normal approximation
+  
   return(test.df)
 }
 

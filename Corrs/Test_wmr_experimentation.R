@@ -1,8 +1,23 @@
-basedir <- "C:/Users/siplem"
-
-source(file.path(basedir,"Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/Corrs/NullModel.R"))
+source(here::here("Corrs/NullModel.R"))
 
 # playing with tests between surrogate(s) and observed WMRs
+
+# get full null distribution from many surrogates
+null.combined <- get_large_null(dat = RBF,dsource = "Barange",reg = "California",var = "ssb",nsims=50)
+
+# Perform tests with full null accross each combination of datasource, region, variable
+test_wmr(obs = get_obs(dat = RBF,dsource = "RAM",reg = "California",var = "ssb"), null.combined = null.combined)
+test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "landings"), null.combined = null.combined)
+test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "Benguela",var = "landings"), null.combined = null.combined)
+test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "NE Atlantic",var = "landings"), null.combined = null.combined)
+test_wmr(obs = get_obs(dat = RBF,dsource = "RAM",reg = "NE Atlantic",var = "ssb"), null.combined = null.combined)
+
+
+# make table of test results 
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 null.combined <- get_large_null(dat = RBF,dsource = "Barange",reg = "California",var = "ssb",nsims=50)
 full <- test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
                  null.combined = null.combined)
@@ -44,9 +59,4 @@ abline(v=full[3,4], col = "red")
 # unless we really want test of diff in medians vs medians of diffs, but estimated differences are likely similar
 # (also, this test is already a form of permutation test)
 
-# TO DO: try test with full null accross each combination of data, later compile into table
-test_wmr(obs = get_obs(dat = RBF,dsource = "RAM",reg = "California",var = "ssb"), null.combined = null.combined)
-test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "landings"), null.combined = null.combined)
-test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "Benguela",var = "landings"), null.combined = null.combined)
-test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "NE Atlantic",var = "landings"), null.combined = null.combined)
-test_wmr(obs = get_obs(dat = RBF,dsource = "RAM",reg = "NE Atlantic",var = "ssb"), null.combined = null.combined)
+
