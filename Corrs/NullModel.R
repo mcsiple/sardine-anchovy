@@ -6,7 +6,6 @@
 # load libraries and data -------------------------------------------------
 library(fractal) # contains surrogate() fn
 library(ggplot2)
-library(plyr)
 library(dplyr)
 library(reshape2)
 library(DescTools)
@@ -41,7 +40,6 @@ get_obs <- function(dat=RBF, dsource, reg, var){
   if(all(is.na(std_anchovy))) std_sardine <- rep(NA, times=length(std_anchovy))
   return(list(std_anchovy=std_anchovy,std_sardine=std_sardine))
 }
-
 
 get_wmr <- function(anchovy.ts,sardine.ts){ 
   #' @description takes surrogate or true time series of sardine and anchovy and calculates the wavelet modulus ratio
@@ -82,10 +80,6 @@ get_wmr <- function(anchovy.ts,sardine.ts){
               ten.plus = synch.10))
 }
 
-( xx <- get_surrogates(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
-                       nsurrogates = 10) )
-m.null = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1])
-
 get_surrogates <- function(obs, nsurrogates){
   #' @description takes a pair of sardine-anchovy time series from the bigger dataset and generates surrogate time series that have the same time series properties but none of the phase information (i.e., no info about the relationship between the two time series).
   #' @param obs a list of two vectors, which are standardized sardine (std_sardine) and anchovy (std_anchovy) time series
@@ -104,7 +98,9 @@ get_surrogates <- function(obs, nsurrogates){
   return(list(Anchovy.surrogates = a.sims,Sardine.surrogates = s.sims))
 }
 
-
+( xx <- get_surrogates(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
+                       nsurrogates = 10) )
+m.null = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1]) # Sometimes this gives a %dopar% error, but it is ok.
 
 
 test_wmr <- function(obs, m.null){
