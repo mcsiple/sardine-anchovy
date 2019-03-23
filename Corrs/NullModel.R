@@ -15,7 +15,7 @@ library(mvcwt)
 
 # Load all the data
 #load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Barange_States.RData") # data frame: RB 
-#load(here::here("ProcData/RAM_Barange_FAO_States.RData")) # data frame: RBF (RBF is MARSS states, RBF2 is replacing NAs with the mean)
+load(here::here("ProcData/RAM_Barange_FAO_States.RData")) # data frame: RBF (RBF is MARSS states, RBF2 is replacing NAs with the mean)
 
 # Take original time series, compare wavelet modulus ratio distribution between null model (no synchrony)
 # If you have two time series of the same spectral characteristics, randomly starting, how often do you observe asynchrony by accident at each time scale? This can be referred to as the "null model" - how much synchronicity would you see at random.
