@@ -1,11 +1,14 @@
-basedir <- "C:/Users/siplem"
+basedir <- "C:/Users/siplem/Dropbox/Chapter3-SardineAnchovy"
+#basedir <- "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy"
 
+load(file.path(basedir,"Datasets/allsardineanchovy_3.RData")) # dataframe: alldat (raw data including NAs for missing years)
+load(file.path(basedir,"Code_SA/sardine-anchovy/ProcData/RAM_Barange_FAO_States.RData")) # dataframe: RBF (raw data with MARSS states filled in for missing years)
 
-load(file.path(basedir,"Dropbox/Chapter3-SardineAnchovy/Datasets/allsardineanchovy_3.RData")) # dataframe: alldat
-figwd <- file.path(basedir,"Dropbox/Chapter3-SardineAnchovy/Submission/Figures")
-fnwd <- file.path(basedir,"/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/Corrs")
-source(file.path(basedir,"Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/Fill_NAs_SA.R")) # This is for corr.fig
-source(file.path(basedir,"Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/Corrs/NullModel.R"))
+figwd <- file.path(basedir,"Submission/Figures")
+fnwd <- file.path(basedir,"Code_SA/sardine-anchovy/Corrs")
+
+source(file.path(basedir,"Code_SA/sardine-anchovy/ProcData/Fill_NAs_SA.R")) # This is for corr.fig
+source(file.path(basedir,"Code_SA/sardine-anchovy/Corrs/NullModel.R"))
 
 library(dplyr)
 library(reshape2)
@@ -53,7 +56,8 @@ dev.off()
 
 source(file.path(fnwd,"Corr_Fig.R")) # This includes the corr.fig function
 # Test function
-corr.fig(region_or_subregion="Benguela",variable="landings",scale = "Region",data_source="Barange")
+corr.fig(region_or_subregion="Benguela",variable="landings",scale = "Region",data_source="Barange") # something is wrong with this function
+
 corr.fig(region_or_subregion="California",variable="ssb",scale = "Region",data_source="RAM")
 
 
@@ -99,12 +103,11 @@ Both <- rbind(RAM.summary,barange.summary,FAO.summary)
 #save(Both,file = "Replacement_RAM_Barange_MAX.Rdata")
 #save(Both,file = "Replacement_RAM_Barange_MEDIAN.Rdata")
 
-load(file.path(basedir,"Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/Replacement_RAM_Barange_MAX.Rdata")) #df: Both
-
 
 # FIGURE 3: replacement; log-ratios of maximums and medians ---------------
 # Plot peak biomass, landings, recruitment
 #Change order of x axis tick labels so that sardines/anchovy in similar ecosystems are close together
+load(file.path(basedir,"Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/Replacement_RAM_Barange_MAX.Rdata")) #df: Both
 desired_order <- c("Northern Benguela anchovy","Northern Benguela sardine","Southern Benguela anchovy","Southern Benguela sardine","Anchovy South Africa","Sardine South Africa","California anchovy","California sardine","N Anchovy E Pacific","Pacific sardine Pacific Coast","Humboldt anchovy - Central Peru","Humboldt sardine - N Central Peru","Humboldt anchovy - South Peru N Chile","Humboldt sardine - South Peru N Chile","Chilean common sardine","Japanese anchovy","Japanese sardine","Bay of Biscay anchovy","European sardine")
 
                 summary <- filter(Both,stock != "Northern Benguela sardine" & 
@@ -148,7 +151,7 @@ fig3 <- tp3 %>%
     summarise(ml = median(log.diff,na.rm=T)) %>% 
     #filter(newvar != "Recruitment") %>%
     droplevels() )
-  
+  save(st,file = "ProcData/LogDiffsMax.RData")
 
 fig3_option2 <- tp3 %>% 
       droplevels() %>%
@@ -180,6 +183,9 @@ obs <- get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "landings"
 obstest <- get_wmr(obs$std_anchovy, obs$std_sardine)
 nulltest1 = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1])
 nulltest2 = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,2],sardine.ts=xx$Sardine.surrogates[,2])
+# Load data
+load("")
+
 # Functions used here are in the NullModel.R file
 giantnull <- get_large_null(dat = RBF,dsource = "Barange",reg = "California",var = "landings",nsims=50)
 str(giantnull)
