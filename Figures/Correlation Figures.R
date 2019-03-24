@@ -452,3 +452,35 @@ dev.off()
 #   theme_classic(base_size = 16) +
 #   ylab("Biomass (x 1000 t)")
 # dev.off()
+
+
+# Test for difference in WMR distributions (table S1) ---------------------------------
+# Perform tests with full null accross each combination of datasource, region, variable
+compares.RBF <- RBF %>% distinct(region, datasource, variable) # get unique comparisons
+
+# make table results from Wilcoxon-Mann-Whitney test comparing observed vs null WMRs
+test.table <- vector()
+for(s in 1:nrow(compares.RBF)){ 
+  giantnull <- get_large_null(dat = RBF,dsource = compares.RBF$datasource[s],reg = compares.RBF$region[s],
+                              var = compares.RBF$variable[s],nsims=50)
+  test <- test_wmr(obs = get_obs(dat = RBF,dsource = compares.RBF$datasource[s],reg = compares.RBF$region[s],
+                                 var = compares.RBF$variable[s]), null.combined = giantnull)
+  test$region <- compares.RBF$region[s]
+  test$datasource <- compares.RBF$datasource[s]
+  test$variable <- compares.RBF$variable[s]
+  test.table <- rbind(test.table,test)
+}
+
+test.table.out <- test.table %>% select(region, variable, datasource, period, U, N, p = p.value, d = diff, CI.L, CI.U, r = r_p)
+
+test.table.out$period <- recode(test.table.out$period, less.than.5 = "< 5 yr", five.ten = "5-10 yr", ten.plus="10+ yr")
+test.table.out$p <- round(test.table.out$p, 3)
+test.table.out$p[test.table.out$p < 0.001] <- "< 0.001"
+test.table.out$d <- round(test.table.out$d, 3)
+test.table.out$CI.L <- round(test.table.out$CI.L, 3)
+test.table.out$CI.U <- round(test.table.out$CI.U, 3)
+test.table.out$r <- round(test.table.out$d, 2)
+#test.table.out$r[test.table.out$r > 0 & test.table.out$r < 0.01] <- "< 0.01"
+test.table.out <- arrange(test.table.out, region, datasource, variable)
+
+write.csv(test.table.out, file = here::here("Figures/TableS1_test_WMR.csv"))
