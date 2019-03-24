@@ -98,43 +98,77 @@ get_surrogates <- function(obs, nsurrogates){
   return(list(Anchovy.surrogates = a.sims,Sardine.surrogates = s.sims))
 }
 
-( xx <- get_surrogates(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
-                       nsurrogates = 10) )
-m.null = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1]) # Sometimes this gives a %dopar% error, but it is ok.
+# ( xx <- get_surrogates(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
+#                        nsurrogates = 10) )
+# m.null = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1]) # Sometimes this gives a %dopar% error, but it is ok.
+# =======
+# 
+# get_large_null <- function(dat = RB,dsource = "Barange",reg = "California",var = "ssb",nsims){
+#   #generate as many surrogates as you need to get your full sims:
+#   yy <- get_surrogates(obs = get_obs(dat = dat,dsource = dsource,reg = reg,var = var),nsurrogates = nsims) 
+#   # Combine multiple null runs to get a good null dist:
+#   null.combined <- get_wmr(anchovy.ts=yy$Anchovy.surrogates[,1],sardine.ts=yy$Sardine.surrogates[,1])
+#   for (i in 2:nsims){
+#     newlist <- get_wmr(anchovy.ts=yy$Anchovy.surrogates[,i],sardine.ts=yy$Sardine.surrogates[,i])
+#     null.combined <- mapply(c, null.combined, newlist, SIMPLIFY=FALSE)
+#   }
+#   return(null.combined)
+# }
 
 
-test_wmr <- function(obs, m.null){
+test_wmr <- function(obs, null.combined){
   #' @param obs a list of two vectors, which are standardized sardine (std_sardine) and anchovy (std_anchovy) time series
   std_anchovy <- obs$std_anchovy
   std_sardine <- obs$std_sardine
   # get observed wmr
   m <- get_wmr(std_anchovy, std_sardine)
   
-  # compare medians of observed and null wmrs
-  test.1 = wilcox.test(m$less.than.5, m.null$less.than.5)
-  test.5 = wilcox.test(m$five.ten, m.null$five.ten)
-  test.10 = wilcox.test(m$ten.plus, m.null$ten.plus)
+  # use the full large null to compare location of WMRs
+  test.1 = wilcox.test(m$less.than.5, null.combined$less.than.5, conf.int = TRUE) 
+  test.5 = wilcox.test(m$five.ten, null.combined$five.ten, conf.int = TRUE)
+  test.10 = wilcox.test(m$ten.plus, null.combined$ten.plus, conf.int = TRUE)
   
+  # get relevant test information, where U is Mann-Whitney test statistic (equivalent to Wilcoxson W here)
+  # diff is the median of diff between all pairs and bounded by CI,
+  # Z is a standardized test statistic
   test.df = data.frame(period = c("less.than.5","five.ten","ten.plus"), 
-                       test.stat = c(test.1$statistic,test.5$statistic,test.10$statistic), 
-                       p.value = c(test.1$p.value,test.5$p.value,test.10$p.value))
+                       U = c(test.1$statistic,test.5$statistic,test.10$statistic), 
+                       diff = c(test.1$estimate,test.5$estimate,test.10$estimate), 
+                       CI.L = c(test.1$conf.int[1],test.5$conf.int[1],test.10$conf.int[1]), 
+                       CI.U = c(test.1$conf.int[2],test.5$conf.int[2],test.10$conf.int[2]), 
+                       Z = c(qnorm(test.1$p.value),qnorm(test.5$p.value),qnorm(test.10$p.value)),
+                       p.value = c(test.1$p.value,test.5$p.value,test.10$p.value),
+                       N = c(length(m$less.than.5)+length(null.combined$less.than.5),
+                             length(m$five.ten)+length(null.combined$five.ten),
+                             length(m$ten.plus)+length(null.combined$ten.plus)))
+  # effect size r (Cohen's benchmarks: small effect: abs(r)=.10 -- medium effect: r=.30 -- large effect: r=.50)
+  test.df$r = abs(test.df$Z)/sqrt(test.df$N)
   return(test.df)
 }
 
-test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
-         m.null = m.null)
 
-
-
-get_large_null <- function(dat = RB,dsource = "Barange",reg = "California",var = "ssb",nsims){
-  #generate as many surrogates as you need to get your full sims:
-  yy <- get_surrogates(obs = get_obs(dat = dat,dsource = dsource,reg = reg,var = var),nsurrogates = nsims) 
-  # Combine multiple null runs to get a good null dist:
-  null.combined <- get_wmr(anchovy.ts=yy$Anchovy.surrogates[,1],sardine.ts=yy$Sardine.surrogates[,1])
-  for (i in 2:nsims){
-    newlist <- get_wmr(anchovy.ts=yy$Anchovy.surrogates[,i],sardine.ts=yy$Sardine.surrogates[,i])
-    null.combined <- mapply(c, null.combined, newlist, SIMPLIFY=FALSE)
-  }
-  return(null.combined)
+test_wmr_sub <- function(obs, null.combined, n.factor = 1){
+  #' @param obs a list of two vectors, which are standardized sardine (std_sardine) and anchovy (std_anchovy) time series
+  std_anchovy <- obs$std_anchovy
+  std_sardine <- obs$std_sardine
+  # get observed wmr
+  m <- get_wmr(std_anchovy, std_sardine)
+  
+  # obtain random samples of large null WMR distributions, with sample size = n.factor * length(observed wmr)
+  m.null <- list("less.than.5" = NA, "five.ten" = NA, "ten.plus" = NA)
+  m.null$less.than.5 <- sample(null.combined$less.than.5, size = n.factor * length(m$less.than.5))
+  m.null$five.ten <- sample(null.combined$five.ten, size = n.factor * length(m$five.ten))
+  m.null$ten.plus <- sample(null.combined$ten.plus, size = n.factor * length(m$ten.plus))
+  # use this sampled null to compare medians of observed and null wmrs
+  test.1 = wilcox.test(m$less.than.5, m.null$less.than.5, conf.int = TRUE) 
+  test.5 = wilcox.test(m$five.ten, m.null$five.ten, conf.int = TRUE)
+  test.10 = wilcox.test(m$ten.plus, m.null$ten.plus, conf.int = TRUE)
+  # get relevant test information, where diff is the median of diff between samples and bounded by CI
+  test.df = data.frame(period = c("less.than.5","five.ten","ten.plus"), 
+                       test.stat = c(test.1$statistic,test.5$statistic,test.10$statistic), 
+                       diff = c(test.1$estimate,test.5$estimate,test.10$estimate), 
+                       CI.L = c(test.1$conf.int[1],test.5$conf.int[1],test.10$conf.int[1]), 
+                       CI.U = c(test.1$conf.int[2],test.5$conf.int[2],test.10$conf.int[2]), 
+                       p.value = c(test.1$p.value,test.5$p.value,test.10$p.value))
+  return(list(test.df, m.null))
 }
-
