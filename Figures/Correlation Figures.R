@@ -239,7 +239,7 @@ for(s in 1:nrow(compares)){
   tryCatch ({
   obs <- get_obs(dat = RBF,dsource = compares$datasource[s],reg = compares$region[s],var = "landings")
   obstest <- get_wmr(obs$std_anchovy, obs$std_sardine)
-  giantnull <- get_large_null(dat = RBF,dsource = compares$datasource[s],reg = compares$region[s],var = "landings",nsims=10)
+  giantnull <- get_large_null(dat = RBF,dsource = compares$datasource[s],reg = compares$region[s],var = "landings",nsims=50)
   null=giantnull
   observed=obstest
   test <- distfig(null = giantnull,observed = obstest,return.dataframe = T)
@@ -260,7 +260,7 @@ for(s in 1:nrow(compares)){
   tryCatch ({
     obs <- get_obs(dat = RBF,dsource = compares$datasource[s],reg = compares$region[s],var = "ssb")
     obstest <- get_wmr(obs$std_anchovy, obs$std_sardine)
-    giantnull <- get_large_null(dat = RBF,dsource = compares$datasource[s],reg = compares$region[s],var = "ssb",nsims=10)
+    giantnull <- get_large_null(dat = RBF,dsource = compares$datasource[s],reg = compares$region[s],var = "ssb",nsims=50)
     null=giantnull
     observed=obstest
     test <- distfig(null = giantnull,observed = obstest,return.dataframe = T)
@@ -277,7 +277,7 @@ for(s in 1:nrow(compares)){
   tryCatch ({
     obs <- get_obs(dat = RBF,dsource = compares$datasource[s],reg = compares$region[s],var = "rec")
     obstest <- get_wmr(obs$std_anchovy, obs$std_sardine)
-    giantnull <- get_large_null(dat = RBF,dsource = compares$datasource[s],reg = compares$region[s],var = "rec",nsims=10)
+    giantnull <- get_large_null(dat = RBF,dsource = compares$datasource[s],reg = compares$region[s],var = "rec",nsims=50)
     null=giantnull
     observed=obstest
     test <- distfig(null = giantnull,observed = obstest,return.dataframe = T)

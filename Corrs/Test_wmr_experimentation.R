@@ -1,23 +1,36 @@
+## playing with tests between surrogate(s) and observed WMRs
+
+# Load all the necessary functions and pre-treated data
 source(here::here("Corrs/NullModel.R"))
 
-# playing with tests between surrogate(s) and observed WMRs
-
-# get full null distribution from many surrogates
-null.combined <- get_large_null(dat = RBF,dsource = "Barange",reg = "California",var = "ssb",nsims=50)
-
 # Perform tests with full null accross each combination of datasource, region, variable
-test_wmr(obs = get_obs(dat = RBF,dsource = "RAM",reg = "California",var = "ssb"), null.combined = null.combined)
-test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "landings"), null.combined = null.combined)
-test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "Benguela",var = "landings"), null.combined = null.combined)
-test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "NE Atlantic",var = "landings"), null.combined = null.combined)
-test_wmr(obs = get_obs(dat = RBF,dsource = "RAM",reg = "NE Atlantic",var = "ssb"), null.combined = null.combined)
+compares.RBF <- RBF %>% distinct(region, datasource, variable) # get unique comparisons
 
+# make table results from Wilcoxon-Mann-Whitney test comparing observed vs null WMRs
+test.table <- vector()
+for(s in 1:nrow(compares.RBF)){ 
+  giantnull <- get_large_null(dat = RBF,dsource = compares.RBF$datasource[s],reg = compares.RBF$region[s],var = compares.RBF$variable[s],nsims=50)
+  test <- test_wmr(obs = get_obs(dat = RBF,dsource = compares.RBF$datasource[s],reg = compares.RBF$region[s],var = compares.RBF$variable[s]), null.combined = giantnull)
+  test$region <- compares.RBF$region[s]
+  test$datasource <- compares.RBF$datasource[s]
+  test$variable <- compares.RBF$variable[s]
+  test.table <- rbind(test.table,test)
+}
 
-# make table of test results 
+test.table.out <- test.table %>% select(region, variable, datasource, period, U, N, p = p.value, d = diff, CI.L, CI.U, r = r_p)
 
+test.table.out$period <- recode(test.table.out$period, less.than.5 = "< 5 yr", five.ten = "5-10 yr", ten.plus="10+ yr")
+test.table.out$p <- round(test.table.out$p, 3)
+test.table.out$p[test.table.out$p < 0.001] <- "< 0.001"
+test.table.out$d <- round(test.table.out$d, 3)
+test.table.out$CI.L <- round(test.table.out$CI.L, 3)
+test.table.out$CI.U <- round(test.table.out$CI.U, 3)
+test.table.out$r <- round(test.table.out$d, 2)
+
+test.table.out <- arrange(test.table.out, region, datasource, variable)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+# checking for consistency between test_wmr and test_wmr_sub (full null vs subsampled null equal in length to obs wmr)
 null.combined <- get_large_null(dat = RBF,dsource = "Barange",reg = "California",var = "ssb",nsims=50)
 full <- test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
                  null.combined = null.combined)
