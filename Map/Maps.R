@@ -11,39 +11,16 @@ head(lmes@data)
 class(lmes) # "SpatialPolygonsDataFrame"
 names(lmes)
 
-# Data frame with the degree of asynchrony - eventually this will be a csv
-# asyn.test <- data.frame(lme=c(3,13,21,22),
-#                         region.name=c("California","Humboldt","NE Atlantic","NE Atlantic"),
-#                         asynchrony = c(0.5,0.6,0.7,0.2))
-# gde_15<- lmes
-# data <- asyn.test
-# map_data_fortified <- fortify(gde_15, region = "LME_NUMBER") %>% 
-#   mutate(id = as.numeric(id)) #fortify is depracated
-# map_data_fortified <- broom::tidy(gde_15, region = "LME_NUMBER")
-# map_data <- map_data_fortified %>% left_join(data, by = c("id" = "bfs_id"))
-
-# Using leaflet
-# bins <- c(0, 200, 500, 1000, Inf)
-# pal <- colorBin("YlOrRd", domain = lmes$Shape_Area, bins = bins)
-# (lmap <- leaflet(lmes) %>%
-#     addPolygons(
-#       fillColor = ~pal(Shape_Area),
-#       color = "darkgrey", 
-#       weight = 1, smoothFactor = 0.5, 
-#       opacity = 1.0, fillOpacity = 0.5))
-
-# Wow, this option sucks! haha. v grainy.
-#mapshot(lmap, file = paste0(getwd(), "/map.pdf"),#
-#        remove_controls = c("homeButton", "layersControl"))
-
-
-# COlor polygons by asynchrony variable in lmes@data or otherwise
+# Color polygons by asynchrony variable in lmes@data or otherwise
 # I got the following code from: https://github.com/rstudio/leaflet/issues/169
 lmes.dt <- data.table(lmes@data)
 
-# ***** Replace this below table with 
+# ***** Replace this below table with the full asynchrony table, as soon as we have a good metric
 asyn.test <- data.table(lme=c(3,13,21,22),
-                        region.name=c("California","Humboldt","NE Atlantic","NE Atlantic"),
+                        region.name=c("California",
+                                      "Humboldt",
+                                      "NE Atlantic",
+                                      "NE Atlantic"),
                         asynchrony = c(0.5,0.6,0.7,0.2))
 # Create an explicit attribute to keep polygons IDs (useful to "re-attach" the table to the polygons later)
 lmes.dt[, rn := row.names(lmes)]
@@ -63,8 +40,6 @@ pal <- colorBin("YlOrRd", domain = lmes$asynchrony, bins = bins)
       weight = 1, smoothFactor = 0.5, 
       opacity = 1.0, fillOpacity = 0.5))
 
-
-
 # Using MAPS
 library(maps)
 library(ggplot2)
@@ -82,21 +57,9 @@ lmes3 <- sf::st_as_sf(lmes) %>% #select(region.name)
 
 pal<- brewer.pal(n = 10,name = "RdBu")
 
-# IT FINALLY WORKS!
-ggplot(data = lmes3,aes(fill=asynchrony)) + 
-  geom_sf(size=0.3) + 
-  scale_fill_gradientn(colours = pal) + 
-  theme_classic() +
-  theme(panel.grid.major = element_line(colour = "white"))
-  #theme(panel.grid.major = element_blank())
-
-
 # Now add countries in the background -------------------------------------
 library("rnaturalearth")
 library("rnaturalearthdata")
-
-# ggplot(map_data("world"),aes(x=long,y=lat,group=group)) + 
-#   geom_polygon(fill="lightgrey")
 
 world <- ne_countries(scale = "medium", returnclass = "sf")
 class(world)
@@ -106,6 +69,16 @@ ggplot(data=world) +
   scale_fill_gradientn(colours = pal) + 
   theme_classic() +
   theme(panel.grid.major = element_line(colour = "white"))
+
+
+# Add asynchrony information to table with lmes ---------------------------
+load(file.path(datwd,"LogDiffsMax.RData")) #df is st, summary of log diffs.
+# ml column is log ratio of anchovy/sardine. It's the median of the log ratios from all data soures
+
+# Asynchrony table
+head(st)
+replaceability <- left_join(st,mylmes,by="region") 
+ssbreplace.dt <- filter(replaceability,newvar=="Spawning stock biomass") %>% as.data.table()
 
 
 
