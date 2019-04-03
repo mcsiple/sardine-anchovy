@@ -1,10 +1,10 @@
 
-library(plyr)
 library(dplyr)
 library(ggplot2)
 library(reshape2)
 library(MARSS)
 
+basedir <- "C:/Users/siplem/Dropbox/Chapter3-SardineAnchovy"
 
 impute.mean <- function(x) replace(x, is.na(x), mean(x, na.rm = TRUE))
 
@@ -81,17 +81,17 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
   lt.max.s <- max(lt.maxes[which(lt.maxes$sp=="Sardine"),ncol(lt.maxes)])
   lt.max.sp.sar <- lt.maxes[lt.maxes$max.var==lt.max.s,2]     # "Dominant sardine species"
   
-  if(is.inf(lt.max.s) & is.inf(lt.max.a)){
+  if(is.infinite(lt.max.s) & is.infinite(lt.max.a)){
     stop("both sardine and anchovy are NA")
   }
   
-  if(is.inf(lt.max.s)){
+  if(is.infinite(lt.max.s)){
     dom.s.ts <- dataset[which(dataset$stock==lt.max.sp.sar[1]),] # just put in a random stock bc it doesn't matter
   }else{
     dom.s.ts <- dataset[which(dataset$stock==lt.max.sp.sar),]
   }
   
-  if(is.inf(lt.max.a)){
+  if(is.infinite(lt.max.a)){
     dom.a.ts <- dataset[which(dataset$stock==lt.max.sp[1]),] # just put in a random stock bc it doesn't matter
   }else{
       dom.a.ts <- dataset[which(dataset$stock==lt.max.sp),]
@@ -121,7 +121,7 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
   
   # One correlation method: use MARSS to find covariance --------------------------------------------
   if(MARSS.cov == TRUE){
-    source("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/Fill_NAs_SA.R") # this function
+    source(file.path(basedir,"Code_SA/sardine-anchovy/ProcData/Fill_NAs_SA.R")) # this function
     sard.mars <- FillNAs.ts(cbind(dom.s.ts$year,sar), # fills in missing years with NAs
                             startyear=min(c(dom.s.ts$year,dom.a.ts$year)),
                             endyear=max(c(dom.s.ts$year,dom.a.ts$year)))
@@ -168,7 +168,7 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
   
   }else{
   
-  source("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/Fill_NAs_SA.R")
+  source(file.path(basedir,"Code_SA/sardine-anchovy/ProcData/Fill_NAs_SA.R"))
   
   sard.mars <- FillNAs.ts(cbind(dom.s.ts$year,sar),
                           startyear=min(c(dom.s.ts$year,dom.a.ts$year)),
@@ -202,14 +202,9 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
 }  #End getMARSSstates function
 
 
-#getMARSSstates(data = alldat,region_or_subregion = "California",scale = "Region",data_source = "FAO",variable = "landings",ccf.calc=FALSE)
-# 
-# plot(output$Year,output$Sardine.est,type='l')
-# lines(output$Year,output$Anchovy.est,col="red")
-# x = output$Year
-# y = output[,-1]
-# w = mvcwt(x, y, min.scale = 0.25, max.scale = 4)
-# mr = wmr(w)
-# image(mr, reset.par = FALSE)
-# contour(mr, bound = NA, add = TRUE)
+output <- getMARSSstates(data = alldat,region_or_subregion = "California",scale = "Region",data_source = "FAO",variable = "landings",ccf.calc=FALSE,get.mean.instead = TRUE,MARSS.cov = T)
+
+plot(output$Year,output$Sardine.est,type='l')
+lines(output$Year,output$Anchovy.est,col="red")
+
 
