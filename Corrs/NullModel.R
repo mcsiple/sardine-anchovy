@@ -14,7 +14,7 @@ library(mvcwt)
 
 # Load all the data
 #load("~/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/ProcData/RAM_Barange_States.RData") # data frame: RB 
-load(here::here("ProcData/RAM_Barange_FAO_States.RData")) # data frame: RBF (RBF is MARSS states, RBF2 is replacing NAs with the mean)
+#load(here::here("ProcData/RAM_Barange_FAO_States.RData")) # data frame: RBF (RBF is MARSS states, RBF2 is replacing NAs with the mean)
 
 # Take original time series, compare wavelet modulus ratio distribution between null model (no synchrony)
 # If you have two time series of the same spectral characteristics, randomly starting, how often do you observe asynchrony by accident at each time scale? This can be referred to as the "null model" - how much synchronicity would you see at random.
@@ -80,10 +80,7 @@ get_wmr <- function(anchovy.ts,sardine.ts){
               ten.plus = synch.10))
 }
 
-<<<<<<< HEAD
-=======
 
->>>>>>> 996175fe50e5aa504a05289f6817bcc88b80fcd7
 get_surrogates <- function(obs, nsurrogates){
   #' @description takes a pair of sardine-anchovy time series from the bigger dataset and generates surrogate time series that have the same time series properties but none of the phase information (i.e., no info about the relationship between the two time series).
   #' @param obs a list of two vectors, which are standardized sardine (std_sardine) and anchovy (std_anchovy) time series
@@ -107,17 +104,17 @@ get_surrogates <- function(obs, nsurrogates){
 # m.null = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1]) # Sometimes this gives a %dopar% error, but it is ok.
 # =======
 # 
-# get_large_null <- function(dat = RB,dsource = "Barange",reg = "California",var = "ssb",nsims){
-#   #generate as many surrogates as you need to get your full sims:
-#   yy <- get_surrogates(obs = get_obs(dat = dat,dsource = dsource,reg = reg,var = var),nsurrogates = nsims) 
-#   # Combine multiple null runs to get a good null dist:
-#   null.combined <- get_wmr(anchovy.ts=yy$Anchovy.surrogates[,1],sardine.ts=yy$Sardine.surrogates[,1])
-#   for (i in 2:nsims){
-#     newlist <- get_wmr(anchovy.ts=yy$Anchovy.surrogates[,i],sardine.ts=yy$Sardine.surrogates[,i])
-#     null.combined <- mapply(c, null.combined, newlist, SIMPLIFY=FALSE)
-#   }
-#   return(null.combined)
-# }
+get_large_null <- function(dat = RB,dsource = "Barange",reg = "California",var = "ssb",nsims){
+  #generate as many surrogates as you need to get your full sims:
+  yy <- get_surrogates(obs = get_obs(dat = dat,dsource = dsource,reg = reg,var = var),nsurrogates = nsims)
+  # Combine multiple null runs to get a good null dist:
+  null.combined <- get_wmr(anchovy.ts=yy$Anchovy.surrogates[,1],sardine.ts=yy$Sardine.surrogates[,1])
+  for (i in 2:nsims){
+    newlist <- get_wmr(anchovy.ts=yy$Anchovy.surrogates[,i],sardine.ts=yy$Sardine.surrogates[,i])
+    null.combined <- mapply(c, null.combined, newlist, SIMPLIFY=FALSE)
+  }
+  return(null.combined)
+}
 
 
 test_wmr <- function(obs, null.combined){
