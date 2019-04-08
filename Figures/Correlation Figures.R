@@ -1,9 +1,10 @@
 
-basedir <- "C:/Users/siplem/Dropbox/Chapter3-SardineAnchovy"
-#basedir <- "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy"
+#basedir <- "C:/Users/siplem/Dropbox/Chapter3-SardineAnchovy"
+basedir <- "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy"
 
 load(file.path(basedir,"Datasets/allsardineanchovy_3.RData")) # dataframe: alldat (raw data including NAs for missing years)
 load(file.path(basedir,"Code_SA/sardine-anchovy/ProcData/RAM_Barange_FAO_States.RData")) # dataframe: RBF (raw data with MARSS states filled in for missing years)
+
 
 figwd <- file.path(basedir,"Submission/Figures")
 fnwd <- file.path(basedir,"Code_SA/sardine-anchovy/Corrs")
@@ -152,7 +153,7 @@ fig3 <- tp3 %>%
         geom_point(size = 3) +
         scale_colour_manual("Data source",values=rev(newblue)) +
         facet_wrap(~newvar,ncol = 1) + 
-        theme_classic(base_size = 14) %+replace% theme(strip.background  = element_blank()) +
+        theme_classic(base_size = 14) %+replace% theme(strip.background  = element_blank()) + # cool
         xlim(-3,3) +
         xlab("Log(Anchovy / Sardine)") + 
         ylab("") 
@@ -195,16 +196,20 @@ dev.off()
 
 # FIGURE 4: MARSS covariances ---------------------------------------------
 # This is the plot that requires me to estimate a bunch of covariances between dominant sardine-anchovy pairs. 
-# I think they are the same as before but need to find the code.
+# The code to do this is in "getMARSSStates.R" - that function can fill ts with MARSS states and also get Q matrix from MARSS 
 
 
-# Distributions for null vs. observed data --------------------------------
+
+# FIGURE 5: wavelet modulus ratios ----------------------------------------
+# Distributions for null vs. observed data
 obs <- get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "landings")
 obstest <- get_wmr(obs$std_anchovy, obs$std_sardine)
+
+xx <- get_surrogates(obs = obs,nsurrogates = 10)
 nulltest1 = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1])
 nulltest2 = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,2],sardine.ts=xx$Sardine.surrogates[,2])
 # Load data
-load("")
+
 
 # Functions used here are in the NullModel.R file
 giantnull <- get_large_null(dat = RBF,dsource = "Barange",reg = "California",var = "landings",nsims=50)
@@ -236,7 +241,7 @@ distfig <- function(null, observed, return.dataframe = F){
   if(return.dataframe == TRUE){
     nl$nv <- "null"
     obsl$nv <- "obs"
-    all <- rbind.fill(nl,obsl)
+    all <- dplyr::bind_rows(nl,obsl)
     return(all)
   }
 }
@@ -691,7 +696,7 @@ distfig <- function(null, observed, return.dataframe = F){
   if(return.dataframe == TRUE){
     nl$nv <- "null"
     obsl$nv <- "obs"
-    all <- rbind.fill(nl,obsl)
+    all <- dplyr::bind_rows(nl,obsl)
     return(all)
   }
 }
@@ -773,7 +778,7 @@ for(s in 1:nrow(compares)){
 
 # FIGURE 5A -------------------------------------------------------------------
 pdf(file.path(figwd,"Fig5b_landings_FAO.pdf"),width = 8,height = 10)
-landings.wmrs %>% subset(datasource=="FAO" & nv=="obs") %>%
+landings.wmrs %>% subset(datasource=="FAO" & nv=="obs") %>% 
 ggplot(aes(x=wmrdens,colour=region,fill=region)) + 
   geom_density(alpha=0.5,lwd=1.2,trim=F) + 
   scale_colour_manual(values=pal) +
@@ -781,24 +786,25 @@ ggplot(aes(x=wmrdens,colour=region,fill=region)) +
   facet_wrap(~ID_ord,ncol=1,scales = "free_y") +
   ylab("Density") +
   xlab("Wavelet modulus ratio (WMR)") +
-  theme_classic(base_size=14) +
-  ggtitle("Landings")
+  theme_classic(base_size=14)%+replace% theme(strip.background  = element_blank()) +
+  ggtitle("Landings") #+ scale_y_reverse()
 dev.off()
 
 
 # FIGURE 5b ---------------------------------------------------------------
-#pdf(file.path(figwd,"Fig5B_landings.pdf"),width = 8,height = 10)
-landings.wmrs %>% subset(datasource=="Barange" & nv=="obs") %>%
+pdf(file.path(figwd,"Fig5_Landings_Barange.pdf"),width = 10,height = 3)
+landings.wmrs %>% subset(datasource=="Barange" & nv=="obs") %>% # can change this btwn landings.wmrs,ssb.wmrs,and rec.wmrs
   ggplot(aes(x=wmrdens,colour=region,fill=region)) + 
   geom_density(alpha=0.5,lwd=1.2,trim=F) + 
   scale_colour_manual(values=pal) +
   scale_fill_manual(values=pal) +
-  facet_wrap(~ID_ord,ncol=1,scales = "free_y") +
+  facet_wrap(~ID_ord,ncol=3,scales = "free_y") +
   ylab("Density") +
   xlab("Wavelet modulus ratio (WMR)") +
-  theme_classic(base_size=14) +
-  ggtitle("Landings")
-#dev.off()
+  scale_x_continuous(breaks = c(0,0.25,0.5,0.75,1),labels = c("0","0.25","0.5","0.75","1.0")) +
+  theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) +
+  ggtitle("Landings") #+ scale_y_reverse()
+dev.off()
 
 
 # Junk plots --------------------------------------------------------------
