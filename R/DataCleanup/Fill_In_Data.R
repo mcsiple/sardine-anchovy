@@ -4,7 +4,7 @@
 # In order to get numbers for all years for patchy data sets, use MARSS to get states. 
 # This is a simple way to fill in a few spaces, most datasets do not have a lot of NAs.
 # Five LMEs: NE Atlantic, Benguela, California, Kuroshio-Oyashio, Humboldt
-load("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Datasets/allsardineanchovy_3.RData") # data frame: alldat - this is the NEW (2019) data pile- including new time series from RAM and FAO
+load(here::here("R/Data/allsardineanchovy_3.RData")) # data frame: alldat - this is the NEW (2019) data pile- including new time series from RAM and FAO
 source("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/Corrs/getMARSSstates.R")
 data.list <- list()
 region.list <- list()
