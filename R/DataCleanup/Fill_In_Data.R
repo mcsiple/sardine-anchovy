@@ -1,9 +1,8 @@
-# Prep data - long term mean vs. MARSS states
-
-# Try with MARSS states from sardine and anchovy time series --------------
-# In order to get numbers for all years for patchy data sets, use MARSS to get states. 
+# Prep data for measuring corelations and replacement
+# This code allows the user to fill in missing values in sardine and anchovy time series with estimated states from MARSS (default) and long-term means. Having a value for every year (including years where no data was collected) is required for estimating WMR. 
 # This is a simple way to fill in a few spaces, most datasets do not have a lot of NAs.
 # Five LMEs: NE Atlantic, Benguela, California, Kuroshio-Oyashio, Humboldt
+
 load(here::here("R/Data/allsardineanchovy_3.RData")) # data frame: alldat - this is the NEW (2019) data pile- including new time series from RAM and FAO
 
 # Load functions
@@ -16,7 +15,7 @@ regions <- unique(alldat$region)
 dsources <- unique(alldat$datasource) #Barange, RAM, FAO
 variables <- c("rec","ssb","landings")
 
-d=1
+d=3 #janky but easier for troubleshooting if you do one data source at a time
 for(r in 1:length(regions)){
   var.list <- list()
   region = regions[r]
@@ -41,17 +40,18 @@ for(r in 1:length(regions)){
 
 
 
-Barange <- do.call(rbind,region.list)
-RAM <- do.call(rbind,region.list)
-FAO <- do.call(rbind,region.list)
-FAO <- FAO[complete.cases(FAO),] # remove the rows that are all NA
-RB <- rbind(Barange,RAM)
+if(d==1) Barange <- do.call(rbind,region.list)
+if(d==2) RAM <- do.call(rbind,region.list)
+if(d==3) {FAO <- do.call(rbind,region.list)
+          FAO <- FAO[complete.cases(FAO),] }# remove the rows that are all NA}
+
+
 RBF <- rbind(Barange,RAM,FAO)
 save(RBF,file="RAM_Barange_FAO_States.RData")
 
 
 
-# Fill in with lt means ---------------------------------------------------
+# Fill in with lt means instead of states ---------------------------------------------------
 
 data.list <- list()
 region.list <- list()
@@ -80,6 +80,10 @@ for(r in 1:length(regions)){
 }
 
 
+if(d==1) Barange2<- do.call(rbind,region.list)
+if(d==2) RAM2 <- do.call(rbind,region.list)
+if(d==3) {FAO2 <- do.call(rbind,region.list)
+          FAO2 <- FAO2[complete.cases(FAO2),] }
 
 Barange2 <- do.call(rbind,region.list)
 RAM2 <- do.call(rbind,region.list)
