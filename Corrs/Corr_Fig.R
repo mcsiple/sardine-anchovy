@@ -80,7 +80,7 @@ corr.fig <- function(data = alldat, region_or_subregion = "Benguela", scale = "R
   
   # One correlation method: use MARSS to find covariance --------------------------------------------
   if(MARSS.cov == TRUE){
-    sard.mars <- FillNAs.ts(cbind(dom.s.ts$year,sar), #This function is from  source("Fill_NAs_SA.R")
+    sard.mars <- FillNAs.ts(cbind(dom.s.ts$year,sar), #This function is from  source("Fill_NAs_SA.R"). it fills missing years w NAs for MARSS use
                             startyear=min(c(dom.s.ts$year,dom.a.ts$year)),
                             endyear=max(c(dom.s.ts$year,dom.a.ts$year)))
     anch.mars <- FillNAs.ts(cbind(dom.a.ts$year,anch),
