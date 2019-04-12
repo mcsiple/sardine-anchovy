@@ -1,4 +1,4 @@
-
+# I THINK THIS IS DEPRECATED AS OF 2/20/19
 # Annoying code for summarizing data. It's very untidy but it will have to do for now.
 rootdir <- ("C:/Users/siplem/Dropbox/")
 setwd(file.path(rootdir,"Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/Corrs"))
@@ -6,12 +6,13 @@ source("ExtractMaxes.R")
 library(reshape2)
 library(ggplot2)
 
-load(file.path(rootdir,"/Chapter3-SardineAnchovy/Datasets/allsardineanchovy.RData")) # all the data!
-data.all <- alldat 
+load(file.path(rootdir,"/Chapter3-SardineAnchovy/Datasets/allsardineanchovy.RData")) # dataframe alldat
+data.all <- alldat
 
 region.max.ssb <- matrix(NA,nrow=nrow(data.all),ncol=2)
 # Test extract maxes function
-extract.maxes(data = alldat,region_or_subregion = alldat$region[840],scale = "Region", # row 840 is the first FAO data point
+extract.maxes(data = alldat,region_or_subregion = alldat$region[840],
+              scale = "Region", # row 840 is the first FAO data point
               data_source = alldat$datasource[840],
               variable = "landings" )
 

@@ -971,4 +971,11 @@ test.table.out$r <- round(test.table.out$d, 2)
 test.table.out <- arrange(test.table.out, region, datasource, variable)
 
 write.csv(test.table.out, file = here::here("Figures/TableS1_test_WMR.csv"))
->>>>>>> 996175fe50e5aa504a05289f6817bcc88b80fcd7
+
+
+# Figure S?: get AR and sd for all the biomass time series we have --------
+# 
+# load("Code_SA/sardine-anchovy/ProcData/RAM_Barange_FAO_States.Rdata") # dataframe RBF
+# head(RBF) #these are just the dominant species
+
+

@@ -104,7 +104,8 @@ barange.new %>%
 # write.csv(x = Ssagax,file = "Sardinops_sagax.csv")
 
 colnames(barange.new)
-alldat <- plyr::rbind.fill(list(barange.new,RAM.new,FAO.new)) %>% select(datasource,scientificname,stock,year,ssb,rec,landings,fishing.mortality,sp,region,subregion,totalcatch)
+alldat <- plyr::rbind.fill(list(barange.new,RAM.new,FAO.new)) %>% 
+  select(datasource,scientificname,stock,year,ssb,rec,landings,fishing.mortality,sp,region,subregion,totalcatch)
 
   melt(alldat,
           id.vars = c("datasource","scientificname","stock","year","sp","region","subregion")) %>% 
