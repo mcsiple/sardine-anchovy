@@ -145,6 +145,10 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
     correlation = kem.sa$par$Q[2]/(sqrt(kem.sa$par$Q[3]) * sqrt(kem.sa$par$Q[1]))
     kem.sa.CIs = MARSSparamCIs(kem.sa,method="parametric",nboot=200)
     print(kem.sa.CIs)
+    Q12 <- kem.sa.CIs$par$Q[2]
+    loQ12 <- kem.sa.CIs$par.lowCI$Q[2]
+      hiQ12 <- kem.sa.CIs$par.upCI$Q[2]
+      return(list(loQ12 = loQ12,hiQ12=hiQ12, Q12=Q12))
   }else correlation = "no MARSS correlation calculated"
   
   if(ccf.calc==TRUE){
@@ -208,3 +212,45 @@ plot(output$Year,output$Sardine.est,type='l')
 lines(output$Year,output$Anchovy.est,col="red")
 
 
+# Get MARSS covariances and CIs for all the stocks and variables ----------
+
+
+
+
+
+region <- c("Benguela","California","Humboldt", "Kuroshio-Oyashio", "NE Atlantic")
+variable <- c("rec","ssb","landings")
+datasource <- c("Barange")
+
+covs <- tidyr::crossing(region,variable, datasource)
+covs$loCI <- covs$med <-  covs$hiCI <- NA
+
+for (i in 10:12){ nrow(covs)
+  output <- getMARSSstates(data = alldat,region_or_subregion = "Kuroshio-Oyashio",scale = "Region",data_source = covs$datasource[i],variable = covs$variable[i],ccf.calc=FALSE,get.mean.instead = TRUE,MARSS.cov = T)
+  covs$med[i] <- output$Q12
+  covs$loCI[i] <- output$loQ12
+  covs$hiCI[i] <- output$hiQ12
+  print(covs)
+}
+
+save(covs,file="MARSScovsBarange.RData")
+
+library(tidyverse)
+covs2 <- covs %>% mutate(variable = fct_recode(variable, 
+                                               "Spawning stock biomass" = "ssb",
+                                               "Landings"="landings",
+                                               "Recruitment"="rec"))
+
+(marsscovplot <- ggplot(covs2,aes(x=region,y=med)) + 
+                facet_wrap(~variable) + 
+                geom_point(size=2.5) +
+                geom_linerange(aes(ymin=loCI, ymax=hiCI),lwd=1) +
+                theme_classic(base_size = 14) +
+                theme(strip.background = element_blank()) + #take out boxes around strips
+                xlab("Region") +
+                ylab("Maximum likelihood estimate of covariance") +
+                geom_hline(yintercept = 0,lty=2) + coord_flip() )
+
+tiff("MARSSCovs.tiff",width = 8,height = 2.5,units = 'in',res = 300)
+marsscovplot
+dev.off()
