@@ -5,14 +5,18 @@
 # This is a simple way to fill in a few spaces, most datasets do not have a lot of NAs.
 # Five LMEs: NE Atlantic, Benguela, California, Kuroshio-Oyashio, Humboldt
 load(here::here("R/Data/allsardineanchovy_3.RData")) # data frame: alldat - this is the NEW (2019) data pile- including new time series from RAM and FAO
-source("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/Corrs/getMARSSstates.R")
+
+# Load functions
+source(here::here("R/DataCleanup/getMARSSstates.R"))
+source(here::here("R/DataCleanup/Fill_NAs_SA.R")) 
+
 data.list <- list()
 region.list <- list()
 regions <- unique(alldat$region)
 dsources <- unique(alldat$datasource) #Barange, RAM, FAO
 variables <- c("rec","ssb","landings")
 
-d=3
+d=1
 for(r in 1:length(regions)){
   var.list <- list()
   region = regions[r]
@@ -21,13 +25,16 @@ for(r in 1:length(regions)){
       var.list[[1]] <- NA # for FAO only
       var.list[[2]] <- NA  # for FAO only
   }
-  for(v in 3:3){
+  for(v in 1:3){
     var.list[[v]] <- getMARSSstates(data = alldat,
                                     region_or_subregion = region,
                                     scale = "Region", 
                                     data_source = data_source,
                                     variable = variables[v],
-                                    ccf.calc = FALSE)
+                                    ccf.calc = FALSE,
+                                    MARSS.cov = FALSE,
+                                    plot = FALSE,
+                                    get.mean.instead = FALSE)
   }
   region.list[[r]] <- do.call(rbind,var.list)
 }
