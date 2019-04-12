@@ -4,8 +4,6 @@ library(ggplot2)
 library(reshape2)
 library(MARSS)
 
-basedir <- "C:/Users/siplem/Dropbox/Chapter3-SardineAnchovy"
-
 impute.mean <- function(x) replace(x, is.na(x), mean(x, na.rm = TRUE))
 
 impute.sa <- function(x,thresh=0.3){
@@ -121,7 +119,6 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
   
   # One correlation method: use MARSS to find covariance --------------------------------------------
   if(MARSS.cov == TRUE){
-    source(file.path(basedir,"Code_SA/sardine-anchovy/ProcData/Fill_NAs_SA.R")) # this function
     sard.mars <- FillNAs.ts(cbind(dom.s.ts$year,sar), # fills in missing years with NAs
                             startyear=min(c(dom.s.ts$year,dom.a.ts$year)),
                             endyear=max(c(dom.s.ts$year,dom.a.ts$year)))
@@ -206,51 +203,7 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
 }  #End getMARSSstates function
 
 
-output <- getMARSSstates(data = alldat,region_or_subregion = "California",scale = "Region",data_source = "FAO",variable = "landings",ccf.calc=FALSE,get.mean.instead = TRUE,MARSS.cov = T)
-
-plot(output$Year,output$Sardine.est,type='l')
-lines(output$Year,output$Anchovy.est,col="red")
-
-
-# Get MARSS covariances and CIs for all the stocks and variables ----------
-
-
-
-
-
-region <- c("Benguela","California","Humboldt", "Kuroshio-Oyashio", "NE Atlantic")
-variable <- c("rec","ssb","landings")
-datasource <- c("Barange")
-
-covs <- tidyr::crossing(region,variable, datasource)
-covs$loCI <- covs$med <-  covs$hiCI <- NA
-
-for (i in 10:12){ nrow(covs)
-  output <- getMARSSstates(data = alldat,region_or_subregion = "Kuroshio-Oyashio",scale = "Region",data_source = covs$datasource[i],variable = covs$variable[i],ccf.calc=FALSE,get.mean.instead = TRUE,MARSS.cov = T)
-  covs$med[i] <- output$Q12
-  covs$loCI[i] <- output$loQ12
-  covs$hiCI[i] <- output$hiQ12
-  print(covs)
-}
-
-save(covs,file="MARSScovsBarange.RData")
-
-library(tidyverse)
-covs2 <- covs %>% mutate(variable = fct_recode(variable, 
-                                               "Spawning stock biomass" = "ssb",
-                                               "Landings"="landings",
-                                               "Recruitment"="rec"))
-
-(marsscovplot <- ggplot(covs2,aes(x=region,y=med)) + 
-                facet_wrap(~variable) + 
-                geom_point(size=2.5) +
-                geom_linerange(aes(ymin=loCI, ymax=hiCI),lwd=1) +
-                theme_classic(base_size = 14) +
-                theme(strip.background = element_blank()) + #take out boxes around strips
-                xlab("Region") +
-                ylab("Maximum likelihood estimate of covariance") +
-                geom_hline(yintercept = 0,lty=2) + coord_flip() )
-
-tiff("MARSSCovs.tiff",width = 8,height = 2.5,units = 'in',res = 300)
-marsscovplot
-dev.off()
+# output <- getMARSSstates(data = alldat,region_or_subregion = "California",scale = "Region",data_source = "FAO",variable = "landings",ccf.calc=FALSE,get.mean.instead = TRUE,MARSS.cov = T)
+# 
+# plot(output$Year,output$Sardine.est,type='l')
+# lines(output$Year,output$Anchovy.est,col="red")
