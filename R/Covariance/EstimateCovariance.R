@@ -10,7 +10,7 @@ datasource <- c("Barange")
 covs <- tidyr::crossing(region,variable, datasource)
 covs$loCI <- covs$med <-  covs$hiCI <- NA
 
-for (i in 10:12){ nrow(covs)
+for (i in 1:nrow(covs)){ 
   output <- getMARSSstates(data = alldat,region_or_subregion = "Kuroshio-Oyashio",scale = "Region",data_source = covs$datasource[i],variable = covs$variable[i],ccf.calc=FALSE,get.mean.instead = TRUE,MARSS.cov = T)
   covs$med[i] <- output$Q12
   covs$loCI[i] <- output$loQ12
