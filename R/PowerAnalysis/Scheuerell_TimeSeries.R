@@ -9,6 +9,46 @@ sinw <- function(length, period, amp = 1) {
 ## redefine MVN
 mvn <- MASS::mvrnorm
 
+get.mds.ts <- function(length=100,
+                       autocorrs,rho,sds,
+                       driver.period,driver.amp,
+                       CC){
+  #' @description makes two autocorrelated time series with correlation rho, their own autocorrelation and sd, and driven by a sine wave driver. Correlation of each ts to the driver is specified by CC.
+  #' @param length length of desired time series (numeric vector)
+  #' @param autocorrs degree of autocorrelation for each ts (numeric vector)
+  #' @param rho correlation between the two time series (numeric)
+  #' @param sds SDs for both time series (numeric vector)
+  #' @param driver.period the period of the sine wave driver
+  #' @param driver.amp the amplitude of the sine wave driver
+  #' @param CC effect of the sim wave driver on the true abundance
+  #' 
+  tt <- length
+  bb <- autocorrs
+  sd <- sds
+  
+  Sigma <- diag(sd^2)
+  ## off-diag = covariance
+  Sigma[2,1] <- Sigma[1,2] <- rho * prod(sd)
+  
+  ## generate correlated errors
+  ee <- t(mvn(tt, rep(0, length(sd)), Sigma))
+  
+  ## generate driver
+  sw <- sinw(tt, driver.period, driver.amp)
+  
+  ## use the `ee` in a MARSS model
+  xx <- ee
+  BB <- diag(bb)
+  CC <- matrix(c(1, -1), ncol = 1)
+  cc <- matrix(sw, nrow = 1)
+  for(t in 2:tt) {
+    xx[,t] <- BB %*% xx[,t-1] + CC %*% cc[,t] + ee[,t]
+  }
+  return(xx)
+}
+
+get.mds.ts(length = 100,autocorrs = c(0.6,0.6),rho = 0.4,sds = c(0.9,0.9),driver.period = 60,driver.amp = 0.5)
+
 ## length of ts
 tt <- 100
 
@@ -31,7 +71,7 @@ Sigma[2,1] <- Sigma[1,2] <- rho * prod(sd)
 ee <- t(mvn(tt, rep(0, length(sd)), Sigma))
 
 ## sine wave as driver
-sw <- sinw(tt, 40, 0.5)
+sw <- sinw(tt, 60, 0.5)
 
 ## use the `ee` in a MARSS model
 xx <- ee
@@ -43,7 +83,12 @@ for(t in 2:tt) {
 }
 
 ## how do they look?
-plot.ts(t(xx))
+#plot.ts(t(xx))
+#lines(sw)
 
 ## are they correlated?
 cor(t(xx))
+
+plot(1:tt,xx[1,],type='l')
+lines(1:tt,xx[2,],col='red')
+lines(1:tt,sw,col='pink')
