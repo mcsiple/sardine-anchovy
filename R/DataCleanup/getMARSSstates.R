@@ -8,7 +8,7 @@ impute.mean <- function(x) replace(x, is.na(x), mean(x, na.rm = TRUE))
 
 impute.sa <- function(x,thresh=0.3){
   #' @description  This function can be applied to any time series. It imputes the mean for any NA-valued years after the start of the time series
-  #' @param x is a vector of time series values for a certain variable
+  #' @param x is a vector of values with some missing data
   #' @param thresh is the threshold of how many NAs to accept in the time series (might not use)
   n <- length(x)
   if(all(is.na(x))){new <- x}else{
@@ -23,7 +23,7 @@ impute.sa <- function(x,thresh=0.3){
 
 # Replace NAs with MARSS states OR means (if get.mean.instead=T):
 getMARSSstates <- function(data = alldat, region_or_subregion = "California", scale = "Region", data_source = "FAO", variable = "landings",MARSS.cov = FALSE, plot = FALSE, ccf.calc = FALSE,get.mean.instead = FALSE){
-  #' @param data - time series of sardine and anchovy time series - 
+  #' @param data - big dataframe of sardine and anchovy time series with columns
   # param  data = dataset including the time series you're interested in; 
   # Region = 1 of 5 LMEs (Benguela, California, NE Atlantic, Kuroshio-Oyashio, Humboldt)
   # variable = the variable (rec, biomass, or landings) 
@@ -168,9 +168,7 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
     
   
   }else{
-  
-  source(file.path(basedir,"Code_SA/sardine-anchovy/ProcData/Fill_NAs_SA.R"))
-  
+
   sard.mars <- FillNAs.ts(cbind(dom.s.ts$year,sar),
                           startyear=min(c(dom.s.ts$year,dom.a.ts$year)),
                           endyear=max(c(dom.s.ts$year,dom.a.ts$year)))
