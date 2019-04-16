@@ -1,20 +1,38 @@
-# I THINK THIS IS DEPRECATED AS OF 2/20/19
-# Annoying code for summarizing data. It's very untidy but it will have to do for now.
-rootdir <- ("C:/Users/siplem/Dropbox/")
-setwd(file.path(rootdir,"Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/Corrs"))
-source("ExtractMaxes.R")
+#
+# Annoying code for summarizing dominant species for each region and variable. 
+# It's very untidy but it will have to do for now.
 library(reshape2)
 library(ggplot2)
 
-load(file.path(rootdir,"/Chapter3-SardineAnchovy/Datasets/allsardineanchovy.RData")) # dataframe alldat
+source(here::here("R/DominantTS/ExtractMaxes.R"))
+load(here::here("R/Data/allsardineanchovy_3.RData")) # dataframe alldat
 data.all <- alldat
 
 region.max.ssb <- matrix(NA,nrow=nrow(data.all),ncol=2)
+
+
 # Test extract maxes function
-extract.maxes(data = alldat,region_or_subregion = alldat$region[840],
+extract.maxes(data = alldat,region_or_subregion = "Benguela",
               scale = "Region", # row 840 is the first FAO data point
-              data_source = alldat$datasource[840],
+              data_source = "Barange",
               variable = "landings" )
+
+regions <- as.character(unique(data.all$region))
+datasources <- as.character(unique(data.all$datasource))
+dominant.summary <- expand.grid(region=regions,datasource=datasources)
+dominant.summary$dominant.sardine <- NA
+dominant.summary$dominant.anchovy <- NA
+for(i in 10:nrow(dominant.summary)){
+  get.max <- extract.maxes(data = data.all,
+                           region_or_subregion = dominant.summary$region[i], 
+                           scale="Region",
+                           data_source = dominant.summary$datasource[i])  
+  dominant.summary$dominant.anchovy[i]  = get.max$Dom_anch_LTmax
+  dominant.summary$dominant.sardine[i]  = get.max$Dom_sard_LTmax
+}
+  
+#  data.frame(region=NA,dominant.sardine=NA,dominant.anchovy=NA,datasource=NA)
+
 
 for(i in 1:nrow(alldat)){
   region.max.ssb[i,1] <- as.character(extract.maxes(region_or_subregion = alldat$region[i], 
@@ -25,16 +43,6 @@ for(i in 1:nrow(alldat)){
                                                     scale = "Region",
                                                     data_source = alldat$datasource[i],
                                                     variable = "ssb" )[2])
-  if(alldat$datasource[i] =="FAO"){
-    region.max.ssb[i,1] <- as.character(extract.maxes(region_or_subregion = alldat$region[i], 
-                                                      scale = "Region",
-                                                      data_source = alldat$datasource[i],
-                                                      variable = "landings" )[1])
-    region.max.ssb[i,2] <- as.character(extract.maxes(region_or_subregion = alldat$region[i], 
-                                                      scale = "Region",
-                                                      data_source = alldat$datasource[i],
-                                                      variable = "landings" )[2])
-  }
 }
 
 colnames(region.max.ssb) = c("domanch","domsard")
@@ -45,6 +53,7 @@ data.all$dom.a[which(data.all$stock == data.all$domanch)] = 1
 data.all$dom.s[which(data.all$stock == data.all$domsard)] = 1
 
 domstocks <- data.all %>% subset(dom.a==1 | dom.s==1)
+
 dm.standardized <- domstocks %>% 
   group_by(datasource,scientificname,region,stock,domanch,domsard) %>% 
   mutate(ssb.st = ssb / mean(ssb,na.rm=T),
