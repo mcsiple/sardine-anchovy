@@ -7,14 +7,6 @@ require(mvcwt)
 require(reshape2)
 require(ggplot2)
 
-# basedir <- "~/Dropbox/Chapter3-SardineAnchovy"
-# basedir <- "C:/Users/siplem/Dropbox/Chapter3-SardineAnchovy"
-# figwd <- file.path(basedir,"Figures")
-
-#source("~/Dropbox/SFW/EBFMTesting/Phase 2/getSpectral.R")
-source("C:/Users/siplem/Dropbox/SFW/EBFMTesting/Phase 2/getSpectral.R")
-
-
     # # Matrix of autocorrelation terms
     # rho <- matrix(c(0.9,0,0,0.9),nrow=2,byrow=T) # you can get these values from estimating ACF[lag 1] from biomass estimates in RAM (or wherever)
     # # Create variance covariance matrix
