@@ -2,7 +2,6 @@
 # Take original time series, compare wavelet modulus ratio distribution between null model (no synchrony)
 # If you have two time series of the same spectral characteristics, randomly starting, how often do you observe asynchrony by accident at each time scale? This can be referred to as the "null model" - how much synchronicity would you see at random.
 
-
 # load libraries and data -------------------------------------------------
 library(fractal) # contains surrogate() fn
 library(ggplot2)
