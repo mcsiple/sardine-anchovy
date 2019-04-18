@@ -125,20 +125,35 @@ test_wmr <- function(obs, null.combined){
   m <- get_wmr(std_anchovy, std_sardine)
   
   # use the full large null to compare location of WMRs
-  test.1 = wilcox.test(m$less.than.5, null.combined$less.than.5, conf.int = TRUE) 
-  test.5 = wilcox.test(m$five.ten, null.combined$five.ten, conf.int = TRUE)
-  test.10 = wilcox.test(m$ten.plus, null.combined$ten.plus, conf.int = TRUE)
-
+  test.1 = wilcox.test(m$less.than.5, m.null$less.than.5, conf.int = TRUE) 
+  
+  # assign NAs to these values if not enough wmr data to do wilcoxon tests
+  if(all(IsZero(m$five.ten))) {
+    test.5 <- list(estimate=NA,conf.int=c(NA,NA),p.value=NA)
+    print("time series too short to get WMR for 5-10 yr period...returning NA")}else{
+      test.5 = wilcox.test(m$five.ten, m.null$five.ten, conf.int = TRUE)
+    }
+  
+  if(all(IsZero(m$ten.plus))) {
+    test.10 <- list(estimate=NA,conf.int=c(NA,NA),p.value=NA)
+    print("time series too short to get WMR for 10+ yr period...returning NA")}else{
+      test.10 = wilcox.test(m$ten.plus, m.null$ten.plus, conf.int = TRUE)
+    }
+  
   # get relevant test information, 
   # where U is Mann-Whitney test stat (equivalent to Wilcoxson W here): n of all pairs where y =< x
   # diff is the median of diff between all pairs and bounded by CI,
   # Z is a standard normal test statistic derived from U, based on normal approximation
+q1 <- qnorm(test.1$p.value)
+q5 <- ifelse(is.na(test.5$p.value),NA,qnorm(test.5$p.value))
+q10 <- ifelse(is.na(test.10$p.value),NA,qnorm(test.10$p.value))
+  
   test.df = data.frame(period = c("less.than.5","five.ten","ten.plus"), 
                        U = c(test.1$statistic,test.5$statistic,test.10$statistic), 
                        diff = c(test.1$estimate,test.5$estimate,test.10$estimate), 
                        CI.L = c(test.1$conf.int[1],test.5$conf.int[1],test.10$conf.int[1]), 
                        CI.U = c(test.1$conf.int[2],test.5$conf.int[2],test.10$conf.int[2]), 
-                       Z = c(qnorm(test.1$p.value),qnorm(test.5$p.value),qnorm(test.10$p.value)),
+                       Z = c(q1,q5,q10),
                        p.value = c(test.1$p.value,test.5$p.value,test.10$p.value),
                        N = c(length(m$less.than.5)+length(null.combined$less.than.5),
                              length(m$five.ten)+length(null.combined$five.ten),
@@ -169,8 +184,17 @@ test_wmr_sub <- function(obs, null.combined, n.factor = 1){
   m.null$ten.plus <- sample(null.combined$ten.plus, size = n.factor * length(m$ten.plus))
   # use this sampled null to compare medians of observed and null wmrs
   test.1 = wilcox.test(m$less.than.5, m.null$less.than.5, conf.int = TRUE) 
-  test.5 = wilcox.test(m$five.ten, m.null$five.ten, conf.int = TRUE)
-  test.10 = wilcox.test(m$ten.plus, m.null$ten.plus, conf.int = TRUE)
+  if(all(IsZero(m$five.ten))) {
+    test.5 <- list(estimate=NA,conf.int=c(NA,NA))
+    print("time series too short to get WMR for 5-10 yr period...returning NA")}else{
+      test.5 = wilcox.test(m$five.ten, m.null$five.ten, conf.int = TRUE)
+      }
+  if(all(IsZero(m$ten.plus))) {
+    test.10 <- list(estimate=NA,conf.int=c(NA,NA))
+    print("time series too short to get WMR for 10+ yr period...returning NA")}else{
+      test.10 = wilcox.test(m$ten.plus, m.null$ten.plus, conf.int = TRUE)
+    }
+  
   # get relevant test information, where diff is the median of diff between samples and bounded by CI
   test.df = data.frame(period = c("less.than.5","five.ten","ten.plus"), 
                        test.stat = c(test.1$statistic,test.5$statistic,test.10$statistic), 
