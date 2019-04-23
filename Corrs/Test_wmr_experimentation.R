@@ -1,11 +1,24 @@
 basedir <- "C:/Users/siplem"
 
-source(file.path(basedir,"Dropbox/Chapter3-SardineAnchovy/Code_SA/sardine-anchovy/Corrs/NullModel.R"))
+source(here::here("R/WMR/NullModel.R"))
+
+
 
 # playing with tests between surrogate(s) and observed WMRs
 null.combined <- get_large_null(dat = RBF,dsource = "Barange",reg = "California",var = "ssb",nsims=50)
 full <- test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
                  null.combined = null.combined)
+full
+
+# Try with one of the negative ones
+nc <- get_large_null(dat = RBF,dsource = "Barange",reg = "Humboldt",var = "landings",nsims=50)
+negobs <- get_obs(dat = RBF,dsource = "Barange",reg = "Humboldt",var = "landings")
+plot(1:length(negobs$std_anchovy),negobs$std_anchovy,type='l')
+lines(1:length(negobs$std_sardine),negobs$std_sardine,col='red')
+test2 <- test_wmr(obs = get_obs(dat = RBF,dsource = "Barange",reg = "Humboldt",var = "landings"),
+                 null.combined = nc)
+test2
+
 test1 = test5 = test10 = diff1 = diff5 = diff10 = CL.L1 = CL.L5 = CL.L10 = vector()
 for(i in 1:100){
   blah = test_wmr_sub(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
