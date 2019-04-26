@@ -1,10 +1,4 @@
 
-library(dplyr)
-library(ggplot2)
-library(reshape2)
-library(MARSS)
-
-
 # Make a function to look at correlations and time series --------
 # This function takes variable, region, and returns a time series of the two dominant spps, correlations, and ACFs of each ts
 
@@ -106,7 +100,8 @@ corr.fig <- function(data = alldat, region_or_subregion = "Benguela", scale = "R
     ccf(x=sar, y=anch, na.action = na.pass,type = "correlation")
   }
   
-  return(list(correlation = correlation,Dom_anch_LTmax=as.character(lt.max.sp),
+  return(list(correlation = correlation,
+              Dom_anch_LTmax=as.character(lt.max.sp),
               Dom_sard_LTmax=as.character(lt.max.sp.sar),
               dom.anch = dom.a.ts,dom.sard = dom.s.ts,
               max.table = lt.maxes,
