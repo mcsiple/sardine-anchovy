@@ -5,6 +5,9 @@ source(here::here("R/PowerAnalysis/Scheuerell_TimeSeries.R"))
 source(here::here("R/PowerAnalysis/getSpectral.R"))
 source(here::here("R/WMR/NullModel.R"))
 
+library(ggridges) # for "joy" plot
+library(forcats)
+
 
 # same as get_large_null() but just accepts the ts as a list
 get_large_null2 <- function(timeseries,nsims){ 
@@ -44,15 +47,7 @@ lines(1:longyrs,ts_test$std_sardine,col='red')
 
 giantnull2 <- get_large_null2(timeseries=ts_test,nsims=50)
 
-par(mfcol=c(3,2))
-hist(giantnull2$less.than.5,main="<5",xlab="null WMR")
-hist(giantnull2$five.ten,main="5-10",xlab="null WMR")
-hist(giantnull2$ten.plus,main="10+",xlab="null WMR")
-obs <- get_wmr(anchovy.ts = ts_test$std_anchovy,sardine.ts = ts_test$std_sardine)
-hist(obs$less.than.5,main="<5",xlab="WMR")
-hist(obs$five.ten,main="5-10",xlab="WMR")
-hist(obs$ten.plus,main="10+",xlab="WMR")
-
+ 
 # Wilcoxon test between distributions
 test <- test_wmr(obs = ts_test, null.combined = giantnull2)
 true.d <- data.frame(diff=test$diff,CI.L=test$CI.L,CI.U=test$CI.U)
@@ -67,7 +62,7 @@ outs <- data.frame(diff=NA,CI.L=NA,CI.U=NA,timescale=NA,obs.length=NA)
 
 for(l in 3:length(obslengths)){ #get errors for wilcox tests with short ts and long time periods, so start with longer ones.
   len = obslengths[l]
-  #start.ind <- sample(x = 1:(longyrs-len),size = 1,replace = TRUE ) # use this eventually
+  #start.ind <- sample(x = 1:(longyrs-len),size = 1,replace = TRUE ) # if you want to randomize
   start.ind <- 1
   end.ind <- start.ind+(len-1)
   obs <- list(std_anchovy = ts_test$std_anchovy[start.ind:end.ind],
@@ -75,9 +70,9 @@ for(l in 3:length(obslengths)){ #get errors for wilcox tests with short ts and l
   pearson.cor <- cor(obs$std_anchovy,obs$std_sardine,method="pearson")
   giantnull.obs <- get_large_null2(timeseries=obs,nsims=50)
   wmr.obs <- test_wmr(obs = obs, null.combined = giantnull.obs)
-  d.obs <- data.frame(diff=wmr.obs$diff,
-                       CI.L=wmr.obs$CI.L,
-                       CI.U=wmr.obs$CI.U,
+  d.obs <- data.frame(diff = wmr.obs$diff,
+                       CI.L = wmr.obs$CI.L,
+                       CI.U = wmr.obs$CI.U,
                        timescale = wmr.obs$period,
                        obs.length = paste(len),
                        pearson.cor = pearson.cor)
@@ -105,7 +100,6 @@ powerplot <- ggplot(outs,aes(x=obslength2,y=diff)) +
               geom_line(data=outs,aes(x=obslength2,y=diff),lwd=1,colour=twc) +
               geom_ribbon(data=outs,aes(ymin=CI.L,ymax=CI.U),alpha=0.5) +
               facet_wrap(~timescale) +
-              
               xlab("Number of years of observations") +
               ylab("Observed-null distribution \n for WMR (d)") +
               theme_classic(base_size=14) +
@@ -119,7 +113,7 @@ ldat <- data.frame(Year=1:150,Sardine=ts_test$std_sardine,Anchovy=ts_test$std_an
   
 tsplot <- ggplot(ldat,aes(x=Year,y=value,colour=variable)) +
           geom_line(lwd=1) +
-          scale_colour_manual("Species",values=sacols) +
+          scale_colour_manual("Species",values=rev(sacols)) +
           theme_classic(base_size=14) +
           ylab("\n  Standardized \n biomass ")
 
@@ -139,3 +133,46 @@ abline(h = true.d$pearson.corr[1],col='blue')
 
 
 #save(true.d,file = here::here("TrueD_Asynchronous.RData"))
+
+
+# Try to do the same but with multiple density curves instead of trying to summarize d --------
+# Now sample from the longer time series for shorter lengths
+obslengths2 <- seq(25,longyrs,by=25)
+#yearindices <- 1:longyrs
+bigouts <- data.frame()
+
+for(l in 1:length(obslengths2)){ #get errors for wilcox tests with short ts and long time periods, so start with longer ones.
+  len = obslengths2[l]
+  start.ind <- 1
+  end.ind <- start.ind+(len-1)
+  obs <- list(std_anchovy = ts_test$std_anchovy[start.ind:end.ind],
+              std_sardine = ts_test$std_sardine[start.ind:end.ind])
+  pearson.cor <- cor(obs$std_anchovy,obs$std_sardine,method="pearson")
+  #giantnull.obs <- get_large_null2(timeseries=obs,nsims=50)
+  wmr.obs.raw <- get_wmr(anchovy.ts = ts_test$std_anchovy[start.ind:end.ind],
+                         sardine.ts = ts_test$std_sardine[start.ind:end.ind])
+  l5 <- data.frame(period="less.than.5",WMR=as.vector(wmr.obs.raw$less.than.5),N = len)
+  l510 <- data.frame(period="five.ten",WMR=as.vector(wmr.obs.raw$five.ten),N = len)
+  l10p <- data.frame(period="ten.plus",WMR=as.vector(wmr.obs.raw$ten.plus),N = len)
+  
+  outs <- bind_rows(l5,l510,l10p)
+  bigouts <- bind_rows(bigouts,outs)
+} # There will be errors about binding character and factor vectors but it's actually fine
+
+str(bigouts)
+bigouts$period <- as.factor(bigouts$period)
+bigouts <- bigouts %>% mutate(period=fct_recode(period,
+                                                `< 5 yr` = "less.than.5",
+                                                `5-10 yr` = "five.ten",
+                                                `10+ yr` = "ten.plus"))
+bigouts$period <- forcats::fct_relevel(bigouts$period,"< 5 yr" )
+  
+medians <- bigouts %>% group_by(period,N) %>% summarize(median.wmr =median(WMR,na.rm=T)) %>% as.data.frame()
+  
+ggplot(bigouts,aes(y=as.factor(N))) +
+  geom_density_ridges(aes(x=WMR),fill="navyblue",alpha=0.5,col="navyblue",panel_scaling = T) + 
+  theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) + 
+  ylab("Time series length (number of years)") +
+  #coord_flip() +
+  facet_wrap(~period)
+
