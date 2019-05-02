@@ -98,9 +98,9 @@ get_surrogates <- function(obs, nsurrogates){
   return(list(Anchovy.surrogates = a.sims,Sardine.surrogates = s.sims))
 }
 
-# ( xx <- get_surrogates(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
-#                        nsurrogates = 10) )
-# m.null = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1]) # Sometimes this gives a %dopar% error, but it is ok.
+ # ( xx <- get_surrogates(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
+ #                        nsurrogates = 10) )
+ # m.null = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1]) # Sometimes this gives a %dopar% error, but it is ok.
 # =======
 # 
 get_large_null <- function(dat = RB,dsource = "Barange",reg = "California",var = "ssb",nsims){
