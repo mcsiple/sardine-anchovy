@@ -169,10 +169,17 @@ bigouts$period <- forcats::fct_relevel(bigouts$period,"< 5 yr" )
   
 medians <- bigouts %>% group_by(period,N) %>% summarize(median.wmr =median(WMR,na.rm=T)) %>% as.data.frame()
   
-ggplot(bigouts,aes(y=as.factor(N))) +
+joyplot <- ggplot(bigouts,aes(y=as.factor(N))) +
   geom_density_ridges(aes(x=WMR),fill="navyblue",alpha=0.5,col="navyblue",panel_scaling = T) + 
   theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) + 
   ylab("Time series length (number of years)") +
-  #coord_flip() +
+  coord_flip() +
   facet_wrap(~period)
+joyplot
 
+tiff(filename = here::here("R/Figures/PowerAnalysis_JoyPlot.tiff"),
+     width = 8.5,height=4.5,units = 'in',res = 250)
+
+gridExtra::grid.arrange(tsplot, joyplot)
+
+dev.off()  
