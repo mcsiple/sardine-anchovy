@@ -2,6 +2,8 @@
 
 library(tidyverse)
 source(here::here("R/DataCleanup/getMARSSstates.R"))
+source(here::here("R/DataCleanup/Fill_NAs_SA.R"))
+load(here::here("R/DataCleanup/allsardineanchovy_3.RData")) # dataframe all
 
 region <- c("Benguela","California","Humboldt", "Kuroshio-Oyashio", "NE Atlantic")
 variable <- c("rec","ssb","landings")
@@ -11,7 +13,7 @@ covs <- tidyr::crossing(region,variable, datasource)
 covs$loCI <- covs$med <-  covs$hiCI <- NA
 
 for (i in 1:nrow(covs)){ 
-  output <- getMARSSstates(data = alldat,region_or_subregion = "Kuroshio-Oyashio",scale = "Region",data_source = covs$datasource[i],variable = covs$variable[i],ccf.calc=FALSE,get.mean.instead = TRUE,MARSS.cov = T)
+  output <- getMARSSstates(data = alldat,region_or_subregion = covs$region[i],scale = "Region",data_source = covs$datasource[i],variable = covs$variable[i],ccf.calc=FALSE,get.mean.instead = TRUE,MARSS.cov = T)
   covs$med[i] <- output$Q12
   covs$loCI[i] <- output$loQ12
   covs$hiCI[i] <- output$hiQ12
