@@ -38,6 +38,6 @@ covs2 <- covs %>% mutate(variable = fct_recode(variable,
     ylab("Maximum likelihood estimate of covariance") +
     geom_hline(yintercept = 0,lty=2) + coord_flip() )
 
-tiff("MARSSCovs.tiff",width = 8,height = 2.5,units = 'in',res = 300)
+tiff("MARSSCovs_v2.tiff",width = 8,height = 2.5,units = 'in',res = 300)
 marsscovplot
 dev.off()
