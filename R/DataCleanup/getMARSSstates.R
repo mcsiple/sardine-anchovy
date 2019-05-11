@@ -137,7 +137,10 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
     
     model.sa=list()
     model.sa$Q="unconstrained"
+    model.sa$R="diagonal and equal"
+    model.sa$U="zero"
     
+      
     kem.sa = MARSS(MAR.obj, model=model.sa, control=list(maxit=1000)) 
     correlation = kem.sa$par$Q[2]/(sqrt(kem.sa$par$Q[3]) * sqrt(kem.sa$par$Q[1]))
     kem.sa.CIs = MARSSparamCIs(kem.sa,method="parametric",nboot=200)
@@ -187,6 +190,8 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
   
   model.sa=list()
   model.sa$Q="unconstrained"
+  model.sa$R="diagonal and equal" # new from MDS
+  model.sa$U="zero" # new from MDS
   
   kem.sa = MARSS(MAR.obj, model=model.sa, control=list(maxit=1000)) 
   print(kem.sa,what = "states")
