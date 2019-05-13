@@ -20,7 +20,7 @@ for (i in 1:nrow(covs)){
   print(covs)
 }
 
-#save(covs,file="MARSScovsBarange.RData")
+#save(covs,file="MARSScovsBarange_May13_2019.RData")
 
 
 covs2 <- covs %>% mutate(variable = fct_recode(variable, 
@@ -41,3 +41,4 @@ covs2 <- covs %>% mutate(variable = fct_recode(variable,
 tiff("MARSSCovs_v2.tiff",width = 8,height = 2.5,units = 'in',res = 300)
 marsscovplot
 dev.off()
+
