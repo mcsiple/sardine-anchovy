@@ -183,3 +183,78 @@ tiff(filename = here::here("R/Figures/PowerAnalysis_JoyPlot.tiff"),
 gridExtra::grid.arrange(tsplot, joyplot)
 
 dev.off()  
+
+
+
+# Look for Type I errors --------------------------------------------------
+
+test.typeI <- t(get.mds.ts(length = longyrs,
+                       autocorrs = c(0.8,0.8),
+                       rho = 0.1,
+                       sds = c(0.7,0.7),
+                       driver.period = 50,
+                       driver.amp = 0.5,
+                       CC = matrix(c(1, 1), ncol = 1))) # Notice these are the same sign (not opposite signs as above)
+
+
+ts_test <- list(std_anchovy=as.numeric(scale(test.typeI[,1])),
+                std_sardine=as.numeric(scale(test.typeI[,2])))
+# Spearman correlations? Used by Izquierdo-Pena et al...
+cor(ts_test$std_anchovy[1:50],ts_test$std_sardine[1:50],method="spearman")
+
+
+corrs <- vector()
+for(i in 2:length(ts_test$std_anchovy)){
+  corrs[i] <- cor(ts_test$std_anchovy[1:i],ts_test$std_sardine[1:i],method="spearman")
+}
+
+plot(corrs,ylab="Spearman correlation",xlab="Time series length")
+
+
+#  Try the same thing but w a bunch of simulations ------------------------
+nsims <- 100
+corrs.mat <-matrix(NA,nrow = nsims,ncol=longyrs)
+  
+for(s in 1:nsims){
+  test.typeI <- t(get.mds.ts(length = longyrs,
+                                       autocorrs = c(0.8,0.8),
+                                       rho = 0.1,
+                                       sds = c(0.7,0.7),
+                                       driver.period = 50,
+                                       driver.amp = 0.5,
+                                       CC = matrix(c(1, 1), ncol = 1))) 
+ts_test <- list(std_anchovy=as.numeric(scale(test.typeI[,1])),
+                std_sardine=as.numeric(scale(test.typeI[,2])))
+corrs <- vector()
+for(i in 2:length(ts_test$std_anchovy)){
+  corrs[i] <- cor(ts_test$std_anchovy[1:i],ts_test$std_sardine[1:i],method="spearman")
+}
+corrs.mat[s,] <- corrs
+}
+
+plot(0:150,0:150,xlim=c(0,150),ylim=c(-1,1),type='n',ylab="Spearman correlation",xlab="Number of years with abundance for both species")
+for(s in 1:nsims){
+  lines(corrs.mat[s,],col='lightgrey')
+}
+mean.vec <- colMeans(corrs.mat)
+median.vec <- apply(X = corrs.mat,FUN = median,MARGIN = 2)
+lines(1:150,mean.vec)
+lines(1:150, median.vec,col="blue")
+# Add median length of time series
+(prob.type1 <- apply(corrs.mat,MARGIN = 2,FUN = function(x) {length(which(x<0))/length(x)} ) )
+#length(which(corrs.mat[,2]<0))
+
+par(mfrow=c(1,1))
+plot(1:longyrs,ts_test$std_anchovy, type='l',ylim=c(-4,4),ylab="Biomass")
+lines(1:longyrs,ts_test$std_sardine,col='red')
+
+giantnull2 <- get_large_null2(timeseries=ts_test,nsims=50)
+
+
+# Wilcoxon test between distributions
+test <- test_wmr(obs = ts_test, null.combined = giantnull2)
+true.d <- data.frame(diff=test$diff,CI.L=test$CI.L,CI.U=test$CI.U)
+true.d$timescale <- c("less.than.5","five.ten","ten.plus")
+true.d$pearson.corr <- cor(ts_test$std_anchovy,ts_test$std_sardine)
+true.d
+
