@@ -212,7 +212,7 @@ plot(corrs,ylab="Spearman correlation",xlab="Time series length")
 
 
 #  Try the same thing but w a bunch of simulations ------------------------
-nsims <- 100
+nsims <- 1000
 corrs.mat <-matrix(NA,nrow = nsims,ncol=longyrs)
   
 for(s in 1:nsims){
@@ -239,22 +239,163 @@ for(s in 1:nsims){
 mean.vec <- colMeans(corrs.mat)
 median.vec <- apply(X = corrs.mat,FUN = median,MARGIN = 2)
 lines(1:150,mean.vec)
-lines(1:150, median.vec,col="blue")
+#lines(1:150, median.vec,col="blue")
 # Add median length of time series
-(prob.type1 <- apply(corrs.mat,MARGIN = 2,FUN = function(x) {length(which(x<0))/length(x)} ) )
+(prob.typeI <- apply(corrs.mat,MARGIN = 2,FUN = function(x) {length(which(x<0))/length(x)} ) )
+
 #length(which(corrs.mat[,2]<0))
-
-par(mfrow=c(1,1))
-plot(1:longyrs,ts_test$std_anchovy, type='l',ylim=c(-4,4),ylab="Biomass")
-lines(1:longyrs,ts_test$std_sardine,col='red')
-
-giantnull2 <- get_large_null2(timeseries=ts_test,nsims=50)
+library(beyonce)
+pal <- beyonce_palette(18)[2:6]
 
 
-# Wilcoxon test between distributions
-test <- test_wmr(obs = ts_test, null.combined = giantnull2)
-true.d <- data.frame(diff=test$diff,CI.L=test$CI.L,CI.U=test$CI.U)
-true.d$timescale <- c("less.than.5","five.ten","ten.plus")
-true.d$pearson.corr <- cor(ts_test$std_anchovy,ts_test$std_sardine)
-true.d
+spc <- data.frame(datasource=c("RAM","RAM",rep("Barange",times=5)),
+                  region = c("NE Atlantic",
+                             "California",
+                             "Kuroshio-Oyashio",
+                             "NE Atlantic",
+                             "Humboldt",
+                             "California",
+                             "Benguela"),
+                  years.of.data = c(21,27,11,18,20,11,24),
+                  spearman.cor = c(-0.3,-0.31,-0.08,-0.34,-0.6,-0.65,-0.7),
+                  color.to.plot = c(pal[5],pal[2],pal[4],pal[5],pal[3],pal[2],pal[1])
+)
+points(spc$years.of.data,spc$spearman.cor,pch=19,col=as.character(spc$color.to.plot),cex=2)
 
+# What is the P(type I error) based on the length of ts we have? ----------
+load(here::here("R/DataCleanup/allsardineanchovy_3.RData"))
+actual.data <- alldat
+# How many years of data do we have for both species in one ecosystem?
+KO <- subset(actual.data,region=="Kuroshio-Oyashio" & datasource=="Barange")
+Ben <- subset(actual.data,region=="Benguela" & datasource=="Barange")
+CA <- subset(actual.data,region=="California" & datasource=="Barange")
+Hum <- subset(actual.data,region=="Humboldt" & datasource=="Barange")
+NEA <- subset(actual.data,region=="NE Atlantic" & datasource=="Barange")
+
+unique(KO$stock)
+KO%>% select(stock,year,ssb) %>%
+  dcast(year~stock) %>%
+  filter(complete.cases(.)) %>%
+  nrow() # This is the number of years of biomass data with both species
+xx <-  KO %>% select(stock,year,ssb) %>%
+  dcast(year~stock) %>%
+  filter(complete.cases(.))
+cor(xx[,2],xx[,3],method="spearman")
+
+
+
+unique(Ben$stock)
+Ben %>% group_by(stock) %>% summarize(max(ssb,na.rm=T))
+Ben%>% select(stock,year,ssb) %>%
+  filter(stock %in% c("Northern Benguela sardine","Southern Benguela anchovy"))  %>%
+  dcast(year~stock) %>%
+  filter(complete.cases(.)) %>%
+  nrow() # This is the number of years of biomass data with both species
+xx <-  Ben %>% select(stock,year,ssb) %>%
+  dcast(year~stock) %>%
+  filter(complete.cases(.))
+cor(xx[,2],xx[,3],method="spearman")
+
+
+unique(CA$stock)
+CA %>% select(stock,year,ssb) %>%
+  dcast(year~stock) %>%
+  filter(complete.cases(.)) %>%
+  nrow() # This is the number of years of biomass data with both species
+xx <-  CA %>% select(stock,year,ssb) %>%
+  dcast(year~stock) %>%
+  filter(complete.cases(.))
+cor(xx[,2],xx[,3],method="spearman")
+
+
+unique(Hum$stock)
+Hum %>% group_by(stock) %>% summarize(max(ssb,na.rm=T))
+Hum%>% select(stock,year,ssb) %>%
+  filter(stock %in% c("Humboldt anchovy - Central Peru","Humboldt sardine - South Peru N Chile"))  %>%
+  dcast(year~stock) %>%
+  filter(complete.cases(.)) %>%
+  nrow() # This is the number of years of biomass data with both species
+xx <-  Hum %>% select(stock,year,ssb) %>%
+  dcast(year~stock) %>%
+  filter(complete.cases(.))
+cor(xx[,2],xx[,3],method="spearman")
+
+
+
+unique(NEA$stock)
+NEA %>% group_by(stock) %>% summarize(max(ssb,na.rm=T))
+NEA%>% select(stock,year,ssb) %>%
+  dcast(year~stock) %>%
+  filter(complete.cases(.)) %>%
+  nrow() # This is the number of years of biomass data with both species
+xx <-  NEA %>% select(stock,year,ssb) %>%
+  dcast(year~stock) %>%
+  filter(complete.cases(.))
+cor(xx[,2],xx[,3],method="spearman")
+
+
+# Number of years with data for both s and a
+# Kuroshio-Oyashio: 11 years
+# Benguela: 24
+# California: 11 
+# Humboldt: 20
+# NE Atlantic: 18
+
+
+# Check the same thing for RAM legacy database ----------------------------
+# How many years of data do we have for both species in one ecosystem?
+KO <- subset(actual.data,region=="Kuroshio-Oyashio" & datasource=="RAM")
+Ben <- subset(actual.data,region=="Benguela" & datasource=="RAM")
+CA <- subset(actual.data,region=="California" & datasource=="RAM")
+Hum <- subset(actual.data,region=="Humboldt" & datasource=="RAM")
+NEA <- subset(actual.data,region=="NE Atlantic" & datasource=="RAM")
+
+unique(KO$stock)
+KO %>% group_by(stock) %>% summarize(max(ssb,na.rm=T))
+# No sardine/anchovy pair available from RAM
+
+unique(Ben$stock)
+Ben %>% group_by(stock) %>% summarize(max(ssb,na.rm=T))
+# No sardine/anchovy pair available from RAM
+
+unique(CA$stock)
+CA %>% group_by(stock) %>% summarize(max(ssb,na.rm=T))
+CA %>% select(stock,year,ssb) %>%
+  dcast(year~stock) %>%
+  filter(complete.cases(.)) %>%
+  nrow() # This is the number of years of biomass data with both species
+xx <- CA%>% select(stock,year,ssb) %>%
+  dcast(year~stock) %>%
+  filter(complete.cases(.))
+cor(xx[,2],xx[,3],method="spearman")
+
+
+
+unique(Hum$stock)
+Hum %>% group_by(stock) %>% summarize(max(ssb,na.rm=T))
+# No sardine/anchovy pair available from RAM
+
+unique(NEA$stock)
+NEA %>% group_by(stock) %>% summarize(max(ssb,na.rm=T))
+NEA%>% select(stock,year,ssb) %>%
+  dcast(year~stock) %>%
+  filter(complete.cases(.)) %>%
+  nrow() # This is the number of years of biomass data with both species
+xx <- NEA%>% select(stock,year,ssb) %>%
+  dcast(year~stock) %>%
+  
+  filter(complete.cases(.))
+cor(xx[,2],xx[,3],method="spearman")
+
+# From RAM legacy database, there are only a couple ts lengths.
+# CA: 27 years
+# NEA: 21 years
+# Among the other stocks, there aren't sardine-anchovy pairs, either one 
+
+
+# Plot the probability of a Type 1 error vs. how long our time ser --------
+
+tiff(file="R/Figures/TypeI.tiff",width = 5,height = 5,units="in",res = 200)
+plot(2:50,prob.typeI[2:50],type='l',ylab="Probability of false detection",col="grey",lwd=2,xlab="Number of years with biomass data for both species")
+points(spc$years.of.data,rep(0,times=7),col=as.character(spc$color.to.plot),cex=2,pch=19)
+dev.off()
