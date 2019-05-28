@@ -7,6 +7,7 @@ load(here::here("R/DataCleanup/RAM_Barange_FAO_States.RData")) # RBF (missing ye
 
 source(here::here("R/DataCleanup/Fill_NAs_SA.R")) # FillNAs.ts()
 source(here::here("R/WMR/NullModel.R"))
+source(here::here("R/PowerAnalysis/Scheuerell_timeseries.R"))
 
 library(dplyr)
 library(reshape2)
@@ -14,6 +15,7 @@ library(ggplot2)
 library(beyonce) #if needed: devtools::install_github("dill/beyonce")
 library(RCurl)
 library(RColorBrewer)
+
 
 # Test data ---------------------------------------------------------------
 filter(alldat,datasource=="Barange" & stock == "California anchovy")
@@ -31,25 +33,76 @@ sacols <- c("#3288bd","#d53e4f") #blue = sardine, red = anchovy
 
 mf <- melt(alldat,id.vars = c("datasource", "scientificname", "stock", "year", "sp", "region", "subregion"))
 mf$variable <- recode(mf$variable,ssb="Biomass",rec="Recruitment",landings="Landings")
+mf.loglandings <- filter(mf,variable=="Landings") %>% mutate(value = log(value))
+mf.new <- filter(mf,variable!="Landings") %>% bind_rows(mf.loglandings)
+mf.new$variable <- recode(mf$variable,ssb="Biomass",rec="Recruitment",Landings="Log(Landings)")
 
-fig1 <- mf %>%
+
+fig1 <- mf.new %>%
   group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
   mutate(std.value=value/mean(value,na.rm=T)) %>% #as.data.frame() value/mean(value,na.rm=T)
-  filter(variable %in% c("Biomass","Recruitment","Landings"))  %>%
+  filter(variable %in% c("Biomass","Recruitment","Log(Landings)"))  %>%
     ggplot(aes(x=year,y=std.value,colour=sp,lty=datasource,group=stock)) +
       geom_line(lwd=0.6) +
-      scale_color_manual(values=sacols) +
+      scale_color_manual("",values=sacols) +
   facet_grid(variable~region,scales="free_y") +
   ylab("Standardized value") +
   theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank())
+
+
      
-pdf(file.path(figwd,"Fig1_option2.pdf"),width = 12, height = 4,useDingbats = F)
+pdf(here::here("R/Figures/Fig1_mds.pdf"),width = 12, height = 4,useDingbats = F)
 fig1 
 dev.off()
 
 
 
 # FIGURE 2: schematic of spectral analysis --------------------------------
+
+simlength <- 150
+
+sa.sim <- get.mds.ts(length= simlength,
+                     autocorrs = c(0.7,0.7),
+                     rho = 0.1,
+                     sds = c(0.8,0.8),
+                     driver.period = 50,
+                     driver.amp = 0.5,
+                     CC = matrix(c(1, -1), ncol = 1))
+
+x <- 1:simlength
+y <- t(sa.sim)
+scale.exp = 0.5; nscales = get.nscales(x)
+min.scale = get.min.scale(x); max.scale = get.max.scale(x)
+scales = log2Bins(min.scale, max.scale, nscales)
+w = mvcwt(x, y)
+mr = wmr(w)
+
+
+
+pdf("Contour_Example.pdf",useDingbats = FALSE,width = 6,height=5)
+image(mr)
+dev.off()
+
+#Other pieces
+pdf("Contour_Example_ts.pdf",useDingbats = FALSE,width = 4,height=8)
+par(mfrow=c(4,1))
+plot(x,y[,1],type='l',lwd=2,ylab="Scaled abundance",xlab="Year")
+lines(x,y[,2],col="darkgrey",lwd=2)
+legend("topright",legend=c("Sardine","Anchovy"),lwd=c(2,2),col=c("black","darkgrey"),bty='n')
+
+wmrs <- get_wmr(anchovy.ts = y[,1],sardine.ts = y[,2])
+for(i in 1:3){
+  hist(wmrs[[i]],main='',freq = FALSE,col="lightgrey",border="lightgrey",xaxt="n",xaxs="i",yaxs="i",xlab="",ylab="")
+  d <- density(wmrs[[i]],na.rm=T)
+  lines(d,lwd=2)
+}
+axis(1,xlim=c(0,1),xaxs="i")
+
+dev.off()
+
+# FURTHER FIGURES ---------------------------------------------------------
+
+
 # This figure is composed in Adobe Illustrator
 
 source(here::here("R/DominantTS/Corr_Fig.R")) # This includes the corr.fig function

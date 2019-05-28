@@ -105,6 +105,88 @@ powerplot <- ggplot(outs,aes(x=obslength2,y=diff)) +
               theme_classic(base_size=14) +
               theme(strip.background = element_blank())
 
+
+
+# Now try the same thing but with multiple simulations for each obslength --------
+# I should have done this before but it's computationally tricky and takes forever, so I was shortcutting.
+
+test.yy <- t(get.mds.ts(length = longyrs,
+                       autocorrs = c(0.7,0.7),
+                       rho = 0.1,
+                       sds = c(0.8,0.8),
+                       driver.period = 50,
+                       driver.amp = 0.5,
+                       CC = matrix(c(1, -1), ncol = 1)))
+
+
+ts_test <- list(std_anchovy=as.numeric(scale(test.yy[,1])),
+                std_sardine=as.numeric(scale(test.yy[,2])))
+giantnull2 <- get_large_null2(timeseries=ts_test,nsims=50)
+
+# Wilcoxon test between distributions
+test <- test_wmr(obs = ts_test, null.combined = giantnull2)
+true.d <- data.frame(diff=test$diff,CI.L=test$CI.L,CI.U=test$CI.U)
+true.d$timescale <- c("less.than.5","five.ten","ten.plus")
+true.d$pearson.corr <- cor(ts_test$std_anchovy,ts_test$std_sardine)
+true.d
+
+# Now sample from the longer time series for shorter lengths
+obslengths <- seq(10,longyrs,by=10)
+yearindices <- 1:longyrs
+outs <- data.frame(diff=NA,CI.L=NA,CI.U=NA,timescale=NA,obs.length=NA)
+list.outs <- list()
+nsims=50
+
+for(sim in 1:nsims){
+for(l in 3:length(obslengths)){ #get errors for wilcox tests with short ts and long time periods, so start with longer ones.
+  len = obslengths[l]
+  start.ind <- 1
+  end.ind <- start.ind+(len-1)
+ 
+  test.zz <- t(get.mds.ts(length = longyrs,
+                          autocorrs = c(0.7,0.7),
+                          rho = 0.1,
+                          sds = c(0.8,0.8),
+                          driver.period = 50,
+                          driver.amp = 0.5,
+                          CC = matrix(c(1, -1), ncol = 1)))
+  ts_test <- list(std_anchovy=as.numeric(scale(test.zz[,1])),
+                  std_sardine=as.numeric(scale(test.zz[,2])))
+  obs <- list(std_anchovy = ts_test$std_anchovy[start.ind:end.ind],
+              std_sardine = ts_test$std_sardine[start.ind:end.ind])
+  pearson.cor <- cor(obs$std_anchovy,obs$std_sardine,method="pearson")
+  giantnull.obs <- giantnull2 #diffferent from above 
+  wmr.obs <- test_wmr(obs = obs, null.combined = giantnull.obs)
+  d.obs <- data.frame(diff = wmr.obs$diff,
+                      CI.L = wmr.obs$CI.L,
+                      CI.U = wmr.obs$CI.U,
+                      timescale = wmr.obs$period,
+                      obs.length = paste(len),
+                      pearson.cor = pearson.cor)
+  outs <- bind_rows(outs,d.obs)
+  outs <- outs[-1,]
+  print(outs)
+  print(paste("done with obslength",obslengths[l])) }
+  
+  list.outs[[sim]] <- outs
+  print(length(list.outs))
+  }
+  
+# outs$truediff <- rep(true.d$diff,times=length(obslengths)-2)
+# outs$trueloCI <- rep(true.d$CI.L,times=length(obslengths)-2)
+# outs$truehiCI <- rep(true.d$CI.U,times=length(obslengths)-2)
+# 
+# outs$timescale = factor(outs$timescale, levels=c('less.than.5','five.ten','ten.plus'))
+# levels(outs$timescale) <- c("<5 yr","5-10 yr",">10 yr")
+
+
+
+
+
+
+
+
+
 # Plot the original time series
 # Sardine-anchovy palette
 sacols <- c("#3288bd","#d53e4f") #blue = sardine, red = anchovy
@@ -184,8 +266,9 @@ gridExtra::grid.arrange(tsplot, joyplot)
 
 dev.off()  
 
-
-
+###########################################################################
+###########################################################################
+###########################################################################
 # Look for Type I errors --------------------------------------------------
 
 test.typeI <- t(get.mds.ts(length = longyrs,
@@ -398,4 +481,11 @@ cor(xx[,2],xx[,3],method="spearman")
 tiff(file="R/Figures/TypeI.tiff",width = 5,height = 5,units="in",res = 200)
 plot(2:50,prob.typeI[2:50],type='l',ylab="Probability of false detection",col="grey",lwd=2,xlab="Number of years with biomass data for both species")
 points(spc$years.of.data,rep(0,times=7),col=as.character(spc$color.to.plot),cex=2,pch=19)
+legend("topright",legend = spc$region[3:7],col=as.character(spc$color.to.plot[3:7]),pch=rep(19,times=5),bty='n')
+dev.off()
+
+pdf(file="R/Figures/TypeI.pdf",width = 5,height = 5,useDingbats = FALSE)
+plot(2:50,prob.typeI[2:50],type='l',ylab="Probability of false detection",col="grey",lwd=2,xlab="Number of years with biomass data for both species")
+points(spc$years.of.data,rep(0,times=7),col=as.character(spc$color.to.plot),cex=2,pch=19)
+legend("topright",legend = spc$region[3:7],col=as.character(spc$color.to.plot[3:7]),pch=rep(19,times=5),bty='n')
 dev.off()

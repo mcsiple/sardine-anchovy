@@ -2,7 +2,14 @@
 # Make a function to look at correlations and time series --------
 # This function takes variable, region, and returns a time series of the two dominant spps, correlations, and ACFs of each ts
 
-corr.fig <- function(data = alldat, region_or_subregion = "Benguela", scale = "Region", data_source = "Barange", variable = "landings",MARSS.cov = FALSE, plot = FALSE, ccf.calc = FALSE){
+corr.fig <- function(data = alldat, 
+                     region_or_subregion = "Benguela",
+                     scale = "Region",
+                     data_source = "Barange",
+                     variable = "landings",
+                     MARSS.cov = FALSE,
+                     plot = FALSE,
+                     ccf.calc = FALSE){
   # data = dataset including the time series you're interested in
   # Region = 1 of 5 LMEs (Benguela, California, NE Atlantic, Kuroshio-Oyashio, Humboldt)
   # variable = the variable (rec, biomass, or landings)
