@@ -105,7 +105,7 @@ powerplot <- ggplot(outs,aes(x=obslength2,y=diff)) +
               theme_classic(base_size=14) +
               theme(strip.background = element_blank())
 
-
+powerplot
 
 # Now try the same thing but with multiple simulations for each obslength --------
 # I should have done this before but it's computationally tricky and takes forever, so I was shortcutting.
