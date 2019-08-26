@@ -3,7 +3,7 @@
 # This is a simple way to fill in a few spaces, most datasets do not have a lot of NAs.
 # Five LMEs: NE Atlantic, Benguela, California, Kuroshio-Oyashio, Humboldt
 
-load(here::here("R/Data/allsardineanchovy_3.RData")) # data frame: alldat - this is the NEW (2019) data pile- including new time series from RAM and FAO
+load(here::here("R/DataCleanup/allsardineanchovy_3.RData")) # data frame: alldat - this is the NEW (2019) data pile- including new time series from RAM and FAO
 
 # Load functions
 source(here::here("R/DataCleanup/getMARSSstates.R"))
@@ -15,7 +15,7 @@ regions <- unique(alldat$region)
 dsources <- unique(alldat$datasource) #Barange, RAM, FAO
 variables <- c("rec","ssb","landings")
 
-d=3 #janky but easier for troubleshooting if you do one data source at a time
+d=1 #janky but easier for troubleshooting if you do one data source at a time
 for(r in 1:length(regions)){
   var.list <- list()
   region = regions[r]
