@@ -33,22 +33,25 @@ sacols <- c("#3288bd","#d53e4f") #blue = sardine, red = anchovy
 
 mf <- melt(alldat,id.vars = c("datasource", "scientificname", "stock", "year", "sp", "region", "subregion"))
 mf$variable <- recode(mf$variable,ssb="Biomass",rec="Recruitment",landings="Landings")
-mf.loglandings <- filter(mf,variable=="Landings") %>% mutate(value = log(value))
-mf.new <- filter(mf,variable!="Landings") %>% bind_rows(mf.loglandings)
-mf.new$variable <- recode(mf$variable,ssb="Biomass",rec="Recruitment",Landings="Log(Landings)")
+mf.new <- mf
+
+# Depracated: Before, I had log-transformed landings but I didn't like that so I'm changing them back to un-transformed values and adding notes in the plots that say where the maxima are (see gigantic landings according to FAO in the Benguela CUrrent ca. 1980, the Humboldt Current ca. 1999 and K-O CUrrent ca. 1980)
+
+#mf.loglandings <- filter(mf,variable=="Landings") %>% mutate(value = log(value))
+#mf.new <- filter(mf,variable!="Landings") %>% bind_rows(mf.loglandings)
+#mf.new$variable <- recode(mf.new$variable,ssb="Biomass",rec="Recruitment",Landings="Log(Landings)")
 
 
 fig1 <- mf.new %>%
   group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
   mutate(std.value=value/mean(value,na.rm=T)) %>% #as.data.frame() value/mean(value,na.rm=T)
-  filter(variable %in% c("Biomass","Recruitment","Log(Landings)"))  %>%
+  filter(variable %in% c("Biomass","Recruitment","Landings"))  %>%
     ggplot(aes(x=year,y=std.value,colour=sp,lty=datasource,group=stock)) +
       geom_line(lwd=0.6) +
       scale_color_manual("",values=sacols) +
   facet_grid(variable~region,scales="free_y") +
   ylab("Standardized value") +
   theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank())
-
 
      
 pdf(here::here("R/Figures/Fig1_mds.pdf"),width = 12, height = 4,useDingbats = F)
