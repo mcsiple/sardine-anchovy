@@ -92,7 +92,7 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
   if(is.infinite(lt.max.a)){
     dom.a.ts <- dataset[which(dataset$stock==lt.max.sp[1]),] # just put in a random stock bc it doesn't matter
   }else{
-      dom.a.ts <- dataset[which(dataset$stock==lt.max.sp),]
+    dom.a.ts <- dataset[which(dataset$stock==lt.max.sp),]
   }
   
   
@@ -134,13 +134,18 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
     # sar and anch are rows, columns are years
     MAR.obj <- log(rbind(sard.mars[2,],anch.mars[2,]))    #Landings are log transformed
     colnames(MAR.obj) <- sard.mars[1,]
+    MAR.obj <- zscore(MAR.obj) # z-score the data! then we set u to zero
     
     model.sa=list()
-    model.sa$Q="unconstrained"
+    model.sa$Q="equalvarcov" #equalvarcov?
     model.sa$R="diagonal and equal"
     model.sa$U="zero"
+    model.sa$A="zero"
+    model.sa$B="diagonal and equal"
     
-      
+    
+    
+    
     kem.sa = MARSS(MAR.obj, model=model.sa, control=list(maxit=1000)) 
     correlation = kem.sa$par$Q[2]/(sqrt(kem.sa$par$Q[3]) * sqrt(kem.sa$par$Q[1]))
     kem.sa.CIs = MARSSparamCIs(kem.sa,method="parametric",nboot=200)
