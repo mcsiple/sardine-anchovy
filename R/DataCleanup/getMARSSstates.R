@@ -134,26 +134,65 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
     # sar and anch are rows, columns are years
     MAR.obj <- log(rbind(sard.mars[2,],anch.mars[2,]))    #Landings are log transformed
     colnames(MAR.obj) <- sard.mars[1,]
-    MAR.obj <- zscore(MAR.obj) # z-score the data! then we set u to zero
+    MAR.obj <- zscore(MAR.obj) # z-score the data! then we set u to zero - NEW!!!
+    plot(1:ncol(MAR.obj),MAR.obj[1,],type='l')
+    lines(1:ncol(MAR.obj),MAR.obj[2,],col="blue")
     
     model.sa=list()
-    model.sa$Q="equalvarcov" #equalvarcov?
-    model.sa$R="diagonal and equal"
+    model.sa$Q="diagonal and unequal" #equalvarcov?
+    model.sa$R="diagonal and equal" # used to be "diagonal and equal"
     model.sa$U="zero"
-    model.sa$A="zero"
-    model.sa$B="diagonal and equal"
+    model.sa$A="zero" # need to double check this value
+    B1=matrix(list("b1",0,"b21","b2"),2,2) # email
+    model.sa$B=B1 # diagonal is the same and off-diags are the same but they are interpreted differently! Subtract 1 from diag to get effect of species on itself. If species are fully density-independent, B_diag = 1) 
     
-    
-    
-    
+
     kem.sa = MARSS(MAR.obj, model=model.sa, control=list(maxit=1000)) 
     correlation = kem.sa$par$Q[2]/(sqrt(kem.sa$par$Q[3]) * sqrt(kem.sa$par$Q[1]))
     kem.sa.CIs = MARSSparamCIs(kem.sa,method="parametric",nboot=200)
     print(kem.sa.CIs)
-    Q12 <- kem.sa.CIs$par$Q[2]
-    loQ12 <- kem.sa.CIs$par.lowCI$Q[2]
-      hiQ12 <- kem.sa.CIs$par.upCI$Q[2]
-      return(list(loQ12 = loQ12,hiQ12=hiQ12, Q12=Q12))
+    
+    # Density dependence
+    b1.sard <- as.numeric(kem.sa.CIs$par$B)[1] 
+    b1.sard.lo <- as.numeric(kem.sa.CIs$par.lowCI$B)[1] 
+    b1.sard.hi <- as.numeric(kem.sa.CIs$par.lowCI$B)[1] 
+    
+    b2.anch <- as.numeric(kem.sa.CIs$par$B)[3] 
+    b2.anch.lo <- as.numeric(kem.sa.CIs$par.lowCI$B)[3] 
+    b2.anch.hi <- as.numeric(kem.sa.CIs$par.lowCI$B)[3] 
+    
+    # Interaction
+    B.12 <- as.numeric(kem.sa.CIs$par$B)[2] 
+    lo.B12 <- as.numeric(kem.sa.CIs$par.lowCI$B)[2]
+    hi.B12 <- as.numeric(kem.sa.CIs$par.upCI$B)[2]
+    
+    # Variance
+    Q1 <- as.numeric(kem.sa.CIs$par$Q)[1]
+    lo.Q1 <- kem.sa.CIs$par.lowCI$Q[1]
+    hi.Q1 <- kem.sa.CIs$par.upCI$Q[1]
+    
+    Q2 <- as.numeric(kem.sa.CIs$par$Q)[2]
+    lo.Q2 <- kem.sa.CIs$par.lowCI$Q[2]
+    hi.Q1 <- kem.sa.CIs$par.upCI$Q[2]
+
+      return(list(#Density dependence
+                  b1.sard = b1.sard,
+                  b1.sard.lo = b1.sard.lo,
+                  b1.sard.hi = b1.sard.hi,
+                  b2.anch = b2.anch,
+                  b2.anch.lo = b2.anch.lo,
+                  b2.anch.hi = b2.anch.hi,
+                  # Interaction
+                  B.12 = B.12,
+                  lo.B12 = lo.B12,
+                  hi.B12 = hi.B12,
+                  #Covariance
+                  Q1 = Q1,
+                  lo.Q1 = lo.Q1,
+                  hi.Q1 = hi.Q1,
+                  Q2 = Q2,
+                  lo.Q2 = lo.Q2,
+                  hi.Q2 = hi.Q2))
   }else correlation = "no MARSS correlation calculated"
   
   if(ccf.calc==TRUE){

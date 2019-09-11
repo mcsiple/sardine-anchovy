@@ -14,9 +14,26 @@ covs$loCI <- covs$med <-  covs$hiCI <- NA
 
 for (i in 1:nrow(covs)){ 
   output <- getMARSSstates(data = alldat,region_or_subregion = covs$region[i],scale = "Region",data_source = covs$datasource[i],variable = covs$variable[i],ccf.calc=FALSE,get.mean.instead = TRUE,MARSS.cov = T)
-  covs$med[i] <- output$Q12
-  covs$loCI[i] <- output$loQ12
-  covs$hiCI[i] <- output$hiQ12
+  # covs$med[i] <- output$Q12
+  # covs$loCI[i] <- output$loQ12
+  # covs$hiCI[i] <- output$hiQ12
+  covs$b1.sard = output$b1.sard
+  covs$b1.sard.lo = output$b1.sard.lo
+  covs$b1.sard.hi = output$b1.sard.hi
+  covs$b2.anch = output$b2.anch
+  covs$b2.anch.lo = output$b2.anch.lo
+  covs$b2.anch.hi = output$b2.anch.hi
+  # Interaction
+  covs$B.12 = output$B.12
+  covs$lo.B12 = output$lo.B12
+  covs$hi.B12 = output$hi.B12
+  #Covariance
+  covs$Q1 = output$Q1
+  covs$lo.Q1 = output$lo.Q1
+  covs$ hi.Q1 = output$hi.Q1
+  covs$Q2 = output$Q2
+  covs$lo.Q2 = output$lo.Q2
+  covs$hi.Q2 = output$hi.Q2
   print(covs)
 }
 
