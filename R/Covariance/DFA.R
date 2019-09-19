@@ -1,5 +1,7 @@
 # Another way to get at whether the time series are asycnhronous at short time scales is to use a DFA and fit a single trend. If sardine and anchovy are asynchronous, they should have opposite loadings at the time scale you're interested in. This starts the same as the "EstimateCovariance.R" code but uses DFA instead of MARSS. 
 library(tidyverse)
+library(reshape2)
+library(MARSS)
 
 source(here::here("R/DataCleanup/Fill_NAs_SA.R"))
 load(here::here("R/DataCleanup/allsardineanchovy_3.RData")) # dataframe alldat
@@ -80,25 +82,13 @@ sa.DFA <- function(dataset = dfa.stocks,v = "ssb"){
     Z = matrix(Z.vals,nrow=nregions*2,ncol=nregions,byrow=T)
     R = "diagonal and equal" # obs error similar across species and ecosystems
     x0 = U = A = "zero"
-    Q = "diagonal and unequal"
-    # Q.vals <- list(
-    #   "qs1","qas1",0,0,0,0,0,0,0,0,
-    #   "qas1","qa1",0,0,0,0,0,0,0,0,
-    #   0,0,"qs2","qas2",0,0,0,0,0,0,
-    #   0,0,"qas2","qa2",0,0,0,0,0,0,
-    #   0,0,0,0,"qs3","qas3",0,0,0,0,
-    #   0,0,0,0,"qas3","qa3",0,0,0,0,
-    #   0,0,0,0,0,0,"qs4","qas4",0,0,
-    #   0,0,0,0,0,0,"qas4","qa4",0,0,
-    #   0,0,0,0,0,0,0,0,"qs5","qas5",
-    #   0,0,0,0,0,0,0,0,"qas5","qa5"
-    # )
-    # Q = matrix(Q.vals,nrow=10,ncol=10,byrow=T)
+    Q = matrix(1,nrow=5,ncol=5)
+    
     
     
     dfa.model <- list(Z=Z,R=R,x0=x0,U=U,A=A,Q=Q)
 
-    fit1<-  MARSS(dfa.obj, model=dfa.model, control=list(maxit=1000))
+    fit1<-  MARSS(dfa.obj, model=dfa.model, control=list(maxit=1000,trace=-1),fit=FALSE)
 }
 
 sa.DFA()
