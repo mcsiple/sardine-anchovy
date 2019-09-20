@@ -82,14 +82,22 @@ sa.DFA <- function(dataset = dfa.stocks,v = "ssb"){
     Z = matrix(Z.vals,nrow=nregions*2,ncol=nregions,byrow=T)
     R = "diagonal and equal" # obs error similar across species and ecosystems
     x0 = U = A = "zero"
-    Q = matrix(1,nrow=5,ncol=5)
+    Q = "identity"
     
     
     
-    dfa.model <- list(Z=Z,R=R,x0=x0,U=U,A=A,Q=Q)
+    dfa.model <- list(Z=Z,R=R,x0=x0,A=A,Q=Q)
 
-    fit1<-  MARSS(dfa.obj, model=dfa.model, control=list(maxit=1000,trace=-1),fit=FALSE)
+    fit1 <-  MARSS(dfa.obj, model=dfa.model, control=list(maxit=1000,trace=-1))
+    par(mfrow=c(1,5))
+    for (i in 1:nregions){
+      plot(minyr:maxyr,fit1$states[i,],type='l',xlab="Year",ylab="Trend")
+    }
+    
+    return(MARSSparamCIs(fit1,method='hessian',nboot=1000))
 }
+
+
 
 sa.DFA()
 
