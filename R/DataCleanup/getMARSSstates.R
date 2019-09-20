@@ -21,13 +21,18 @@ impute.sa <- function(x,thresh=0.3){
   return(new)
 }
 
-# Replace NAs with MARSS states OR means (if get.mean.instead=T):
+
+
 getMARSSstates <- function(data = alldat, region_or_subregion = "California", scale = "Region", data_source = "FAO", variable = "landings",MARSS.cov = FALSE, plot = FALSE, ccf.calc = FALSE,get.mean.instead = FALSE){
-  #' @param data - big dataframe of sardine and anchovy time series with columns
-  # param  data = dataset including the time series you're interested in; 
-  # Region = 1 of 5 LMEs (Benguela, California, NE Atlantic, Kuroshio-Oyashio, Humboldt)
-  # variable = the variable (rec, biomass, or landings) 
-  # Datasource = FAO, RAM, or Barange
+  #' @param data (dataframe) big dataframe of sardine and anchovy time series
+  #' @param region_or_subregion (character) one of five regions (subregions are possible but not used for paper)
+  #' @param scale (character) "Region" or "Subregion"
+  #' @param data_source (character) where the data come from. "Barange" for all the covariance estimates because that is the most complete data source.
+  #' @param variable "landings", "ssb", or "rec"
+  #' @param MARSS.cov (logical) whether or not to estimate covariance
+  #' @param plot (logical) whether to plot the ts
+  #' @param ccf.calc (logical) whether to get cross correlation function (haven't used in a while)
+  #' @param get.mean.instead (logical) whether to return mean of the time series? (possibly deprecated)
   
   if (scale == "Region") {dataset <- filter(data, region == region_or_subregion & datasource==data_source)}
   if (scale == "Subregion") {dataset <- filter(data, subregion == region_or_subregion & datasource==data_source)}   
@@ -135,64 +140,93 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
     MAR.obj <- log(rbind(sard.mars[2,],anch.mars[2,]))    #Landings are log transformed
     colnames(MAR.obj) <- sard.mars[1,]
     MAR.obj <- zscore(MAR.obj) # z-score the data! then we set u to zero - NEW!!!
-    plot(1:ncol(MAR.obj),MAR.obj[1,],type='l')
+    plot(1:ncol(MAR.obj),MAR.obj[1,],type='l',main=paste(region_or_subregion,variable))
     lines(1:ncol(MAR.obj),MAR.obj[2,],col="blue")
     
     model.sa=list()
-    model.sa$Q="diagonal and unequal" #equalvarcov?
     model.sa$R="diagonal and equal" # used to be "diagonal and equal"
     model.sa$U="zero"
     model.sa$A="zero" # need to double check this value
-    B1=matrix(list("b1",0,"b21","b2"),2,2) # email
-    model.sa$B=B1 # diagonal is the same and off-diags are the same but they are interpreted differently! Subtract 1 from diag to get effect of species on itself. If species are fully density-independent, B_diag = 1) 
     
-
+    # OPTION 1: ESTIMATE B FULLY
+    #model.sa$Q="diagonal and unequal" #switch form back and forth with model structure
+    #B1=matrix(list("b1",0,"b21","b2"),2,2) # email
+    #model.sa$B=B1 # diagonal is the same and off-diags are the same but they are interpreted differently! Subtract 1 from diag to get effect of species on itself (i.e., small diagonal of B means more density dependence). If species are fully density-independent, B_diag = 1) 
+    
+    # OPTION 2: ESTIMATE Q FULLY
+    model.sa$Q = "unconstrained"
+    model.sa$B = "identity"
+    
     kem.sa = MARSS(MAR.obj, model=model.sa, control=list(maxit=1000)) 
     correlation = kem.sa$par$Q[2]/(sqrt(kem.sa$par$Q[3]) * sqrt(kem.sa$par$Q[1]))
-    kem.sa.CIs = MARSSparamCIs(kem.sa,method="parametric",nboot=200)
+    kem.sa.CIs = MARSSparamCIs(kem.sa,method="parametric",nboot=100)
     print(kem.sa.CIs)
     
+    # OPTION 1 VALUES
     # Density dependence
-    b1.sard <- as.numeric(kem.sa.CIs$par$B)[1] 
-    b1.sard.lo <- as.numeric(kem.sa.CIs$par.lowCI$B)[1] 
-    b1.sard.hi <- as.numeric(kem.sa.CIs$par.lowCI$B)[1] 
-    
-    b2.anch <- as.numeric(kem.sa.CIs$par$B)[3] 
-    b2.anch.lo <- as.numeric(kem.sa.CIs$par.lowCI$B)[3] 
-    b2.anch.hi <- as.numeric(kem.sa.CIs$par.lowCI$B)[3] 
-    
+    # b1.sard <- as.numeric(kem.sa.CIs$par$B)[1] 
+    # b1.sard.lo <- as.numeric(kem.sa.CIs$par.lowCI$B)[1] 
+    # b1.sard.hi <- as.numeric(kem.sa.CIs$par.upCI$B)[1] 
+    # 
+    # b2.anch <- as.numeric(kem.sa.CIs$par$B)[3] 
+    # b2.anch.lo <- as.numeric(kem.sa.CIs$par.lowCI$B)[3] 
+    # b2.anch.hi <- as.numeric(kem.sa.CIs$par.upCI$B)[3] 
+    # 
     # Interaction
-    B.12 <- as.numeric(kem.sa.CIs$par$B)[2] 
-    lo.B12 <- as.numeric(kem.sa.CIs$par.lowCI$B)[2]
-    hi.B12 <- as.numeric(kem.sa.CIs$par.upCI$B)[2]
+    # B.12 <- as.numeric(kem.sa.CIs$par$B)[2] 
+    # lo.B12 <- as.numeric(kem.sa.CIs$par.lowCI$B)[2]
+    # hi.B12 <- as.numeric(kem.sa.CIs$par.upCI$B)[2]
+    # 
+    # # Variance
+    # Q1 <- as.numeric(kem.sa.CIs$par$Q)[1]
+    # lo.Q1 <- kem.sa.CIs$par.lowCI$Q[1]
+    # hi.Q1 <- kem.sa.CIs$par.upCI$Q[1]
+    # 
+    # Q2 <- as.numeric(kem.sa.CIs$par$Q)[2]
+    # lo.Q2 <- kem.sa.CIs$par.lowCI$Q[2]
+    # hi.Q2 <- kem.sa.CIs$par.upCI$Q[2]
     
+    # OPTION 2 VALUES
     # Variance
     Q1 <- as.numeric(kem.sa.CIs$par$Q)[1]
     lo.Q1 <- kem.sa.CIs$par.lowCI$Q[1]
     hi.Q1 <- kem.sa.CIs$par.upCI$Q[1]
     
-    Q2 <- as.numeric(kem.sa.CIs$par$Q)[2]
-    lo.Q2 <- kem.sa.CIs$par.lowCI$Q[2]
-    hi.Q1 <- kem.sa.CIs$par.upCI$Q[2]
-
+    Q2 <- as.numeric(kem.sa.CIs$par$Q)[3]
+    lo.Q2 <- kem.sa.CIs$par.lowCI$Q[3]
+    hi.Q2 <- kem.sa.CIs$par.upCI$Q[3]
+    #Covariance
+    q12 <- as.numeric(kem.sa.CIs$par$Q[2])
+    lo.q12 <- kem.sa.CIs$par.lowCI$Q[2]
+    hi.q12 <- kem.sa.CIs$par.upCI$Q[2]
+    
+    R <- as.numeric(kem.sa.CIs$par$R)
       return(list(#Density dependence
-                  b1.sard = b1.sard,
-                  b1.sard.lo = b1.sard.lo,
-                  b1.sard.hi = b1.sard.hi,
-                  b2.anch = b2.anch,
-                  b2.anch.lo = b2.anch.lo,
-                  b2.anch.hi = b2.anch.hi,
-                  # Interaction
-                  B.12 = B.12,
-                  lo.B12 = lo.B12,
-                  hi.B12 = hi.B12,
-                  #Covariance
+                  # b1.sard = b1.sard,
+                  # b1.sard.lo = b1.sard.lo,
+                  # b1.sard.hi = b1.sard.hi,
+                  # b2.anch = b2.anch,
+                  # b2.anch.lo = b2.anch.lo,
+                  # b2.anch.hi = b2.anch.hi,
+                  # # Interaction
+                  # B.12 = B.12,
+                  # lo.B12 = lo.B12,
+                  # hi.B12 = hi.B12,
+                  #Variance
                   Q1 = Q1,
                   lo.Q1 = lo.Q1,
                   hi.Q1 = hi.Q1,
                   Q2 = Q2,
                   lo.Q2 = lo.Q2,
-                  hi.Q2 = hi.Q2))
+                  hi.Q2 = hi.Q2,
+                  
+                  # Option 2 addition (basically just adding covariance estimate):
+                  q12 =q12,
+                  lo.q12=lo.q12,
+                  hi.q12=hi.q12,
+                
+                  #Observation error
+                  R = R))
   }else correlation = "no MARSS correlation calculated"
   
   if(ccf.calc==TRUE){
@@ -250,7 +284,5 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
 }  #End getMARSSstates function
 
 
-# output <- getMARSSstates(data = alldat,region_or_subregion = "California",scale = "Region",data_source = "FAO",variable = "landings",ccf.calc=FALSE,get.mean.instead = TRUE,MARSS.cov = T)
-# 
-# plot(output$Year,output$Sardine.est,type='l')
-# lines(output$Year,output$Anchovy.est,col="red")
+
+
