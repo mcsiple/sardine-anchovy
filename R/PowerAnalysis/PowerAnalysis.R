@@ -28,9 +28,9 @@ get_large_null2 <- function(timeseries,nsims){
 longyrs=150
 
 test.y <- t(get.mds.ts(length = longyrs,
-                       autocorrs = c(0.7,0.7),
-                       rho = 0.1,
-                       sds = c(0.8,0.8),
+                       autocorrs = c(0.98,0.67), # these are estimates from the B matrix in the initial step
+                       rho = 0.43,
+                       sds = c(0.12,0.19),
                        driver.period = 50,
                        driver.amp = 0.5,
                        CC = matrix(c(1, -1), ncol = 1)))
@@ -68,6 +68,7 @@ for(l in 3:length(obslengths)){ #get errors for wilcox tests with short ts and l
   obs <- list(std_anchovy = ts_test$std_anchovy[start.ind:end.ind],
               std_sardine = ts_test$std_sardine[start.ind:end.ind])
   pearson.cor <- cor(obs$std_anchovy,obs$std_sardine,method="pearson")
+  spearman.cor <- cor(obs$std_anchovy,obs$std_sardine,method="spearman") # this is the method used in at least 1 other study
   giantnull.obs <- get_large_null2(timeseries=obs,nsims=50)
   wmr.obs <- test_wmr(obs = obs, null.combined = giantnull.obs)
   d.obs <- data.frame(diff = wmr.obs$diff,
@@ -75,7 +76,8 @@ for(l in 3:length(obslengths)){ #get errors for wilcox tests with short ts and l
                        CI.U = wmr.obs$CI.U,
                        timescale = wmr.obs$period,
                        obs.length = paste(len),
-                       pearson.cor = pearson.cor)
+                       pearson.cor = pearson.cor,
+                      spearman.cor = spearman.cor)
   outs <- bind_rows(outs,d.obs)
   print(outs)
   print(paste("done with obslength",obslengths[l]))
@@ -107,16 +109,17 @@ powerplot <- ggplot(outs,aes(x=obslength2,y=diff)) +
 
 powerplot
 
+list.of.sims <- list()
+list.of.sims[[1]] <- outs
 # Now try the same thing but with multiple simulations for each obslength --------
-# I should have done this before but it's computationally tricky and takes forever, so I was shortcutting.
+# I should have done this before but it's computationally tricky and takes forever, so I was shortcutting. 
 
-test.yy <- t(get.mds.ts(length = longyrs,
-                       autocorrs = c(0.7,0.7),
-                       rho = 0.1,
-                       sds = c(0.8,0.8),
-                       driver.period = 50,
-                       driver.amp = 0.5,
-                       CC = matrix(c(1, -1), ncol = 1)))
+test.yy <- t(get.mds.ts(autocorrs = c(0.98,0.67), # these are estimates from the B matrix in the initial step
+                        rho = 0.43,
+                        sds = c(0.12,0.19),
+                        driver.period = 50,
+                        driver.amp = 0.5,
+                        CC = matrix(c(1, -1), ncol = 1),length = 150))
 
 
 ts_test <- list(std_anchovy=as.numeric(scale(test.yy[,1])),
@@ -132,46 +135,99 @@ true.d
 
 # Now sample from the longer time series for shorter lengths
 obslengths <- seq(10,longyrs,by=10)
+
 yearindices <- 1:longyrs
 outs <- data.frame(diff=NA,CI.L=NA,CI.U=NA,timescale=NA,obs.length=NA)
-list.outs <- list()
+list.outs <- list.true.d <- list()
 nsims=50
+set.seed(123)
 
 for(sim in 1:nsims){
-for(l in 3:length(obslengths)){ #get errors for wilcox tests with short ts and long time periods, so start with longer ones.
-  len = obslengths[l]
-  start.ind <- 1
-  end.ind <- start.ind+(len-1)
- 
-  test.zz <- t(get.mds.ts(length = longyrs,
-                          autocorrs = c(0.7,0.7),
-                          rho = 0.1,
-                          sds = c(0.8,0.8),
+  test.yy <- t(get.mds.ts(autocorrs = c(0.98,0.67), # these are estimates from the B matrix in the initial step
+                          rho = 0.43,
+                          sds = c(0.12,0.19),
                           driver.period = 50,
                           driver.amp = 0.5,
-                          CC = matrix(c(1, -1), ncol = 1)))
-  ts_test <- list(std_anchovy=as.numeric(scale(test.zz[,1])),
-                  std_sardine=as.numeric(scale(test.zz[,2])))
+                          CC = matrix(c(1, -1), ncol = 1),length = 150))
+  
+  ts_test <- list(std_anchovy=as.numeric(scale(test.yy[,1])),
+                  std_sardine=as.numeric(scale(test.yy[,2])))
+  giantnull2 <- get_large_null2(timeseries=ts_test,nsims=50)
+  
+  # Wilcoxon test between distributions
+  test <- test_wmr(obs = ts_test, null.combined = giantnull2)
+  true.d <- data.frame(diff=test$diff,CI.L=test$CI.L,CI.U=test$CI.U)
+  true.d$timescale <- c("less.than.5","five.ten","ten.plus")
+  true.d$pearson.corr <- cor(ts_test$std_anchovy,ts_test$std_sardine)
+  true.d$spearman.cor <-  cor(ts_test$std_anchovy,ts_test$std_sardine,method = "spearman")
+  list.true.d[[sim]] <- true.d # save the "true" ones!
+  
+for(l in 3:length(obslengths)){ #get errors for wilcox tests with short ts and long time periods, so start with longer ones.
+  len = obslengths[l]
+  #start.ind <- sample(x = 1:(longyrs-len),size = 1,replace = TRUE ) # if you want to randomize
+  start.ind <- 1
+  end.ind <- start.ind+(len-1)
   obs <- list(std_anchovy = ts_test$std_anchovy[start.ind:end.ind],
               std_sardine = ts_test$std_sardine[start.ind:end.ind])
   pearson.cor <- cor(obs$std_anchovy,obs$std_sardine,method="pearson")
-  giantnull.obs <- giantnull2 #diffferent from above 
+  spearman.cor <- cor(obs$std_anchovy,obs$std_sardine,method="spearman") # this is the method used in at least 1 other study
+  giantnull.obs <- get_large_null2(timeseries=obs,nsims=50)
+  #print(summary(giantnull.obs))
+  all(is.na(giantnull.obs$less.than.5))
   wmr.obs <- test_wmr(obs = obs, null.combined = giantnull.obs)
   d.obs <- data.frame(diff = wmr.obs$diff,
                       CI.L = wmr.obs$CI.L,
                       CI.U = wmr.obs$CI.U,
                       timescale = wmr.obs$period,
                       obs.length = paste(len),
-                      pearson.cor = pearson.cor)
+                      pearson.cor = pearson.cor,
+                      spearman.cor = spearman.cor)
   outs <- bind_rows(outs,d.obs)
-  outs <- outs[-1,]
-  print(outs)
-  print(paste("done with obslength",obslengths[l])) }
+  #print(outs)
+  print(paste("done with obslength",obslengths[l]))
+  }
+  outs$sim = sim
   
   list.outs[[sim]] <- outs
   print(length(list.outs))
-  }
-  
+}
+
+giant_mess <- list(list.outs,list.true.d)
+save(giant_mess,file = "GIANT_power_analysis.RData")
+# Structure: first stage: 1 = list.outs: a list of simulations, each sim has a new time series with a dataframe with WMRs at each length of study 
+# second stage: true.d outs = true values for the wmr for each simulation
+  load("R/PowerAnalysis/GIANT_power_analysis.RData")
+
+
+# Restructure simulation outputs ------------------------------------------
+
+#for some reason I saved all the sims in giant_mess[[1]][[50]]
+df <- giant_mess[[1]][[50]][-1,]
+df$sim <- rep(1:50,each=39)
+    
+truevalues <- vector()
+for(i in 1:50){
+  truedf <- as.data.frame(giant_mess[[2]][[i]])
+  truevalues <- bind_rows(truevalues,truedf)
+}
+truevalues <- truevalues[-1,] %>% as.data.frame()
+truevalues$sim = rep(1:50,each=3)
+
+all <- full_join(df,truevalues,by=c("sim","timescale")) %>%
+  mutate(Full.overlap = ifelse(CI.L.x>CI.L.y & CI.U.x < CI.U.y,1,0),
+         No.overlap = ifelse(CI.U.x<CI.L.y | CI.L.x>CI.U.y,1,0),
+         sig.higher = ifelse(CI.L.x>CI.U.y,1,0),
+         sig.lower = ifelse(CI.U.x<CI.L.y,1,0),
+         diff.in.window = ifelse(diff.x > CI.L.y & diff.x <CI.U.y,1,0))
+
+summary <- all %>% mutate(obs.length=as.numeric(obs.length)) %>%
+  group_by(timescale,obs.length) %>% summarize(prob.higher = sum(sig.higher)/length(sig.higher),
+                                               prob.lower = sum(sig.lower)/length(sig.lower),
+                                               prob.in.CI = sum(diff.in.window)/length(diff.in.window))  %>%
+  arrange(timescale,obs.length) %>%as.data.frame()
+
+ggplot(summary,aes(x=obs.length,y=prob.in.CI)) +geom_line() + facet_wrap(~timescale)
+
 # outs$truediff <- rep(true.d$diff,times=length(obslengths)-2)
 # outs$trueloCI <- rep(true.d$CI.L,times=length(obslengths)-2)
 # outs$truehiCI <- rep(true.d$CI.U,times=length(obslengths)-2)
@@ -299,19 +355,28 @@ nsims <- 1000
 corrs.mat <-matrix(NA,nrow = nsims,ncol=longyrs)
   
 for(s in 1:nsims){
+  # test.typeI <- t(get.mds.ts(length = longyrs,  #original values used in first draft of ms
+  #                                      autocorrs = c(0.8,0.8),
+  #                                      rho = 0.1,
+  #                                      sds = c(0.7,0.7),
+  #                                      driver.period = 50,
+  #                                      driver.amp = 0.5,
+  #                                      CC = matrix(c(1, 1), ncol = 1)))
+
   test.typeI <- t(get.mds.ts(length = longyrs,
-                                       autocorrs = c(0.8,0.8),
-                                       rho = 0.1,
-                                       sds = c(0.7,0.7),
-                                       driver.period = 50,
-                                       driver.amp = 0.5,
-                                       CC = matrix(c(1, 1), ncol = 1))) 
+                             autocorrs = c(0.67,0.67),
+                             rho = 0.06, 
+                             sds = sqrt(c(0.12,0.19)),
+                             driver.period = 60,
+                             driver.amp = 0.5,
+                             CC = matrix(c(1,1), ncol = 1)))
 ts_test <- list(std_anchovy=as.numeric(scale(test.typeI[,1])),
                 std_sardine=as.numeric(scale(test.typeI[,2])))
+
 corrs <- vector()
 for(i in 2:length(ts_test$std_anchovy)){
   corrs[i] <- cor(ts_test$std_anchovy[1:i],ts_test$std_sardine[1:i],method="spearman")
-}
+} # corrs is a vector of correlations measured at each time step
 corrs.mat[s,] <- corrs
 }
 
@@ -325,6 +390,14 @@ lines(1:150,mean.vec)
 #lines(1:150, median.vec,col="blue")
 # Add median length of time series
 (prob.typeI <- apply(corrs.mat,MARGIN = 2,FUN = function(x) {length(which(x<0))/length(x)} ) )
+plot(2:50,prob.typeI[2:50],type='l',ylab="Probability of false detection",col="grey",lwd=2,xlab="Number of years of data for both species")
+points(spc$years.of.data,rep(0,times=7),col=as.character(spc$color.to.plot),cex=2,pch=19)
+legend("topright",legend = spc$region[3:7],col=as.character(spc$color.to.plot[3:7]),pch=rep(19,times=5),bty='n')
+
+
+plot(ts_test[[1]],type='l')
+lines(ts_test[[2]],col="grey")
+
 
 #length(which(corrs.mat[,2]<0))
 library(beyonce)
@@ -478,13 +551,13 @@ cor(xx[,2],xx[,3],method="spearman")
 
 # Plot the probability of a Type 1 error vs. how long our time ser --------
 
-tiff(file="R/Figures/TypeI.tiff",width = 5,height = 5,units="in",res = 200)
+tiff(file="R/Figures/TypeI_R1.tiff",width = 5,height = 5,units="in",res = 200)
 plot(2:50,prob.typeI[2:50],type='l',ylab="Probability of false detection",col="grey",lwd=2,xlab="Number of years with biomass data for both species")
 points(spc$years.of.data,rep(0,times=7),col=as.character(spc$color.to.plot),cex=2,pch=19)
 legend("topright",legend = spc$region[3:7],col=as.character(spc$color.to.plot[3:7]),pch=rep(19,times=5),bty='n')
 dev.off()
 
-pdf(file="R/Figures/TypeI.pdf",width = 5,height = 5,useDingbats = FALSE)
+pdf(file="R/Figures/TypeI_R1.pdf",width = 5,height = 5,useDingbats = FALSE)
 plot(2:50,prob.typeI[2:50],type='l',ylab="Probability of false detection",col="grey",lwd=2,xlab="Number of years with biomass data for both species")
 points(spc$years.of.data,rep(0,times=7),col=as.character(spc$color.to.plot),cex=2,pch=19)
 legend("topright",legend = spc$region[3:7],col=as.character(spc$color.to.plot[3:7]),pch=rep(19,times=5),bty='n')
