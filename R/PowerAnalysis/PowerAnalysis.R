@@ -196,7 +196,7 @@ giant_mess <- list(list.outs,list.true.d)
 save(giant_mess,file = "GIANT_power_analysis.RData")
 # Structure: first stage: 1 = list.outs: a list of simulations, each sim has a new time series with a dataframe with WMRs at each length of study 
 # second stage: true.d outs = true values for the wmr for each simulation
-  load("R/PowerAnalysis/GIANT_power_analysis.RData")
+load("R/PowerAnalysis/GIANT_power_analysis.RData")
 
 
 # Restructure simulation outputs ------------------------------------------
@@ -204,7 +204,7 @@ save(giant_mess,file = "GIANT_power_analysis.RData")
 #for some reason I saved all the sims in giant_mess[[1]][[50]]
 df <- giant_mess[[1]][[50]][-1,]
 df$sim <- rep(1:50,each=39)
-    
+
 truevalues <- vector()
 for(i in 1:50){
   truedf <- as.data.frame(giant_mess[[2]][[i]])
@@ -218,12 +218,15 @@ all <- full_join(df,truevalues,by=c("sim","timescale")) %>%
          No.overlap = ifelse(CI.U.x<CI.L.y | CI.L.x>CI.U.y,1,0),
          sig.higher = ifelse(CI.L.x>CI.U.y,1,0),
          sig.lower = ifelse(CI.U.x<CI.L.y,1,0),
-         diff.in.window = ifelse(diff.x > CI.L.y & diff.x <CI.U.y,1,0))
+         diff.in.window = ifelse(diff.x > CI.L.y & diff.x <CI.U.y,1,0)) 
 
-summary <- all %>% mutate(obs.length=as.numeric(obs.length)) %>%
-  group_by(timescale,obs.length) %>% summarize(prob.higher = sum(sig.higher)/length(sig.higher),
-                                               prob.lower = sum(sig.lower)/length(sig.lower),
-                                               prob.in.CI = sum(diff.in.window)/length(diff.in.window))  %>%
+summary <- all %>% 
+  mutate(obs.length=as.numeric(obs.length)) %>%
+  group_by(timescale,obs.length) %>% 
+  summarize(prob.higher = sum(sig.higher)/length(sig.higher),
+            prob.lower = sum(sig.lower)/length(sig.lower),
+            prob.in.CI = sum(diff.in.window)/length(diff.in.window))  %>%
+  mutate(close = 1-(prob.higher+prob.lower)) %>%
   arrange(timescale,obs.length) %>%as.data.frame()
 
 ggplot(summary,aes(x=obs.length,y=prob.in.CI)) +geom_line() + facet_wrap(~timescale)
