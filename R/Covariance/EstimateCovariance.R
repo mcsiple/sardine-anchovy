@@ -188,16 +188,22 @@ for(j in 1:3){
     
     CIs <- MARSSparamCIs(fit,nboot=1000)
     
-    Bestimates <- data.frame(param = rownames(CIs$par$B),
+    Bestimates <- data.frame(param = c(rownames(CIs$par$B)),
                              med = CIs$par$B,
                              loCI = CIs$par.lowCI$B,
                              hiCI=CIs$par.upCI$B,
-                             AICc = fit$AICc)
+                             AICc = fit$AICc,
+                             Obs.error = CIs$par$R,
+                             lo.Obs.error = CIs$par.lowCI$R,
+                             hi.Obs.error = CIs$par.upCI$R)
     Qestimates <- data.frame(param = rownames(CIs$par$Q),
                              med = CIs$par$Q,
                              loCI = CIs$par.lowCI$Q,
                              hiCI=CIs$par.upCI$Q,
-                             AICc = fit$AICc)
+                             AICc = fit$AICc,
+                             Obs.error = CIs$par$R,
+                             lo.Obs.error = CIs$par.lowCI$R,
+                             hi.Obs.error = CIs$par.upCI$R)
     
     qp <- Qestimates %>% mutate(Var_Cov= ifelse(grepl(x = param, pattern = "s") | grepl(x = param, pattern = "a")  ,"var","cov"),
                                 Region = ifelse(grepl(x=param,pattern="1"),"Benguela",
@@ -251,7 +257,7 @@ covar.plot
 dev.off()
 
 
-# Look at det(B)^2 to confirm the importance of species interactio --------
+# Look at det(B)^2 to confirm the importance of species interaction --------
 # One B per region - janky but functional
 b.ssb <- b.all %>% filter(variable=="Biomass")
 B1 <- matrix(b.all$med[1:4],nrow=2,ncol=2)
