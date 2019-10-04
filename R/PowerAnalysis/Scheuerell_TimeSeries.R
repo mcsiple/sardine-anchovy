@@ -40,6 +40,8 @@ get.mds.ts <- function(length=100,
   ## use the `ee` in a MARSS model
   xx <- ee
   BB <- diag(bb)
+  BB[1,2] <- 0.03 
+  BB[2,1] <- -0.10
   
   cc <- matrix(sw, nrow = 1)
   for(t in 2:tt) {
