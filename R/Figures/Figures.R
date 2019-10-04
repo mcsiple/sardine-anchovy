@@ -45,16 +45,19 @@ mf.new <- mf
 fig1 <- mf.new %>%
   group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
   mutate(std.value=value/mean(value,na.rm=T)) %>% #as.data.frame() value/mean(value,na.rm=T)
+  filter(std.value<15) %>% 
   filter(variable %in% c("Biomass","Recruitment","Landings"))  %>%
+  mutate(variable_f = factor(variable, levels=c("Landings","Biomass","Recruitment"))) %>%
     ggplot(aes(x=year,y=std.value,colour=sp,lty=datasource,group=stock)) +
+    scale_linetype_manual("Data source",values=c(1,2,3)) +
       geom_line(lwd=0.6) +
       scale_color_manual("",values=sacols) +
-  facet_grid(variable~region,scales="free_y") +
+  facet_grid(variable_f~region,scales="free_y") +
   ylab("Standardized value") +
   theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank())
 
      
-pdf(here::here("R/Figures/Fig1_mds.pdf"),width = 12, height = 4,useDingbats = F)
+pdf(here::here("R/Figures/Fig1_R1.pdf"),width = 12, height = 4,useDingbats = F)
 fig1 
 dev.off()
 
@@ -162,7 +165,7 @@ Both <- rbind(RAM.summary,barange.summary,FAO.summary)
 # FIGURE 3: replacement; log-ratios of maximums and medians ---------------
 # Plot peak biomass, landings, recruitment
 #Change order of x axis tick labels so that sardines/anchovy in similar ecosystems are close together
-load(file.path(basedir,"Code_SA/sardine-anchovy/ProcData/Replacement_RAM_Barange_MAX.Rdata")) #df: Both
+load(here::here("ProcData/Replacement_RAM_Barange_MAX.Rdata")) #df: Both
  desired_order <- c("Northern Benguela anchovy","Northern Benguela sardine","Southern Benguela anchovy","Southern Benguela sardine","Anchovy South Africa","Sardine South Africa","California anchovy","California sardine","N Anchovy E Pacific","Pacific sardine Pacific Coast","Humboldt anchovy - Central Peru","Humboldt sardine - N Central Peru","Humboldt anchovy - South Peru N Chile","Humboldt sardine - South Peru N Chile","Chilean common sardine","Japanese anchovy","Japanese sardine","Bay of Biscay anchovy","European sardine")
 # 
                 summary <- filter(Both,stock != "Northern Benguela sardine" &
@@ -180,7 +183,7 @@ tp <- summary %>% select(sp,stock,max.var,variable,region,datasource) # CHANGE T
 tp2 <- dcast(tp,region+variable+datasource ~ sp,value.var="max.var",fun.aggregate = max,na.rm=T) # this will give errors but it's ok-- it's just bc of the cases where sardine is present but not anchovy
 tp2$Anchovy[which(is.inf(tp2$Anchovy))] <- NA  
 tp2$Sardine[which(is.inf(tp2$Sardine))] <- NA  
-tp3 <- tp2 %>% mutate(log.diff = log(Anchovy/Sardine)) 
+tp3 <- tp2 %>% mutate(log.diff = log10(Anchovy/Sardine)) 
 tp3$percent.diff <- (tp3$Anchovy-tp3$Sardine) / rowMeans(cbind(tp3$Anchovy,tp3$Sardine),na.rm=T) * 100
 tp3$zeroes <- 0
 tp3$variable <- recode(tp3$variable,
@@ -217,7 +220,9 @@ fig3 <- tp3 %>%
     droplevels() %>%
     group_by(region,newvar) %>% 
     summarize(ml = median(log.diff,na.rm=T)) %>% 
-    droplevels() %>% as.data.frame() )
+    droplevels() %>%
+    mutate(newvar_f=factor(newvar,levels=c("Landings","Spawning stock biomass","Recruitment"))) %>%
+    as.data.frame() )
   #save(st,file = "ProcData/LogDiffsMax.RData")
 
 fig3_option2 <- tp3 %>% 
@@ -225,20 +230,21 @@ fig3_option2 <- tp3 %>%
       filter(newvar != "Fishing mortality") %>%
       droplevels() %>%
       filter(!is.inf(log.diff)) %>%
+      mutate(newvar_f=factor(newvar,levels=c("Landings","Spawning stock biomass","Recruitment"))) %>%
       ggplot(aes(x=log.diff,y=region)) + 
       geom_vline(xintercept=0,lty=2) + 
       geom_point(size = 3,colour='lightgrey') +
       theme_classic(base_size = 14) %+replace% theme(strip.background  = element_blank()) +
-      facet_wrap(~newvar,ncol = 1) + 
+      facet_wrap(~newvar_f,ncol = 1) + 
       geom_point(size=3,data=st,aes(x=ml,y=region,colour=region)) +
       scale_colour_manual("Region",values=pal)+
       theme(legend.position = "none") +
-      xlab("Log(Anchovy / Sardine)") + 
+      xlab(expression('Log'['10']* '(Anchovy / Sardine)')) + 
       ylab("")
 
-# pdf(file.path(figwd,"Figure3_median_option2.pdf"),width = 8, height = 5,useDingbats = F)
-# fig3_option2
-# dev.off()
+pdf(here::here("R/Figures/Figure3_max_R1_Log10.pdf"),width = 8, height = 5,useDingbats = F)
+fig3_option2
+dev.off()
 # 
 # tiff(file.path(figwd,"Figure3_median_option2.tiff"),width = 8, height=5,units = 'in',res=300)
 # fig3_option2
@@ -678,4 +684,35 @@ dev.off()
 #   ylab("Biomass (x 1000 t)")
 # dev.off()
 
+
+# For Ecology Letters submission R1 ---------------------------------------
+
+# How many values are replaced when using MARSS states in the WMR thingy?
+test.est <- subset(RBF, region=="Benguela" & datasource=="Barange" &variable=="ssb")
+test.obs <- subset(alldat,region=="Benguela" & datasource=="Barange" ) %>% select(datasource,stock,year,ssb) 
+
+
+split.sa <- test.obs %>% group_by(stock) %>%group_split() 
+grep("anch",split.sa[[1]]$stock)
+split.sa
+
+anch.obs <- split.sa[[2]] %>% as.data.frame()
+sard.obs <- split.sa[[1]] %>% as.data.frame()
+
+
+par(mfrow=c(1,2))
+anch.est <- test.est %>% select(Year,Anchovy.est,region,datasource,variable)
+tga <- merge(anch.obs,anch.est,all.y = T,by.x = "year",by.y = "Year" )
+startcount <- min(which(!is.na(tga$ssb)))
+length(which(is.na(tga$ssb[startcount:nrow(tga)])))
+plot(anch.obs$year,anch.obs$ssb,xlab="year",ylab="SSB",main="Anchovy")
+lines(anch.est$Year,anch.est$Anchovy.est)
+
+sard.est <- test.est %>% select(Year,Sardine.est,region,datasource,variable)
+tgs <- merge(sard.obs,sard.est,all.y = T,by.x = "year",by.y = "Year" )
+startcount <- min(which(!is.na(tgs$ssb)))
+length(which(is.na(tgs$ssb[startcount:nrow(tgs)])))
+plot(sard.obs$year,sard.obs$ssb,xlab="year",ylab="SSB",main="Sardine")
+lines(sard.est$Year,sard.est$Sardine.est)
+legend("topleft",legend = c("est","obs"),pch=c(NA,1),lty=c(1,0))
 
