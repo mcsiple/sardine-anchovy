@@ -93,21 +93,25 @@ outs$timescale = factor(outs$timescale, levels=c('less.than.5','five.ten','ten.p
 levels(outs$timescale) <- c("<5 yr","5-10 yr",">10 yr")
 
 
-twc <- "darkgrey" # twc stands for "trustworthy color" #"#3182bd"
+twc <- "orange" # twc stands for "trustworthy color" #"#3182bd"
 
 powerplot <- ggplot(outs,aes(x=obslength2,y=diff)) +
-              geom_line(aes(y=truediff),colour=twc)+
-              geom_ribbon(data=outs,aes(ymin=trueloCI,ymax=truehiCI),
-              alpha=0.5,colour=NA,fill=twc) +
+              geom_line(aes(y=truediff),colour="lightgrey")+
+              #geom_ribbon(data=outs,aes(ymin=trueloCI,ymax=truehiCI),
+              #alpha=0.5,colour=NA,fill=twc) +
               geom_line(data=outs,aes(x=obslength2,y=diff),lwd=1,colour=twc) +
-              geom_ribbon(data=outs,aes(ymin=CI.L,ymax=CI.U),alpha=0.5) +
+              geom_ribbon(data=outs,aes(ymin=CI.L,ymax=CI.U),alpha=0.5,fill=twc) +
               facet_wrap(~timescale) +
               xlab("Number of years of observations") +
               ylab("Observed-null distribution \n for WMR (d)") +
-              theme_classic(base_size=14) +
+              #theme_classic(base_size=14) +
+              theme_dg(base_size=14) +
               theme(strip.background = element_blank())
 
 powerplot
+# tiff("PowerPlot_UCSB.tiff",width = 8,height=4,units = 'in',res = 200)
+# powerplot
+# dev.off()
 
 list.of.sims <- list()
 list.of.sims[[1]] <- outs
@@ -256,8 +260,16 @@ tsplot <- ggplot(ldat,aes(x=Year,y=value,colour=variable)) +
           geom_line(lwd=1) +
           scale_colour_manual("Species",values=rev(sacols)) +
           theme_classic(base_size=14) +
+          #theme_dg(base_size=14) +
           ylab("\n  Standardized \n biomass ")
+# tiff("SA_async_example.tiff",width = 8,height = 4,units = 'in',res=200)
+# tsplot
+# dev.off()
 
+tiff("Example_maxes.tiff",width = 6,height = 4.5,units = 'in',res = 200)
+ldat %>% group_by(variable) %>% summarize(Max = max(value)) %>%
+  ggplot(aes(x=variable, y=Max,fill=variable)) + geom_bar(stat='identity') + theme_dg(base_size = 14) + scale_fill_manual("",values=rev(sacols)) +xlab("Variable")
+dev.off()
 
 tiff(filename = here::here("R/Figures/PowerAnalysis.tiff"),
      width = 8.5,height=4.5,units = 'in',res = 250)
