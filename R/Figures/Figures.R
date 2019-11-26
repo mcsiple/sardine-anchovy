@@ -53,14 +53,13 @@ fig1 <- mf.new %>%
       geom_line(lwd=0.6) +
       scale_color_manual("",values=sacols) +
   facet_grid(variable_f~region,scales="free_y") +
-  ylab("Standardized value") +
-  theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank())
+  ylab("Standardized value") #+
+  #theme_dg(base_size=14) %+replace% theme(strip.background  = element_blank())
 
      
 pdf(here::here("R/Figures/Fig1_R1.pdf"),width = 12, height = 4,useDingbats = F)
 fig1 
 dev.off()
-
 
 
 # FIGURE 2: schematic of spectral analysis --------------------------------
@@ -388,7 +387,7 @@ landings.wmrs %>% subset(datasource=="Barange" & nv=="obs") %>%
   geom_density(alpha=0.5,lwd=1.2,trim=F) + 
   scale_colour_manual(values=pal) +
   scale_fill_manual(values=pal) +
-  facet_wrap(~ID_ord,ncol=1,scales = "free_y") +
+  facet_wrap(~ID_ord,nrow=1,scales = "free_y") +
   ylab("Density") +
   xlab("Wavelet modulus ratio (WMR)") +
   theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) +
