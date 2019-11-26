@@ -1,23 +1,23 @@
 # Combine all data from RAM, FAO, Barange et al.
-# The resulting dataset is "allsardineanchovy.RData" which is used in all subsequent analyses
+# The resulting dataset is "allsardineanchovy_3.RData" which is used in all subsequent analyses
 # NOTE: One important thing this code does is turn the "NA" stocks in the FAO database into fake stocks.
 
 
-datadir <- "C:/Users/siplem/Dropbox/Chapter3-SardineAnchovy/Datasets"
+#datadir <- "C:/Users/siplem/Dropbox/Chapter3-SardineAnchovy/Datasets"
 
 # For unix OS:
-# datadir <- "~/Dropbox/Chapter3-SardineAnchovy/Datasets/"
+ datadir <- "~/Dropbox/Chapter3-SardineAnchovy/Datasets/"
 
 load(file.path(datadir,"RAM/RAM_2.RData"))      #RAM
 load(file.path(datadir,"FAO/FAO.RData"))      #FAO
-load(file.path(datadir,"Barange/BARANGE_ALL.RData"))   #ALLDAT
+load(file.path(datadir,"Barange/BARANGE_ALL.RData"))   #alldat
 barange <- alldat
-#load(file.path(datadir,"Barange/Barange_mystocks.RData"))   #barange_noNAs - DEPRACATED
 
 library(reshape2)
 library(tidyverse)
 library(taxize) # to get common names from scientific names
 
+ggplot(RAM, aes(x=Years,y=TB)) +geom_line() + facet_wrap(~stocklong)
 # Combine all data so that it has all the same columns --------------------
 
 # stock  year  ssb   rec   landings    fishing.mortality   sp    region    subregion
@@ -33,7 +33,9 @@ barange.new <- data.frame(datasource = rep("Barange",times=nrow(barange)),
                           fishing.mortality=barange$fishing.mortality,
                           sp=barange$sp,
                           region=barange$region,
-                          subregion=barange$subregion) %>% filter(!is.na(year)) # had to remove entries where year is NA
+                          subregion=barange$subregion) # %>% filter(!is.na(year)) # had to remove entries where year is NA
+# test <- barange.new %>% filter(region=="California" & sp=="Sardine")
+# plot(test$year,test$landings,type='b')
 
 RAM.new <- data.frame(datasource=rep("RAM",times=nrow(RAM)),
                       scientificname=RAM$scientificname,
@@ -116,6 +118,8 @@ alldat <- plyr::rbind.fill(list(barange.new,RAM.new,FAO.new)) %>%
   theme_classic() +
   theme(legend.position = "none")
 
+# test<- alldat %>% filter(datasource=="Barange" & sp=="Sardine" & region=="California")
+#   plot(test$year,test$landings,type='l')
   
 # some time series have subregion info, so plotting by region needs to be preceded by summing by 
   
@@ -125,21 +129,3 @@ save(alldat,file="~/Dropbox/Chapter3-SardineAnchovy/Datasets/allsardineanchovy_3
 
 
 # Fill NAs with long-term means -- see the getMARSSstates.R file!
-
-
-
-########################################################################
-#Side note: Pacific sardine in RAM does not look like the one in Barange et al. -- is it possible that they are from different sources? Different maxima, years covered; same overall pattern.
-PSRAM <- subset(alldat,sp=="Sardine" & region=="California" & datasource=="RAM")
-PSBarange <- subset(alldat,sp=="Sardine" & region=="California" & datasource=="Barange")
-
-yearrange <- range(c(PSRAM$year,PSBarange$year))
-plot(PSRAM$year,PSRAM$rec/10^6,type='l',xlim=yearrange)
-lines(PSBarange$year,PSBarange$rec/10^6,col="blue")
-
-167889000/1e6
-
-stdrec <- (Ssagax$rec - mean(Ssagax$rec)) / mean(Ssagax$rec)
-plot(stdrec)
-abline(h=0,col="blue")
-
