@@ -62,7 +62,7 @@ fig1
 dev.off()
 
 
-# FIGURE 2: schematic of spectral analysis --------------------------------
+# OLD FIGURE 2: schematic of spectral analysis --------------------------------
 
 simlength <- 150
 
@@ -103,6 +103,14 @@ for(i in 1:3){
 }
 axis(1,xlim=c(0,1),xaxs="i")
 
+dev.off()
+
+
+# NEW FIGURE 2 (schematic) ------------------------------------------------
+pdf("Short_ts_example.pdf",width = 5, height = 3,useDingbats = FALSE )
+shortlen <- 1:50
+plot(x[shortlen],y[shortlen,1],type='l',lwd=2,ylab="Scaled abundance",xlab="Year")
+lines(x[shortlen],y[shortlen,2],col="darkgrey",lwd=2)
 dev.off()
 
 # FURTHER FIGURES ---------------------------------------------------------
@@ -570,6 +578,20 @@ tiff(here::here("R/Figures/FigureS4_WMRobsnull_landings.tiff"),width = 11,height
 grid.arrange(figS4a,figS4b)
 dev.off()
 
+
+# Figure S4B but for a demo in Fig 2  -----------------------------------
+fig2_wmr <- landings.wmrs %>% subset(datasource=="Barange") %>% 
+  filter(region=="NE Atlantic" & ID == "five.ten") %>%
+  ggplot(aes(x=wmrdens,colour=region,fill=nv)) + 
+  geom_density(lwd=1,trim=FALSE,colour="black",alpha=0.5) + 
+  scale_fill_manual("",values=c("black","yellow")) +
+  ylab("Density") +
+  xlab("Wavelet modulus ratio (WMR)") +
+  theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) 
+
+pdf("Fig2_wmr_example.pdf",width = 4, height = 2,useDingbats = FALSE)
+fig2_wmr
+dev.off()
 
 # FIGURE S5:Observed and null WMRs, biomass --------------------------------------
 
