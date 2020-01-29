@@ -1,6 +1,4 @@
-
-#basedir <- "C:/Users/siplem/Dropbox/Chapter3-SardineAnchovy"
-#basedir <- "/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy"
+# Make all figures and tables (some figures have been modified in adobe illustrator)
 
 load(here::here("R/DataCleanup/allsardineanchovy_3.RData"))# dataframe: alldat (raw data including NAs for missing years)
 load(here::here("R/DataCleanup/RAM_Barange_FAO_States.RData")) # RBF (missing years filled w MARSS states)
@@ -35,7 +33,7 @@ mf <- melt(alldat,id.vars = c("datasource", "scientificname", "stock", "year", "
 mf$variable <- recode(mf$variable,ssb="Biomass",rec="Recruitment",landings="Landings")
 mf.new <- mf
 
-# Depracated: Before, I had log-transformed landings but I didn't like that so I'm changing them back to un-transformed values and adding notes in the plots that say where the maxima are (see gigantic landings according to FAO in the Benguela CUrrent ca. 1980, the Humboldt Current ca. 1999 and K-O CUrrent ca. 1980)
+# Depracated: Before, I had log-transformed landings but I didn't like that so I'm changing them back to un-transformed values and adding notes in the plots that say where the maxima are (see gigantic landings according to FAO in the Benguela CUrrent ca. 1980, the Humboldt Current ca. 1999 and K-O Current ca. 1980)
 
 #mf.loglandings <- filter(mf,variable=="Landings") %>% mutate(value = log(value))
 #mf.new <- filter(mf,variable!="Landings") %>% bind_rows(mf.loglandings)
@@ -53,8 +51,8 @@ fig1 <- mf.new %>%
       geom_line(lwd=0.6) +
       scale_color_manual("",values=sacols) +
   facet_grid(variable_f~region,scales="free_y") +
-  ylab("Standardized value") #+
-  #theme_dg(base_size=14) %+replace% theme(strip.background  = element_blank())
+  ylab("Standardized value") +
+  theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) #can change to theme_dg() for presentation if desired
 
      
 pdf(here::here("R/Figures/Fig1_R1.pdf"),width = 12, height = 4,useDingbats = F)
@@ -120,39 +118,37 @@ dev.off()
 
 source(here::here("R/DominantTS/Corr_Fig.R")) # This includes the corr.fig function
 # Test function
-corr.fig(region_or_subregion="Benguela",variable="landings",scale = "Region",data_source="Barange") 
-
+corr.fig(region_or_subregion="Benguela",variable="landings",scale = "Region",data_source="Barange")
 corr.fig(region_or_subregion="California",variable="ssb",scale = "Region",data_source="RAM")
-
 corr.fig(region_or_subregion="California",variable="landings",scale = "Region",data_source="FAO")
 
-# Summarize peak variables for all the regions (to make comparison)
+# Summarize peak variables for all the regions (to make comparison) - this has been done already so you may not need to run this part (skip to ~ L 171 )
 
 regions <- c("Benguela","California","Humboldt","Kuroshio-Oyashio","NE Atlantic")
 variables <- c("ssb","rec","landings","fishing.mortality")
 nregions <- length(regions)
 nvariables <- length(variables)
-megatable <- vector(length=6)
+megatable <- vector()
 
 for (r in 1:nregions){
 for (v in 1: nvariables){
   xx <- try(corr.fig(region_or_subregion=regions[r],
                      variable=variables[v],
                      scale = "Region",
-                     data_source="RAM"))
-  mt <-  xx$max.table #SWITCH MEDIAN/MAX
+                     data_source="FAO")) #SWITCH SOURCES
+  mt <-  xx$median.table #SWITCH MEDIAN/MAX
   mt$variable=rep(variables[v],times=nrow(mt))
   mt$region=rep(regions[r],times=nrow(mt))  
-  mt$domsard <- xx$Dom_sard_LTmax
-  mt$domanch <- xx$Dom_anch_LTmax
-  megatable <- rbind(megatable,mt)
+  mt$domsard <- ifelse(length(xx$Dom_sard_LTmax)==0,NA,xx$Dom_sard_LTmax)
+  mt$domanch <- ifelse(length(xx$Dom_anch_LTmax)==0,NA,xx$Dom_anch_LTmax)
+  megatable <- bind_rows(megatable,mt)
 }
 }
 
 RAM.summary <- megatable[-1,]
 RAM.summary$datasource <- "RAM"
-if(any(is.infinite(RAM.summary$median.var))){
-  RAM.summary <- RAM.summary[-which(is.infinite(RAM.summary$median.var)),]} #SWITCH MEDIAN/MAX
+# if(any(is.infinite(RAM.summary$median.var))){
+#   RAM.summary <- RAM.summary[-which(is.infinite(RAM.summary$median.var)),]} #SWITCH MEDIAN/MAX
 
 barange.summary <- megatable[-1,]
 barange.summary$datasource <- "Barange"
@@ -164,16 +160,16 @@ Both <- rbind(RAM.summary,barange.summary,FAO.summary)
 
 #Both <- Both[-which(is.infinite(Both$median.var)),] #switch median/max here for the one you want
 #Both <- Both[-which(is.infinite(Both$max.var)),]
-
 #save(Both,file = "Replacement_RAM_Barange_MAX.Rdata")
-#save(Both,file = "Replacement_RAM_Barange_MEDIAN.Rdata")
+#save(Both,file = "Replacement_RAM_Barange_MEDIAN2.Rdata") # For the new function that defines "dominant" species by which one has the highest median biomass
 
 
 # FIGURE 3: replacement; log-ratios of maximums and medians ---------------
-# Plot peak biomass, landings, recruitment
-#Change order of x axis tick labels so that sardines/anchovy in similar ecosystems are close together
-load(here::here("ProcData/Replacement_RAM_Barange_MAX.Rdata")) #df: Both
- desired_order <- c("Northern Benguela anchovy","Northern Benguela sardine","Southern Benguela anchovy","Southern Benguela sardine","Anchovy South Africa","Sardine South Africa","California anchovy","California sardine","N Anchovy E Pacific","Pacific sardine Pacific Coast","Humboldt anchovy - Central Peru","Humboldt sardine - N Central Peru","Humboldt anchovy - South Peru N Chile","Humboldt sardine - South Peru N Chile","Chilean common sardine","Japanese anchovy","Japanese sardine","Bay of Biscay anchovy","European sardine")
+# Plot differences in median biomass, landings, recruitment
+#load(here::here("ProcData/Replacement_RAM_Barange_MEDIAN.Rdata")) #df: Both
+load(here::here("ProcData/Replacement_RAM_Barange_MEDIAN2.Rdata")) #df: Both
+
+desired_order <- c("Northern Benguela anchovy","Northern Benguela sardine","Southern Benguela anchovy","Southern Benguela sardine","Anchovy South Africa","Sardine South Africa","California anchovy","California sardine","N Anchovy E Pacific","Pacific sardine Pacific Coast","Humboldt anchovy - Central Peru","Humboldt sardine - N Central Peru","Humboldt anchovy - South Peru N Chile","Humboldt sardine - South Peru N Chile","Chilean common sardine","Japanese anchovy","Japanese sardine","Bay of Biscay anchovy","European sardine")
 # 
                 summary <- filter(Both,stock != "Northern Benguela sardine" &
                                             stock != "Humboldt sardine - South Peru N Chile" &
@@ -185,9 +181,9 @@ load(here::here("ProcData/Replacement_RAM_Barange_MAX.Rdata")) #df: Both
 summary$stock2 <- factor(summary$stock,desired_order)
 
 # Add percent differences to 'both' figure:
-tp <- summary %>% select(sp,stock,max.var,variable,region,datasource) # CHANGE THIS BTWN MAX AND MEDIAN
+tp <- summary %>% select(sp,stock,median.var,variable,region,datasource) # CHANGE THIS BTWN MAX AND MEDIAN
 
-tp2 <- dcast(tp,region+variable+datasource ~ sp,value.var="max.var",fun.aggregate = max,na.rm=T) # this will give errors but it's ok-- it's just bc of the cases where sardine is present but not anchovy
+tp2 <- dcast(tp,region+variable+datasource ~ sp,value.var="median.var",fun.aggregate = max,na.rm=T) # this will give errors but it's ok-- it's just bc of the cases where sardine is present but not anchovy (also: CHANGE THIS BTWN MAX AND MEDIAN)
 tp2$Anchovy[which(is.inf(tp2$Anchovy))] <- NA  
 tp2$Sardine[which(is.inf(tp2$Sardine))] <- NA  
 tp3 <- tp2 %>% mutate(log.diff = log10(Anchovy/Sardine)) 
@@ -198,12 +194,18 @@ tp3$variable <- recode(tp3$variable,
                        ssb="Spawning stock biomass",
                        landings="Landings",
                        rec="Recruitment")
-tp3$newvar = factor(tp3$variable, levels=c("Recruitment","Spawning stock biomass","Landings","Fishing mortality"))
+tp3$newvar = factor(tp3$variable, levels=c("Recruitment",
+                                           "Spawning stock biomass",
+                                           "Landings",
+                                           "Fishing mortality"))
 
 # Check % diffs between sardine and anchovy
-subset(tp3,newvar=="Landings") %>% mutate(which.dom = ifelse(Sardine > Anchovy, "Sardine","Anchovy"))
-subset(tp3,newvar=="Spawning stock biomass")%>% mutate(which.dom = ifelse(Sardine > Anchovy, "Sardine","Anchovy"))
-subset(tp3,newvar=="Recruitment")%>% mutate(which.dom = ifelse(Sardine > Anchovy, "Sardine","Anchovy"))
+subset(tp3,newvar=="Landings") %>% 
+  mutate(which.dom = ifelse(Sardine > Anchovy, "Sardine","Anchovy"))
+subset(tp3,newvar=="Spawning stock biomass") %>% 
+  mutate(which.dom = ifelse(Sardine > Anchovy, "Sardine","Anchovy"))
+subset(tp3,newvar=="Recruitment") %>% 
+  mutate(which.dom = ifelse(Sardine > Anchovy, "Sardine","Anchovy"))
 
 newblue <- c("#c6dbef","#4292c6","#08519c")
 fig3 <- tp3 %>% 
@@ -221,19 +223,19 @@ fig3 <- tp3 %>%
         ylab("") 
 
 (st <- tp3 %>% 
-   # filter(newvar != "Recruitment") %>%
     filter(newvar != "Fishing mortality") %>%
     filter(!is.infinite(log.diff))%>% 
     droplevels() %>%
     group_by(region,newvar) %>% 
     summarize(ml = median(log.diff,na.rm=T)) %>% 
     droplevels() %>%
-    mutate(newvar_f=factor(newvar,levels=c("Landings","Spawning stock biomass","Recruitment"))) %>%
+    mutate(newvar_f=factor(newvar,levels=c("Landings",
+                                           "Spawning stock biomass",
+                                           "Recruitment"))) %>%
     as.data.frame() )
   #save(st,file = "ProcData/LogDiffsMax.RData")
 
 fig3_option2 <- tp3 %>% 
-      #filter(newvar != "Recruitment") %>%
       filter(newvar != "Fishing mortality") %>%
       droplevels() %>%
       filter(!is.inf(log.diff)) %>%
@@ -419,7 +421,7 @@ ssb.wmrs %>% subset(datasource=="Barange" & nv=="obs") %>%
 
 
 # SUPPLEMENTAL FIGURES ----------------------------------------------------
-# TABLE S1: Datasets included in the analysis -----------------------------
+# TABLE S2: Datasets included in the analysis -----------------------------
 load(here::here("R/DataCleanup/allsardineanchovy_3.RData"))
 studydata <- alldat %>% 
   melt(id.vars=c("datasource","scientificname","stock","year","sp","region","subregion")) %>%
@@ -429,7 +431,7 @@ ns <- studydata %>% distinct(datasource,stock,sp,region,variable)
 tables1 <- dcast(ns,datasource+stock+sp+region~variable,fun.aggregate = length)
 write.csv(tables1,"TableS1.csv")
 
-# TABLE S2: Test for difference in WMR distributions -----------------------
+# TABLE S4: Test for difference in WMR distributions -----------------------
 # Perform tests with full null accross each combination of datasource, region, variable
 compares.RBF <- RBF %>% distinct(region, datasource, variable) # get unique comparisons
 
@@ -483,7 +485,8 @@ cleanup_stocks <- c("Engraulidae - Atlantic, Southeast",
 # Need to remove time series that aren't the "dominant" stocks in that ecosystem
 remove.x <- vector()
 for(i in 1:nrow(Both)){
-  if(Both$stock[i] %in% c(Both$domsard[i],Both$domanch[i])){remove.x[i] = T}else{remove.x[i] = F} 
+  if(Both$stock[i] %in% c(Both$domsard[i],Both$domanch[i])){
+    remove.x[i] = T}else{remove.x[i] = F} 
 }
 Both <- Both[remove.x,]
 
