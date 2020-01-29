@@ -1,4 +1,3 @@
-
 # Make a function to look at correlations and time series --------
 # This function takes variable, region, and returns a time series of the two dominant spps, correlations, and ACFs of each ts
 
@@ -14,10 +13,16 @@ corr.fig <- function(data = alldat,
   # Region = 1 of 5 LMEs (Benguela, California, NE Atlantic, Kuroshio-Oyashio, Humboldt)
   # variable = the variable (rec, biomass, or landings)
   # Datasource = FAO, RAM, or Barange
-  if(!region_or_subregion %in% subset(data,region==region_or_subregion | subregion==region_or_subregion)$region){stop("this dataset does not contain this region or subregion")}
-  if (scale == "Region") {dataset <- filter(data, region == region_or_subregion & datasource==data_source)}
-  if (scale == "Subregion") {dataset <- filter(data, subregion == region_or_subregion & datasource==data_source) }   
-  if (!"Sardine" %in% dataset$sp | !"Anchovy" %in% dataset$sp){stop("missing one of the species")}
+  if(!region_or_subregion %in% subset(data,region==region_or_subregion | subregion==region_or_subregion)$region){
+    stop("this dataset does not contain this region or subregion")}
+  if (scale == "Region") {
+    dataset <- filter(data, region == region_or_subregion & datasource==data_source)
+    }
+  if (scale == "Subregion") {
+    dataset <- filter(data, subregion == region_or_subregion & datasource==data_source) 
+    }   
+  if (!"Sardine" %in% dataset$sp | !"Anchovy" %in% dataset$sp){
+    stop("missing one of the species")}
   
   #dataset <- subset(dataset,datasource == datasource)
   #print(dataset)
@@ -42,8 +47,8 @@ corr.fig <- function(data = alldat,
   print(lt.medians)
   #anchovy stats
   #if(!"Anchovy" %in% lt.maxes.sp){print("No anchovy time series")}
-  a.only <- subset(lt.maxes, lt.maxes$sp=="Anchovy")
-  a.max.ind <- which.max(a.only$max.var)
+  a.only <- subset(lt.medians, sp=="Anchovy")
+  a.max.ind <- which.max(a.only$median.var) # which anchovy stock has the highest median value?
   lt.max.a <- a.only[a.max.ind,ncol(a.only)]
   lt.max.sp <- a.only$stock[a.max.ind]
   # Which anchovy species had biggest long term value for this time series (i.e., the "dominant anchovy species")
@@ -51,8 +56,8 @@ corr.fig <- function(data = alldat,
   #sardine stats
   # if(!"Sardine" %in% lt.maxes.sp){print("No sardine time series")
   #                                 lt.max.sp.sar = dom.s.ts =  NA}else{
-  s.only <- subset(lt.maxes, lt.maxes$sp=="Sardine")
-  s.max.ind <- which.max(s.only$max.var)
+  s.only <- subset(lt.medians, sp=="Sardine")
+  s.max.ind <- which.max(s.only$median.var)    # which sardine species has highest median biomass/catch/rec
   lt.max.s <- s.only[s.max.ind,ncol(s.only)]
   lt.max.sp.sar <- s.only$stock[s.max.ind]     # "Dominant sardine species"
   
@@ -73,10 +78,12 @@ corr.fig <- function(data = alldat,
   if (plot == TRUE){
     plot(dom.s.ts$year,sar,
          type="l",
-         xlab="Year",ylab=variable,main=paste(c(region_or_subregion,variable)),
+         xlab="Year",
+         ylab=variable,
+         main=paste(c(region_or_subregion,variable)),
          xlim=c(min(dataset$year),max(dataset$year)),
-         ylim=c(0,max(lt.maxes[,ncol(lt.maxes)])))
-    #lines(dom.a.ts$year,anch,col='red')
+         ylim=c(0,max(lt.medians[,ncol(lt.medians)])))
+    lines(dom.a.ts$year,anch,col='red')
   }
   
   # One correlation method: use MARSS to find covariance --------------------------------------------
@@ -113,11 +120,7 @@ corr.fig <- function(data = alldat,
               dom.anch = dom.a.ts,dom.sard = dom.s.ts,
               max.table = lt.maxes,
               median.table = lt.medians))
-  
-  # print(kem.sa.CIs$par.upCI)
-  # print(kem.sa.CIs$par.lowCI)
-  #legend("topright",legend=c("sardine","anchovy"),lty=c(1,1),col=c('black','red'))
-  #table(dataset$Land.Area,dataset$Scientific.name)
+
   
 }  #End corr.fig function
 
