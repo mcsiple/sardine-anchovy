@@ -5,7 +5,7 @@ source(here::here("R/PowerAnalysis/Scheuerell_TimeSeries.R"))
 source(here::here("R/PowerAnalysis/getSpectral.R"))
 source(here::here("R/WMR/NullModel.R"))
 
-library(ggridges) # for "joy" plot
+library(ggridges) # for "joy division" plot
 library(forcats)
 
 
@@ -28,20 +28,20 @@ get_large_null2 <- function(timeseries,nsims){
 longyrs=150
 
 test.y <- t(get.mds.ts(length = longyrs,
-                       autocorrs = c(0.98,0.67), # these are estimates from the B matrix in the initial step
-                       rho = 0.43,
-                       sds = c(0.12,0.19),
+                       autocorrs = c(0.7,0.7),#c(0.98,0.67), # these are estimates from the B matrix in the initial step
+                       rho = 0.5,
+                       sds = c(0.08,0.37),
                        driver.period = 50,
                        driver.amp = 0.5,
                        CC = matrix(c(1, -1), ncol = 1)))
 
 
-ts_test <- list(std_anchovy=as.numeric(scale(test.y[,1])),
-                std_sardine=as.numeric(scale(test.y[,2])))
+ts_test <- list(std_sardine=as.numeric(scale(test.y[,1])),
+                std_anchovy=as.numeric(scale(test.y[,2])))
 
 par(mfrow=c(1,1))
 plot(1:longyrs,ts_test$std_anchovy, type='l',ylim=c(-4,4),ylab="Biomass")
-lines(1:longyrs,ts_test$std_sardine,col='red')
+lines(1:longyrs,ts_test$std_sardine,col='red') # whyyyy is sardine more autocorrelated? 
 
 
 
