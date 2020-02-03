@@ -55,7 +55,7 @@ fig1 <- mf.new %>%
   theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) #can change to theme_dg() for presentation if desired
 
      
-pdf(here::here("R/Figures/Fig1_R1.pdf"),width = 12, height = 4,useDingbats = F)
+pdf(here::here("R/Figures/Fig1_R1_v2.pdf"),width = 12, height = 7,useDingbats = F)
 fig1 
 dev.off()
 
@@ -262,24 +262,34 @@ dev.off()
 
 
 # FIGURE 4: MARSS covariances ---------------------------------------------
-# This is the plot that requires me to estimate a bunch of covariances between dominant sardine-anchovy pairs. 
-# The code to do this is in "getMARSSStates.R" - that function can fill ts with MARSS states and also get Q matrix from MARSS 
-
+# This is the plot that shows covariances between dominant sardine-anchovy pairs. 
+# The code to do this is in "getMARSSStates.R" - that function can fill ts with MARSS states and also get Q matrix
 
 
 # FIGURE 5: wavelet modulus ratios ----------------------------------------
 # Distributions for null vs. observed data
-obs <- get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "landings")
-obstest <- get_wmr(obs$std_anchovy, obs$std_sardine)
+
+# Load data
+obs <- get_obs(dat = RBF,
+               dsource = "Barange",
+               reg = "California",
+               var = "landings")
+obstest <- get_wmr(obs$std_anchovy, 
+                   obs$std_sardine)
 
 xx <- get_surrogates(obs = obs,nsurrogates = 10)
-nulltest1 = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1])
-nulltest2 = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,2],sardine.ts=xx$Sardine.surrogates[,2])
-# Load data
+nulltest1 = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],
+                    sardine.ts=xx$Sardine.surrogates[,1])
+nulltest2 = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,2],
+                    sardine.ts=xx$Sardine.surrogates[,2])
 
 
 # Functions used here are in the NullModel.R file
-giantnull <- get_large_null(dat = RBF,dsource = "Barange",reg = "California",var = "landings",nsims=50)
+giantnull <- get_large_null(dat = RBF,
+                            dsource = "Barange",
+                            reg = "California",
+                            var = "landings",
+                            nsims=50)
 str(giantnull)
 
 distfig <- function(null, observed, return.dataframe = F){
@@ -464,7 +474,7 @@ write.csv(test.table.out, file = here::here("Figures/TableS1_test_WMR.csv"))
 
 
 # FIGURES S1-S3: bar plot ---------------------------------------------------------------
-load(here::here("R/Replaceability/Replacement_RAM_Barange_MAX.Rdata")) #df: Both
+load(here::here("R/Replaceability/Replacement_RAM_Barange_MEDIAN.Rdata")) #df: Both
 # Don't have max landings from RAM, probably because they weren't used for replaceability?
 
 Both$variable <- recode(Both$variable,
@@ -494,44 +504,66 @@ figS2 <-
   Both %>% 
   filter(!stock %in% cleanup_stocks) %>%
   filter(datasource=="FAO") %>%
+  filter(variable=="Landings") %>%
   droplevels() %>%
-  ggplot(aes(x=stock,y=max.var,fill=sp)) +
+  ggplot(aes(x=stock,y=median.var,fill=sp)) +
   geom_bar(stat = "identity") + 
   scale_fill_manual("Species",values=sacols) +
   facet_grid(variable~region,scales='free') +
   theme_classic(base_size=14)%+replace% theme(strip.background  = element_blank()) + 
-  xlab("Dominant stock ") +
-  ylab("Long-term maximum") +
+  xlab("Dominant stock") +
+  ylab("Median landings") +
   theme(axis.text.x = element_text(angle = 60,hjust=1)) +
   ggtitle("FAO landings") +
   theme(plot.margin = unit(c(0,0,0,2), "cm"))
 
-pdf(file.path(figwd,"FAO_maxes.pdf"),width = 11, height=7,useDingbats = F)
+pdf(file.path(here::here("R","Figures","FAO_medians.pdf")),width = 11, height=7,useDingbats = F)
 figS2
 dev.off()
 
 
 figS3 <- Both %>% 
   filter(!stock %in% cleanup_stocks) %>%
-  filter(datasource=="RAM" & variable == "Spawning \n stock biomass") %>%
+  filter(datasource=="RAM" & variable == "Spawning \n stock biomass" ) %>%
+  filter(variable != "Recruitment") %>%
   droplevels() %>%
-  ggplot(aes(x=stock,y=max.var,fill=sp)) +
+  ggplot(aes(x=stock,y=median.var,fill=sp)) +
   geom_bar(stat = "identity") + 
   scale_fill_manual("Species",values=sacols) +
-  facet_wrap(~region,scales='free') +
+  facet_wrap(region~variable,scales='free') +
   theme_classic(base_size=14)%+replace% theme(strip.background  = element_blank()) + 
   xlab("Dominant stock ") +
-  ylab("Long-term maximum biomass") +
+  ylab("Median biomass") +
   theme(axis.text.x = element_text(angle = 60,hjust=1)) +
   ggtitle("RAM") +
   theme(plot.margin = unit(c(0,0,0,2), "cm"))
 
 figS3
 
-tiff(here::here("R/Figures/RAM_maxes.tiff"),width = 7, height=6,units = 'in',res = 250)
+tiff(here::here("R/Figures/RAM_medians.tiff"),width = 7, height=6,units = 'in',res = 250)
 figS3
 dev.off()
 
+figS3 <- Both %>%  #now Barange
+  filter(!stock %in% cleanup_stocks) %>%
+  filter(datasource=="Barange") %>%
+  droplevels() %>%
+  ggplot(aes(x=stock,y=median.var,fill=sp)) +
+  geom_bar(stat = "identity") + 
+  scale_fill_manual("Species",values=sacols) +
+  facet_grid(variable~region,scales='free') +
+  theme_classic(base_size=14)%+replace% theme(strip.background  = element_blank()) + 
+  xlab("Dominant stock ") +
+  ylab("Median value") +
+  theme(axis.text.x = element_text(angle = 60,hjust=1)) +
+  ggtitle("Barange et al. (2009)") +
+  theme(plot.margin = unit(c(0,0,0,2), "cm"))
+
+figS3
+
+tiff(here::here("R/Figures/Barange_medians.tiff"),width = 8, height=8,units = 'in',res = 250)
+figS3
+dev.off()
 
 # FIGURE S4: Observed and null WMRs, landings ---------------------------------------
 std.landings <- vector()
