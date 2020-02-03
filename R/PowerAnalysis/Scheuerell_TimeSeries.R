@@ -1,5 +1,5 @@
 # This code makes two autocorrelated time series that respond to asynchronous drivers. 
-# Code is from Mark, 4/12/19
+# Code is by Mark, 4/12/19
 
 ## function to return a discrete sine wave
 sinw <- function(length, period, amp = 1) {
@@ -38,10 +38,10 @@ get.mds.ts <- function(length=100,
   sw <- sinw(tt, driver.period, driver.amp)
   
   ## use the `ee` in a MARSS model
-  xx <- ee
+  xx <- ee #initial cond's
   BB <- diag(bb)
-  BB[1,2] <- 0.03 
-  BB[2,1] <- -0.10
+  BB[1,2] <- -0.10 
+  BB[2,1] <- 0.03
   
   cc <- matrix(sw, nrow = 1)
   for(t in 2:tt) {
@@ -52,6 +52,15 @@ get.mds.ts <- function(length=100,
 
 #get.mds.ts(length = 100,autocorrs = c(0.6,0.6),rho = 0.4,sds = c(0.9,0.9),driver.period = 60,driver.amp = 0.5,CC=matrix(c(1, -1), ncol = 1))
 
+# Original code: 
+### function to return a discrete sine wave
+# sinw <- function(length, period, amp = 1) {
+#   amp * sin(2 * pi * seq(length) / period)
+# }
+# 
+# ## redefine MVN
+# mvn <- MASS::mvrnorm
+# 
 # ## length of ts
 # tt <- 100
 # 
@@ -74,7 +83,7 @@ get.mds.ts <- function(length=100,
 # ee <- t(mvn(tt, rep(0, length(sd)), Sigma))
 # 
 # ## sine wave as driver
-# sw <- sinw(tt, 60, 0.5)
+# sw <- sinw(tt, 40, 0.5)
 # 
 # ## use the `ee` in a MARSS model
 # xx <- ee
@@ -86,12 +95,7 @@ get.mds.ts <- function(length=100,
 # }
 # 
 # ## how do they look?
-# #plot.ts(t(xx))
-# #lines(sw)
+# plot.ts(t(xx))
 # 
 # ## are they correlated?
 # cor(t(xx))
-# 
-# plot(1:tt,xx[1,],type='l')
-# lines(1:tt,xx[2,],col='red')
-# lines(1:tt,sw,col='pink')
