@@ -74,7 +74,7 @@ get_wmr <- function(anchovy.ts,sardine.ts){
   ind3 <- which(mr$y > 10)
   synch.10 <- mmat[,ind3]
   
-  return(list(less.than.5 = synch.1,
+  return(list(less.than.5 = synch.1, # NOTE: can remove these if they don't make a difference
               five.ten = synch.5,
               ten.plus = synch.10))
 }

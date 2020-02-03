@@ -71,17 +71,16 @@ library("rnaturalearthdata")
 
 world <- ne_countries(scale = "medium", returnclass = "sf")
 class(world)
+
 ggplot(data=world) + 
   geom_sf(color="darkgrey",fill="darkgrey") +
   geom_sf(data = lmes3,
           fill="lightblue",
-          #aes(fill=asynchrony),
+          aes(fill=asynchrony),
           size=0.1) + 
   scale_fill_gradientn(colours = pal) + 
-  theme_dg() 
+  theme_classic() 
 
-pdf("DarkGreyWorld.pdf",width = 8,height=6)
-dev.off()
 # Add asynchrony information to table with lmes ---------------------------
 # load(file.path(datwd,"LogDiffsMax.RData")) #df is st, summary of log diffs.
 # # ml column is log ratio of anchovy/sardine. It's the median of the log ratios from all data soures
