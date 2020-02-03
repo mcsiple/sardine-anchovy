@@ -25,23 +25,22 @@ ivec <- function(x, cols = NULL) { # turns vector into matrix
 
 
 BB <- matrix(c(0.98, 0.03, -0.1, 0.67), 2, 2) #global B
-# [,1]  [,2]
-# [1,] 0.98 -0.10
-# [2,] 0.03  0.67
-##      [,1] [,2]
-## [1,]  0.7  0.0
-## [2,] -0.3  0.6
 BB <- diag(bb)
 
-QQ_Benguela <- matrix(c(0.08, 0.06, 0.06, 0.37), 2, 2) #Benguela
-QQ_California <- 
-  QQ_Humboldt <-
-  QQ_NEAtlantic <- 
-  QQ_KuroshioOyashio <- 
 
-##      [,1] [,2]
-## [1,]  0.5 -0.3
-## [2,] -0.3  0.5
+QQ_Benguela <- matrix(c(0.08, 0.06, 0.06, 0.37), 2, 2) # process var/cov
+# [,1] [,2]
+# [1,] 0.08 0.06
+# [2,] 0.06 0.37
+QQ_California <- matrix(c(0.12, -0.11, -0.11, 0.48), 2, 2) #estimates from step 1, MARSS
+QQ_Humboldt <- matrix(c(0.19, -0.03, -0.03, 0.37), 2, 2)
+QQ_NEAtlantic <- matrix(c(0.11, -0.15, -0.15, 0.49), 2, 2)
+QQ_KuroshioOyashio <- matrix(c(0.11, 0.10, 0.10, 0.49), 2, 2)
+
+#QQ <- QQ_California
+#QQ <- QQ_Humboldt
+#QQ <- QQ_NEAtlantic
+QQ <- QQ_KuroshioOyashio
 
 II <- diag(2)
 ##      [,1] [,2]
