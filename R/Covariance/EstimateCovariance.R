@@ -1,6 +1,7 @@
 # Get MARSS covariances and CIs for all the stocks and variables ----------
 
 library(tidyverse)
+
 source(here::here("R/DataCleanup/getMARSSstates.R"))
 source(here::here("R/DataCleanup/Fill_NAs_SA.R"))
 load(here::here("R/DataCleanup/allsardineanchovy_3.RData")) # dataframe alldat
@@ -8,11 +9,6 @@ load(here::here("R/DataCleanup/allsardineanchovy_3.RData")) # dataframe alldat
 region <- c("Benguela","California","Humboldt", "Kuroshio-Oyashio", "NE Atlantic")
 variable <- c("rec","ssb","landings")
 datasource <- c("Barange")
-
-# #This is for testing only! Just for R1
-# region <- c("Benguela","California","Humboldt")
-# variable <- c("ssb","landings")
-# datasource <- c("Barange")
 
 covs <- tidyr::crossing(region,variable, datasource)
 covs <- covs %>% add_column(b1.sard=NA,
@@ -94,6 +90,7 @@ dfa.stocks <- domstocks %>% filter(datasource=="Barange")
 
 regions <- c("Benguela","California","Humboldt", "Kuroshio-Oyashio", "NE Atlantic")
 nregions=length(regions)
+
 maxyr <- max(dfa.stocks$year)
 minyr <- min(dfa.stocks$year)
 
@@ -154,7 +151,7 @@ for(j in 1:3){
     #   0,0,0,0,0,0,0,0,"bsa","b5a")
     # B = matrix(B.vals2,nrow=nregions*2,ncol=nregions*2,byrow=T)
     # 
-    B.vals3 <- list( # could also estimate that the interspecific effects are the same in all locations
+    B.vals3 <- list( # interspecific effects and autocorrelation are the same in all locations - this one has the lowest AICc.
       "bs","bas",0,0,0,0,0,0,0,0,
       "bsa","ba",0,0,0,0,0,0,0,0,
       0,0,"bs","bas",0,0,0,0,0,0,
@@ -165,7 +162,7 @@ for(j in 1:3){
       0,0,0,0,0,0,"bsa","ba",0,0,
       0,0,0,0,0,0,0,0,"bs","bas",
       0,0,0,0,0,0,0,0,"bsa","ba")
-    B = matrix(B.vals3,nrow=nregions*2,ncol=nregions*2,byrow=T) 
+    B = matrix(B.vals3,nrow=nregions*2,ncol=nregions*2,byrow=T)
     
     Q.vals <- list(
       "q1s","q1",0,0,0,0,0,0,0,0,
@@ -179,8 +176,6 @@ for(j in 1:3){
       0,0,0,0,0,0,0,0,"q5s","q5",
       0,0,0,0,0,0,0,0,"q5","q5a")
     Q = matrix(Q.vals,nrow=nregions*2,ncol=nregions*2,byrow=T)
-    
-    
     
     marss.model <- list(Z=Z,R=R,x0=x0,A=A,Q=Q,B=B,U=U)
     
@@ -240,7 +235,23 @@ q.all$variable <- forcats::fct_relevel(q.all$variable,"Landings", "Biomass", "Re
 b.all <- bind_rows(b.landings,b.ssb,b.rec)
 b.all$variable <- forcats::fct_relevel(b.all$variable,"Landings", "Biomass", "Recruitment")
 
-covar.plot <- q.all %>% filter(Var_Cov=="cov") %>%
+# This is table s4
+all <- bind_rows(q.all,b.all) %>%
+  mutate(Var_Cov = as.factor(Var_Cov),
+         Region = as.factor(Region))
+
+save(all, file = "BQestimates.RData")
+load("BQestimates.RData")
+
+table.s4 <- all %>%
+            select(variable,Region,param,med,loCI,hiCI,Var_Cov) %>%
+            mutate_at(vars(med, loCI,hiCI), list(~ round(., 2)))
+
+write.csv(table.s4,"TableS4.csv")
+
+# Figure 
+covar.plot <- q.all %>% 
+              filter(Var_Cov=="cov") %>%
               ggplot(aes(x=Region,y=med)) + 
               geom_point(size=3) +
               geom_linerange(aes(ymin=loCI,ymax=hiCI),size=1) + 
@@ -251,6 +262,9 @@ covar.plot <- q.all %>% filter(Var_Cov=="cov") %>%
               facet_wrap(~variable) +
               theme_classic(base_size=14) +
               theme(strip.background = element_blank())
+
+
+
 
 pdf("Fig_4a_covariance_new.pdf",width = 9,height =3,useDingbats = F)
 covar.plot
