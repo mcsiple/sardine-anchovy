@@ -32,7 +32,13 @@ covs <- covs %>% add_column(b1.sard=NA,
                     R=NA)
 
 for (i in 1:nrow(covs)){ 
-  output <- getMARSSstates(data = alldat,region_or_subregion = covs$region[i],scale = "Region",data_source = covs$datasource[i],variable = covs$variable[i],ccf.calc=FALSE,get.mean.instead = TRUE,MARSS.cov = T)
+  output <- getMARSSstates(data = alldat,
+                           region_or_subregion = covs$region[i],
+                           scale = "Region",data_source = covs$datasource[i],
+                           variable = covs$variable[i],
+                           ccf.calc=FALSE,
+                           get.mean.instead = TRUE,
+                           MARSS.cov = T)
   # ONLY FOR OPTION 1
   # covs$b1.sard[i] = output$b1.sard
   # covs$b1.sard.lo[i] = output$b1.sard.lo
@@ -272,7 +278,7 @@ dev.off()
 
 
 # Look at det(B)^2 to confirm the importance of species interaction --------
-# One B per region - janky but functional
+# One B per region
 b.ssb <- b.all %>% filter(variable=="Biomass")
 B1 <- matrix(b.all$med[1:4],nrow=2,ncol=2)
 B2 <- matrix(b.all$med[c(5,2,3,6)],nrow=2,ncol=2)

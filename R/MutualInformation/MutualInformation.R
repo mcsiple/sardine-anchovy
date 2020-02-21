@@ -1,5 +1,6 @@
 # Mutual information test
 devtools::install_github("mdscheuerell/muti")
+
 library(muti)
 library(here)
 library(tidyverse)
@@ -7,7 +8,7 @@ library(tidyverse)
 # Inputs: two vectors of numeric data
 # Requires: getMARSSstates function
 
-# Need RBF dataframe
+# Get RBF dataframe - estimated states from MARSS
 load(here("R","DataCleanup","RAM_Barange_FAO_States.RData")) # dataframe RBF
 
 test <- RBF %>% 

@@ -1,7 +1,6 @@
 #install.packages(c("fractal","DescTools","biwavelet"))
 library(fractal) # contains surrogate function
 library(ggplot2)
-#library(plyr)
 library(dplyr)
 library(reshape2)
 library(DescTools)
