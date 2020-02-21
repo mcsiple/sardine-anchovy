@@ -3,14 +3,14 @@
 load(here::here("R/DataCleanup/allsardineanchovy_3.RData"))# dataframe: alldat (raw data including NAs for missing years)
 load(here::here("R/DataCleanup/RAM_Barange_FAO_States.RData")) # RBF (missing years filled w MARSS states)
 
-source(here::here("R/DataCleanup/Fill_NAs_SA.R")) # FillNAs.ts()
+source(here::here("R/DataCleanup/Fill_NAs_SA.R")) # FillNAs.ts() function
 source(here::here("R/WMR/NullModel.R"))
 source(here::here("R/PowerAnalysis/Scheuerell_timeseries.R"))
 
 library(dplyr)
 library(reshape2)
 library(ggplot2)
-library(beyonce) #if needed: devtools::install_github("dill/beyonce")
+library(beyonce) #devtools::install_github("dill/beyonce")
 library(RCurl)
 library(RColorBrewer)
 
@@ -27,18 +27,11 @@ pal <- beyonce_palette(18)[2:6]
 sacols <- c("#3288bd","#d53e4f") #blue = sardine, red = anchovy
 
 
-# FIGURE 1: raw time series data ------------------------------------------
+# FIGURE S1: raw time series data ------------------------------------------
 
 mf <- melt(alldat,id.vars = c("datasource", "scientificname", "stock", "year", "sp", "region", "subregion"))
 mf$variable <- recode(mf$variable,ssb="Biomass",rec="Recruitment",landings="Landings")
 mf.new <- mf
-
-# Depracated: Before, I had log-transformed landings but I didn't like that so I'm changing them back to un-transformed values and adding notes in the plots that say where the maxima are (see gigantic landings according to FAO in the Benguela CUrrent ca. 1980, the Humboldt Current ca. 1999 and K-O Current ca. 1980)
-
-#mf.loglandings <- filter(mf,variable=="Landings") %>% mutate(value = log(value))
-#mf.new <- filter(mf,variable!="Landings") %>% bind_rows(mf.loglandings)
-#mf.new$variable <- recode(mf.new$variable,ssb="Biomass",rec="Recruitment",Landings="Log(Landings)")
-
 
 figs1 <- mf.new %>%
   group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
@@ -52,19 +45,55 @@ figs1 <- mf.new %>%
       scale_color_manual("",values=sacols) +
   facet_grid(variable_f~region,scales="free_y") +
   ylab("Standardized value") +
-  theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) #can change to theme_dg() for presentation if desired
+  theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) 
 
-     
+medians <- mf.new %>% 
+  group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
+  filter(variable == "Biomass") %>%
+  summarize(medB = median(value,na.rm=T))
+
+figs1.5 <- mf.new %>%
+  group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
+  filter(variable %in% c("Biomass","Recruitment","Landings"))  %>%
+  mutate(variable_f = factor(variable, levels=c("Landings","Biomass","Recruitment"))) %>%
+  filter(variable == "Biomass") %>%
+  ggplot(aes(x=year,y=value,colour=sp,lty=datasource,group=stock)) +
+  scale_linetype_manual("Data source",values=c(1,2,3)) +
+  geom_line(lwd=0.6) +
+  scale_color_manual("",values=sacols) +
+  facet_grid(variable_f~region,scales="free_y") +
+  ylab("Value") +
+  theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) +
+  geom_hline(data=medians,aes(yintercept =medB ,colour=sp,lty=datasource))
+
+medians.l <- mf.new %>% 
+  group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
+  filter(variable == "Biomass") %>%
+  summarize(medL = median(value,na.rm=T))
+  
+figs1.6 <- mf.new %>%
+    group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
+    filter(variable %in% c("Biomass","Recruitment","Landings"))  %>%
+    mutate(variable_f = factor(variable, levels=c("Landings","Biomass","Recruitment"))) %>%
+    filter(variable == "Landings") %>%
+    ggplot(aes(x=year,y=value,colour=sp,lty=datasource,group=stock)) +
+    scale_linetype_manual("Data source",values=c(1,2,3)) +
+    geom_line(lwd=0.6) +
+    scale_color_manual("",values=sacols) +
+    facet_grid(variable_f~region,scales="free_y") +
+    ylab("Value") +
+    theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) +
+    geom_hline(data=medians.l,aes(yintercept =medL ,colour=sp,lty=datasource))
+
 pdf(here::here("R/Figures/Fig1_S1.pdf"),width = 12, height = 7,useDingbats = F)
 figs1 
 dev.off()
 
 
 
-# OLD FIGURE 2: schematic of spectral analysis --------------------------------
+# FIGURE S2: schematic of spectral analysis --------------------------------
 
 simlength <- 150
-
 sa.sim <- get.mds.ts(length= simlength,
                      autocorrs = c(0.7,0.7),
                      rho = 0.1,
@@ -72,7 +101,6 @@ sa.sim <- get.mds.ts(length= simlength,
                      driver.period = 50,
                      driver.amp = 0.5,
                      CC = matrix(c(1, -1), ncol = 1))
-
 x <- 1:simlength
 y <- t(sa.sim)
 scale.exp = 0.5; nscales = get.nscales(x)
@@ -81,41 +109,86 @@ scales = log2Bins(min.scale, max.scale, nscales)
 w = mvcwt(x, y)
 mr = wmr(w)
 
-
-
 pdf("Contour_Example.pdf",useDingbats = FALSE,width = 6,height=5)
-image(mr)
+  image(mr)
 dev.off()
 
 #Other pieces
 pdf("Contour_Example_ts.pdf",useDingbats = FALSE,width = 4,height=8)
 par(mfrow=c(4,1))
-plot(x,y[,1],type='l',lwd=2,ylab="Scaled abundance",xlab="Year")
-lines(x,y[,2],col="darkgrey",lwd=2)
-legend("topright",legend=c("Sardine","Anchovy"),lwd=c(2,2),col=c("black","darkgrey"),bty='n')
-
-wmrs <- get_wmr(anchovy.ts = y[,1],sardine.ts = y[,2])
-for(i in 1:3){
-  hist(wmrs[[i]],main='',freq = FALSE,col="lightgrey",border="lightgrey",xaxt="n",xaxs="i",yaxs="i",xlab="",ylab="")
-  d <- density(wmrs[[i]],na.rm=T)
-  lines(d,lwd=2)
-}
-axis(1,xlim=c(0,1),xaxs="i")
-
+  plot(x,y[,1],type='l',lwd=2,ylab="Scaled abundance",xlab="Year")
+  lines(x,y[,2],col="darkgrey",lwd=2)
+  legend("topright",legend=c("Sardine","Anchovy"),lwd=c(2,2),col=c("black","darkgrey"),bty='n')
+  wmrs <- get_wmr(anchovy.ts = y[,1],sardine.ts = y[,2])
+  for(i in 1:3){
+    hist(wmrs[[i]],main='',freq = FALSE,col="lightgrey",border="lightgrey",xaxt="n",xaxs="i",yaxs="i",xlab="",ylab="")
+    d <- density(wmrs[[i]],na.rm=T)
+    lines(d,lwd=2)
+  }
+  axis(1,xlim=c(0,1),xaxs="i")
 dev.off()
 
 
-# NEW FIGURE 2 (schematic) ------------------------------------------------
+# Figure 2 (schematic) ----------------------------------
 pdf("Short_ts_example.pdf",width = 5, height = 3,useDingbats = FALSE )
 shortlen <- 1:50
 plot(x[shortlen],y[shortlen,1],type='l',lwd=2,ylab="Scaled abundance",xlab="Year")
 lines(x[shortlen],y[shortlen,2],col="darkgrey",lwd=2)
 dev.off()
 
-# FURTHER FIGURES ---------------------------------------------------------
+# FIGURE 2: Comparability ---------------------------------------------------------
+# Quick checks: what are the median values of all the metrics
 
+all.medians <- alldat %>%
+  group_by(datasource,region,sp,stock) %>%
+  summarize(median.ssb = median(ssb,na.rm=T),
+            median.landings = median(landings,na.rm=T),
+            median.tc = median(totalcatch,na.rm=T)) 
 
-# This figure is composed in Adobe Illustrator
+dom.by.ssb <- all.medians %>%
+  mutate(is.dominant = ifelse(median.ssb == max(median.ssb,na.rm = T),1,0)) %>%
+  filter(is.dominant == 1) %>%
+  as.data.frame() 
+
+dom.by.landings <- all.medians %>%
+  mutate(is.dominant = ifelse(median.landings == max(median.landings,na.rm = T),1,0)) %>%
+  filter(is.dominant == 1) %>%
+  as.data.frame() 
+
+dom.by.landings %>% 
+  reshape2::dcast(datasource+region~sp,value.var = 'median.landings') %>%
+  mutate(logAS = log10(Anchovy/Sardine))
+
+dom.by.tc <- all.medians %>%
+  mutate(is.dominant = ifelse(median.tc == max(median.tc,na.rm = T),1,0)) %>%
+  filter(is.dominant == 1) %>%
+  as.data.frame() 
+
+dom.by.ssb %>% 
+  reshape2::dcast(datasource+region~sp,value.var = 'median.ssb') %>%
+  mutate(logAS = log10(Anchovy/Sardine))
+
+# all.maxes <- alldat %>%
+#   group_by(datasource,region,sp,stock) %>%
+#   summarize(max.ssb = max(ssb,na.rm=T),
+#             max.landings = max(landings,na.rm=T),
+#             max.tc = max(totalcatch,na.rm=T)) 
+# 
+# dom.by.ssb <- all.maxes %>%
+#   mutate(is.dominant = ifelse(max.ssb == max(max.ssb,na.rm = T),1,0)) %>%
+#   filter(is.dominant == 1) %>%
+#   as.data.frame() 
+# 
+# dom.by.landings <- all.maxes %>%
+#   mutate(is.dominant = ifelse(max.landings == max(max.landings,na.rm = T),1,0)) %>%
+#   filter(is.dominant == 1) %>%
+#   as.data.frame() 
+# 
+# dom.by.tc <- all.maxes %>%
+#   mutate(is.dominant = ifelse(max.tc == max(max.tc,na.rm = T),1,0)) %>%
+#   filter(is.dominant == 1) %>%
+#   as.data.frame() 
+
 
 source(here::here("R/DominantTS/Corr_Fig.R")) # This includes the corr.fig function
 # Test function
@@ -123,7 +196,7 @@ corr.fig(region_or_subregion="Benguela",variable="landings",scale = "Region",dat
 corr.fig(region_or_subregion="California",variable="ssb",scale = "Region",data_source="RAM")
 corr.fig(region_or_subregion="California",variable="landings",scale = "Region",data_source="FAO")
 
-# Summarize peak variables for all the regions (to make comparison) - this has been done already so you may not need to run this part (skip to ~ L 171 )
+# Summarize peak variables for all the regions (to make comparison) - this has been done already so you may not need to run this part (skip to ~ L 171 and load Replacement_RAM_Barange.etc)
 
 regions <- c("Benguela","California","Humboldt","Kuroshio-Oyashio","NE Atlantic")
 variables <- c("ssb","rec","landings","fishing.mortality")
@@ -159,20 +232,18 @@ FAO.summary$datasource <- "FAO"
 
 Both <- rbind(RAM.summary,barange.summary,FAO.summary)
 
-#Both <- Both[-which(is.infinite(Both$median.var)),] #switch median/max here for the one you want
-#Both <- Both[-which(is.infinite(Both$max.var)),]
 #save(Both,file = "Replacement_RAM_Barange_MAX.Rdata")
 #save(Both,file = "Replacement_RAM_Barange_MEDIAN2.Rdata") # For the new function that defines "dominant" species by which one has the highest median biomass
 
 
-# FIGURE 3: replacement; log-ratios of maximums and medians ---------------
+# replacement; log-ratios of maximums and medians ---------------
 # Plot log ratios of median biomass, landings, recruitment
 load(here::here("ProcData/Replacement_RAM_Barange_MEDIAN2.Rdata")) #df: Both
 
 desired_order <- c("Northern Benguela anchovy","Northern Benguela sardine","Southern Benguela anchovy","Southern Benguela sardine","Anchovy South Africa","Sardine South Africa","California anchovy","California sardine","N Anchovy E Pacific","Pacific sardine Pacific Coast","Humboldt anchovy - Central Peru","Humboldt sardine - N Central Peru","Humboldt anchovy - South Peru N Chile","Humboldt sardine - South Peru N Chile","Chilean common sardine","Japanese anchovy","Japanese sardine","Bay of Biscay anchovy","European sardine")
 # 
-                summary <- filter(Both,stock != "Northern Benguela sardine" &
-                                            stock != "Humboldt sardine - South Peru N Chile" &
+                summary <- filter(Both,#stock != "Northern Benguela sardine" & 
+                                            #stock != "Humboldt sardine - South Peru N Chile" &
                                             stock != "Humboldt anchovy - South Peru N Chile" &
                                             stock != "Chilean common sardine" )
                 
@@ -208,6 +279,18 @@ subset(tp3,newvar=="Spawning stock biomass") %>%
   mutate(which.dom = ifelse(Sardine > Anchovy, "Sardine","Anchovy"))
 subset(tp3,newvar=="Recruitment") %>% 
   mutate(which.dom = ifelse(Sardine > Anchovy, "Sardine","Anchovy"))
+
+(st <- tp3 %>% 
+    filter(newvar != "Fishing mortality") %>%
+    filter(!is.infinite(log.diff)) %>% 
+    droplevels() %>%
+    group_by(region,newvar) %>% 
+    summarize(ml = median(log.diff,na.rm=T)) %>% 
+    droplevels() %>%
+    mutate(newvar_f=factor(newvar,levels=c("Landings",
+                                           "Spawning stock biomass",
+                                           "Recruitment"))) %>%
+    as.data.frame() )
 
 fig3_option2 <- tp3 %>% 
       filter(newvar != "Fishing mortality") %>%
@@ -443,15 +526,6 @@ write.csv(test.table.out, file = here::here("Figures/TableS1_test_WMR.csv"))
 
 
 # FIGURES S1-S3: bar plots ---------------------------------------------------------------
-# First: double check which type was the dominant species in each ecosystem --------
-all.medians <-  alldat %>%
-  group_by(datasource,region,sp,stock) %>%
-  summarize(median.ssb = median(ssb,na.rm=T)) 
-
-dom.by.median <- all.medians %>%
-  mutate(is.dominant = ifelse(median.ssb == max(median.ssb,na.rm = T),1,0)) %>%
-  filter(is.dominant == 1) %>%
-  as.data.frame() 
 
 figS3 <- alldat %>%
   filter(datasource == "Barange") %>% #" & stock %in% dom.by.median$stock) %>%
@@ -530,6 +604,7 @@ figS5 <- alldat %>%
 tiff(filename = "FigureS5.tiff",width = 10,height = 7,units = 'in',res = 150)
 figS5
 dev.off()
+
 # load(here::here("R/Replaceability/Replacement_RAM_Barange_MEDIAN.Rdata")) #df: Both
 # # Don't have max landings from RAM, probably because they weren't used for replaceability?
 # 
@@ -670,7 +745,7 @@ grid.arrange(figS4a,figS4b)
 dev.off()
 
 
-# Figure S4B but for a demo in Fig 2  -----------------------------------
+# Figure S4B for a demo in Fig 2  -----------------------------------
 fig2_wmr <- landings.wmrs %>% subset(datasource=="Barange") %>% 
   filter(region=="NE Atlantic" & ID == "five.ten") %>%
   ggplot(aes(x=wmrdens,colour=region,fill=nv)) + 
@@ -784,22 +859,10 @@ grid.arrange(figS6a,figS6b)
 dev.off()
 
 
-# OTHER MATERIAL FOR PRESENTATIONS --------------------------------------------
 
-# sample <- subset(alldat,datasource=="RAM" & region =="California" )
-# setwd("/Users/mcsiple/Dropbox/Chapter3-SardineAnchovy/Figures")
-# pdf("SampleCA_presentation.pdf",width=12,height = 7)
-# ggplot(sample,aes(x=year,y=ssb/1000,colour=sp)) + 
-#   geom_line(lwd=1.7) + 
-#   scale_colour_manual(values = c("#ef8a62","#67a9cf")) +
-#   theme_classic(base_size = 16) +
-#   ylab("Biomass (x 1000 t)")
-# dev.off()
+# Reviewer questions ---------------------------------------
 
-
-# For Ecology Letters submission R1 ---------------------------------------
-
-# How many values are replaced when using MARSS states in the WMR thingy?
+# How many values are replaced when MARSS states are used to fill missing values for WMR?
 test.est <- subset(RBF, region=="Benguela" & datasource=="Barange" &variable=="ssb")
 test.obs <- subset(alldat,region=="Benguela" & datasource=="Barange" ) %>% select(datasource,stock,year,ssb) 
 
