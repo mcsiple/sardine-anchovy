@@ -40,7 +40,7 @@ mf.new <- mf
 #mf.new$variable <- recode(mf.new$variable,ssb="Biomass",rec="Recruitment",Landings="Log(Landings)")
 
 
-fig1 <- mf.new %>%
+figs1 <- mf.new %>%
   group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
   mutate(std.value=value/mean(value,na.rm=T)) %>% #as.data.frame() value/mean(value,na.rm=T)
   filter(std.value<15) %>% 
@@ -55,9 +55,34 @@ fig1 <- mf.new %>%
   theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) #can change to theme_dg() for presentation if desired
 
      
-pdf(here::here("R/Figures/Fig1_R1_v2.pdf"),width = 12, height = 7,useDingbats = F)
-fig1 
+pdf(here::here("R/Figures/Fig1_S1.pdf"),width = 12, height = 7,useDingbats = F)
+figs1 
 dev.off()
+
+
+# Double check which type was the dominant species in each ecosystem --------
+alldat %>%
+  filter(datasource=="Barange") %>%
+  group_by(region,stock,sp,region) %>%
+  summarize(max.ssb = max(ssb,na.rm=T),
+            max.landings = max(landings,na.rm=T),
+            median.ssb = median(ssb,na.rm=T),
+            median.landings = median(landings,na.rm=T))
+alldat %>%
+  filter(datasource=="RAM") %>%
+  group_by(region,stock,sp,region) %>%
+  summarize(max.ssb = max(ssb,na.rm=T),
+            max.tc = max(totalcatch,na.rm=T),
+            median.ssb = median(ssb,na.rm=T),
+            median.tc = median(totalcatch,na.rm=T))
+
+alldat %>%
+  filter(datasource=="FAO") %>%
+  group_by(region,stock,sp,region) %>%
+  summarize(max.ssb = max(ssb,na.rm=T),
+            max.landings = max(landings,na.rm=T),
+            median.ssb = median(ssb,na.rm=T),
+            median.landings = median(landings,na.rm=T))
 
 
 # OLD FIGURE 2: schematic of spectral analysis --------------------------------
@@ -165,8 +190,7 @@ Both <- rbind(RAM.summary,barange.summary,FAO.summary)
 
 
 # FIGURE 3: replacement; log-ratios of maximums and medians ---------------
-# Plot differences in median biomass, landings, recruitment
-#load(here::here("ProcData/Replacement_RAM_Barange_MEDIAN.Rdata")) #df: Both
+# Plot log ratios of median biomass, landings, recruitment
 load(here::here("ProcData/Replacement_RAM_Barange_MEDIAN2.Rdata")) #df: Both
 
 desired_order <- c("Northern Benguela anchovy","Northern Benguela sardine","Southern Benguela anchovy","Southern Benguela sardine","Anchovy South Africa","Sardine South Africa","California anchovy","California sardine","N Anchovy E Pacific","Pacific sardine Pacific Coast","Humboldt anchovy - Central Peru","Humboldt sardine - N Central Peru","Humboldt anchovy - South Peru N Chile","Humboldt sardine - South Peru N Chile","Chilean common sardine","Japanese anchovy","Japanese sardine","Bay of Biscay anchovy","European sardine")
@@ -181,9 +205,10 @@ desired_order <- c("Northern Benguela anchovy","Northern Benguela sardine","Sout
 summary$stock2 <- factor(summary$stock,desired_order)
 
 # Add percent differences to 'both' figure:
-tp <- summary %>% select(sp,stock,median.var,variable,region,datasource) # CHANGE THIS BTWN MAX AND MEDIAN
+tp <- summary %>% 
+  select(sp,stock,median.var,variable,region,datasource) # CHANGE THIS BTWN MAX AND MEDIAN
 
-tp2 <- dcast(tp,region+variable+datasource ~ sp,value.var="median.var",fun.aggregate = max,na.rm=T) # this will give errors but it's ok-- it's just bc of the cases where sardine is present but not anchovy (also: CHANGE THIS BTWN MAX AND MEDIAN)
+tp2 <- dcast(tp,region+variable+datasource ~ sp,value.var="median.var",fun.aggregate = max,na.rm=T) # this will give errors but it's ok-- it's just bc of the cases where sardine is present but not anchovy (also: this can be changed btwn max and median depending on how you deinfe "dominant" stocks)
 tp2$Anchovy[which(is.inf(tp2$Anchovy))] <- NA  
 tp2$Sardine[which(is.inf(tp2$Sardine))] <- NA  
 tp3 <- tp2 %>% mutate(log.diff = log10(Anchovy/Sardine)) 
@@ -207,34 +232,6 @@ subset(tp3,newvar=="Spawning stock biomass") %>%
 subset(tp3,newvar=="Recruitment") %>% 
   mutate(which.dom = ifelse(Sardine > Anchovy, "Sardine","Anchovy"))
 
-newblue <- c("#c6dbef","#4292c6","#08519c")
-fig3 <- tp3 %>% 
-        filter(variable != "Recruitment") %>%
-        filter(variable != "Fishing mortality") %>%
-        filter(!is.inf(log.diff)) %>%
-        ggplot(aes(x=log.diff,y=region,colour=datasource)) + 
-        geom_vline(xintercept=0,lty=2) + 
-        geom_point(size = 3) +
-        scale_colour_manual("Data source",values=rev(newblue)) +
-        facet_wrap(~newvar,ncol = 1) + 
-        theme_classic(base_size = 14) %+replace% theme(strip.background  = element_blank()) + # cool
-        xlim(-3,3) +
-        xlab("Log(Anchovy / Sardine)") + 
-        ylab("") 
-
-(st <- tp3 %>% 
-    filter(newvar != "Fishing mortality") %>%
-    filter(!is.infinite(log.diff))%>% 
-    droplevels() %>%
-    group_by(region,newvar) %>% 
-    summarize(ml = median(log.diff,na.rm=T)) %>% 
-    droplevels() %>%
-    mutate(newvar_f=factor(newvar,levels=c("Landings",
-                                           "Spawning stock biomass",
-                                           "Recruitment"))) %>%
-    as.data.frame() )
-  #save(st,file = "ProcData/LogDiffsMax.RData")
-
 fig3_option2 <- tp3 %>% 
       filter(newvar != "Fishing mortality") %>%
       droplevels() %>%
@@ -254,11 +251,6 @@ fig3_option2 <- tp3 %>%
 pdf(here::here("R/Figures/Figure3_max_R1_Log10.pdf"),width = 8, height = 5,useDingbats = F)
 fig3_option2
 dev.off()
-# 
-# tiff(file.path(figwd,"Figure3_median_option2.tiff"),width = 8, height=5,units = 'in',res=300)
-# fig3_option2
-# dev.off()
-
 
 
 # FIGURE 4: MARSS covariances ---------------------------------------------
