@@ -60,30 +60,6 @@ figs1
 dev.off()
 
 
-# Double check which type was the dominant species in each ecosystem --------
-alldat %>%
-  filter(datasource=="Barange") %>%
-  group_by(region,stock,sp,region) %>%
-  summarize(max.ssb = max(ssb,na.rm=T),
-            max.landings = max(landings,na.rm=T),
-            median.ssb = median(ssb,na.rm=T),
-            median.landings = median(landings,na.rm=T))
-alldat %>%
-  filter(datasource=="RAM") %>%
-  group_by(region,stock,sp,region) %>%
-  summarize(max.ssb = max(ssb,na.rm=T),
-            max.tc = max(totalcatch,na.rm=T),
-            median.ssb = median(ssb,na.rm=T),
-            median.tc = median(totalcatch,na.rm=T))
-
-alldat %>%
-  filter(datasource=="FAO") %>%
-  group_by(region,stock,sp,region) %>%
-  summarize(max.ssb = max(ssb,na.rm=T),
-            max.landings = max(landings,na.rm=T),
-            median.ssb = median(ssb,na.rm=T),
-            median.landings = median(landings,na.rm=T))
-
 
 # OLD FIGURE 2: schematic of spectral analysis --------------------------------
 
@@ -211,7 +187,8 @@ tp <- summary %>%
 tp2 <- dcast(tp,region+variable+datasource ~ sp,value.var="median.var",fun.aggregate = max,na.rm=T) # this will give errors but it's ok-- it's just bc of the cases where sardine is present but not anchovy (also: this can be changed btwn max and median depending on how you deinfe "dominant" stocks)
 tp2$Anchovy[which(is.inf(tp2$Anchovy))] <- NA  
 tp2$Sardine[which(is.inf(tp2$Sardine))] <- NA  
-tp3 <- tp2 %>% mutate(log.diff = log10(Anchovy/Sardine)) 
+tp3 <- tp2 %>% 
+  mutate(log.diff = log10(Anchovy/Sardine)) 
 tp3$percent.diff <- (tp3$Anchovy-tp3$Sardine) / rowMeans(cbind(tp3$Anchovy,tp3$Sardine),na.rm=T) * 100
 tp3$zeroes <- 0
 tp3$variable <- recode(tp3$variable,
@@ -465,97 +442,184 @@ test.table.out <- arrange(test.table.out, region, datasource, variable)
 write.csv(test.table.out, file = here::here("Figures/TableS1_test_WMR.csv"))
 
 
-# FIGURES S1-S3: bar plot ---------------------------------------------------------------
-load(here::here("R/Replaceability/Replacement_RAM_Barange_MEDIAN.Rdata")) #df: Both
-# Don't have max landings from RAM, probably because they weren't used for replaceability?
+# FIGURES S1-S3: bar plots ---------------------------------------------------------------
+# First: double check which type was the dominant species in each ecosystem --------
+all.medians <-  alldat %>%
+  group_by(datasource,region,sp,stock) %>%
+  summarize(median.ssb = median(ssb,na.rm=T)) 
 
-Both$variable <- recode(Both$variable,
-                        fishing.mortality="Fishing mortality",
-                        ssb="Spawning \n stock biomass",
-                        landings="Landings",
-                        rec="Recruitment")
+dom.by.median <- all.medians %>%
+  mutate(is.dominant = ifelse(median.ssb == max(median.ssb,na.rm = T),1,0)) %>%
+  filter(is.dominant == 1) %>%
+  as.data.frame() 
 
-cleanup_stocks <- c("Engraulidae - Atlantic, Southeast",
-                    "Round sardinella - Atlantic, Southeast",
-                    "California anchovy - Pacific, Northeast",
-                    "Engraulidae - Pacific, Northwest",
-                    "Sardinella spp - Pacific, Northwest",
-                    "Slender raindbow sardine - Pacific, Northwest",
-                    "Stolephorus spp - Pacific, Northwest",
-                    "Sardinella spp - Atlantic, Northeast")
+figS3 <- alldat %>%
+  filter(datasource == "Barange") %>% #" & stock %in% dom.by.median$stock) %>%
+  select(datasource,stock,year,ssb,rec,landings,totalcatch, sp,region,subregion) %>%
+    reshape2::melt(id.vars=c('datasource','stock','year','sp','region','subregion')) %>%
+    filter(variable != "totalcatch") %>%
+    group_by(stock,sp,region,variable) %>%
+    summarize(medians = median(value,na.rm = T)) %>%
+    mutate(variable = recode_factor(variable, fishing.mortality="Fishing mortality",
+                          ssb="Spawning \n stock biomass",
+                          landings="Landings",
+                          rec="Recruitment")) %>%
+    ggplot(aes(x=stock,y=medians,fill=sp)) +
+    geom_bar(stat = "identity") +
+    scale_fill_manual("Species",values=sacols) +
+    facet_grid(variable ~ region,scales='free') +
+    theme_classic(base_size=14)%+replace% theme(strip.background  = element_blank()) +
+    ylab("Median value") +
+    xlab("Stock") +
+    theme(axis.text.x = element_text(angle = 60,hjust=1)) +
+    ggtitle("Barange et al. 2009") +
+    theme(plot.margin = unit(c(0,0,0,2), "cm"))
 
-# Need to remove time series that aren't the "dominant" stocks in that ecosystem
-remove.x <- vector()
-for(i in 1:nrow(Both)){
-  if(Both$stock[i] %in% c(Both$domsard[i],Both$domanch[i])){
-    remove.x[i] = T}else{remove.x[i] = F} 
-}
-Both <- Both[remove.x,]
-
-figS2 <- 
-  Both %>% 
-  filter(!stock %in% cleanup_stocks) %>%
-  filter(datasource=="FAO") %>%
-  filter(variable=="Landings") %>%
-  droplevels() %>%
-  ggplot(aes(x=stock,y=median.var,fill=sp)) +
-  geom_bar(stat = "identity") + 
-  scale_fill_manual("Species",values=sacols) +
-  facet_grid(variable~region,scales='free') +
-  theme_classic(base_size=14)%+replace% theme(strip.background  = element_blank()) + 
-  xlab("Dominant stock") +
-  ylab("Median landings") +
-  theme(axis.text.x = element_text(angle = 60,hjust=1)) +
-  ggtitle("FAO landings") +
-  theme(plot.margin = unit(c(0,0,0,2), "cm"))
-
-pdf(file.path(here::here("R","Figures","FAO_medians.pdf")),width = 11, height=7,useDingbats = F)
-figS2
-dev.off()
-
-
-figS3 <- Both %>% 
-  filter(!stock %in% cleanup_stocks) %>%
-  filter(datasource=="RAM" & variable == "Spawning \n stock biomass" ) %>%
-  filter(variable != "Recruitment") %>%
-  droplevels() %>%
-  ggplot(aes(x=stock,y=median.var,fill=sp)) +
-  geom_bar(stat = "identity") + 
-  scale_fill_manual("Species",values=sacols) +
-  facet_wrap(region~variable,scales='free') +
-  theme_classic(base_size=14)%+replace% theme(strip.background  = element_blank()) + 
-  xlab("Dominant stock ") +
-  ylab("Median biomass") +
-  theme(axis.text.x = element_text(angle = 60,hjust=1)) +
-  ggtitle("RAM") +
-  theme(plot.margin = unit(c(0,0,0,2), "cm"))
-
-figS3
-
-tiff(here::here("R/Figures/RAM_medians.tiff"),width = 7, height=6,units = 'in',res = 250)
+tiff(filename = "FigureS3.tiff",width = 8,height = 10,units = 'in',res = 150)
 figS3
 dev.off()
 
-figS3 <- Both %>%  #now Barange
-  filter(!stock %in% cleanup_stocks) %>%
-  filter(datasource=="Barange") %>%
-  droplevels() %>%
-  ggplot(aes(x=stock,y=median.var,fill=sp)) +
-  geom_bar(stat = "identity") + 
+figS4 <- alldat %>%
+  filter(datasource == "FAO") %>% #" & stock %in% dom.by.median$stock) %>%
+  select(datasource,stock,year,landings,sp,region,subregion) %>%
+  reshape2::melt(id.vars=c('datasource','stock','year','sp','region','subregion')) %>%
+  filter(variable != "totalcatch") %>%
+  group_by(stock,sp,region,variable) %>%
+  summarize(medians = median(value,na.rm = T)) %>%
+  mutate(variable = recode_factor(variable, fishing.mortality="Fishing mortality",
+                                  ssb="Spawning \n stock biomass",
+                                  landings="Landings",
+                                  rec="Recruitment")) %>%
+  ggplot(aes(x=stock,y=medians,fill=sp)) +
+  geom_bar(stat = "identity") +
   scale_fill_manual("Species",values=sacols) +
-  facet_grid(variable~region,scales='free') +
-  theme_classic(base_size=14)%+replace% theme(strip.background  = element_blank()) + 
-  xlab("Dominant stock ") +
+  facet_grid(variable ~ region,scales='free') +
+  theme_classic(base_size=14)%+replace% theme(strip.background  = element_blank()) +
   ylab("Median value") +
+  xlab("Stock") +
   theme(axis.text.x = element_text(angle = 60,hjust=1)) +
-  ggtitle("Barange et al. (2009)") +
+  ggtitle("FAO (landings)") +
   theme(plot.margin = unit(c(0,0,0,2), "cm"))
 
-figS3
-
-tiff(here::here("R/Figures/Barange_medians.tiff"),width = 8, height=8,units = 'in',res = 250)
-figS3
+tiff(filename = "FigureS4.tiff",width = 8,height = 6,units = 'in',res = 150)
+figS4
 dev.off()
+
+figS5 <- alldat %>%
+  filter(datasource == "RAM") %>% #" & stock %in% dom.by.median$stock) %>%
+  select(datasource,stock,year,ssb,rec,landings,totalcatch, sp,region,subregion) %>%
+  reshape2::melt(id.vars=c('datasource','stock','year','sp','region','subregion')) %>%
+  filter(variable != "landings") %>%
+  group_by(stock,sp,region,variable) %>%
+  summarize(medians = median(value,na.rm = T)) %>%
+  mutate(variable = recode_factor(variable, fishing.mortality="Fishing mortality",
+                                  ssb="Spawning \n stock biomass",
+                                  totalcatch="Total catch",
+                                  rec="Recruitment")) %>%
+  ggplot(aes(x=stock,y=medians,fill=sp)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual("Species",values=sacols) +
+  facet_grid(variable ~ region,scales='free') +
+  theme_classic(base_size=14)%+replace% theme(strip.background  = element_blank()) +
+  ylab("Median value") +
+  xlab("Stock") +
+  theme(axis.text.x = element_text(angle = 60,hjust=1)) +
+  ggtitle("RAM legacy") +
+  theme(plot.margin = unit(c(0,0,0,2), "cm"))
+
+tiff(filename = "FigureS5.tiff",width = 10,height = 7,units = 'in',res = 150)
+figS5
+dev.off()
+# load(here::here("R/Replaceability/Replacement_RAM_Barange_MEDIAN.Rdata")) #df: Both
+# # Don't have max landings from RAM, probably because they weren't used for replaceability?
+# 
+# Both$variable <- recode(Both$variable,
+#                         fishing.mortality="Fishing mortality",
+#                         ssb="Spawning \n stock biomass",
+#                         landings="Landings",
+#                         rec="Recruitment")
+# 
+# cleanup_stocks <- c("Engraulidae - Atlantic, Southeast",
+#                     "Round sardinella - Atlantic, Southeast",
+#                     "California anchovy - Pacific, Northeast",
+#                     "Engraulidae - Pacific, Northwest",
+#                     "Sardinella spp - Pacific, Northwest",
+#                     "Slender raindbow sardine - Pacific, Northwest",
+#                     "Stolephorus spp - Pacific, Northwest",
+#                     "Sardinella spp - Atlantic, Northeast")
+# 
+# # Need to remove time series that aren't the "dominant" stocks in that ecosystem
+# remove.x <- vector()
+# for(i in 1:nrow(Both)){
+#   if(Both$stock[i] %in% c(Both$domsard[i],Both$domanch[i])){
+#     remove.x[i] = T}else{remove.x[i] = F} 
+# }
+# Both <- Both[remove.x,]
+# 
+# figS2 <- 
+#   Both %>% 
+#   filter(!stock %in% cleanup_stocks) %>%
+#   filter(datasource=="FAO") %>%
+#   filter(variable=="Landings") %>%
+#   droplevels() %>%
+#   ggplot(aes(x=stock,y=median.var,fill=sp)) +
+#   geom_bar(stat = "identity") + 
+#   scale_fill_manual("Species",values=sacols) +
+#   facet_grid(variable~region,scales='free') +
+#   theme_classic(base_size=14)%+replace% theme(strip.background  = element_blank()) + 
+#   xlab("Dominant stock") +
+#   ylab("Median landings") +
+#   theme(axis.text.x = element_text(angle = 60,hjust=1)) +
+#   ggtitle("FAO landings") +
+#   theme(plot.margin = unit(c(0,0,0,2), "cm"))
+# 
+# pdf(file.path(here::here("R","Figures","FAO_medians.pdf")),width = 11, height=7,useDingbats = F)
+# figS2
+# dev.off()
+# 
+# 
+# figS3 <- Both %>% 
+#   filter(!stock %in% cleanup_stocks) %>%
+#   filter(datasource=="RAM" & variable == "Spawning \n stock biomass" ) %>%
+#   filter(variable != "Recruitment") %>%
+#   droplevels() %>%
+#   ggplot(aes(x=stock,y=median.var,fill=sp)) +
+#   geom_bar(stat = "identity") + 
+#   scale_fill_manual("Species",values=sacols) +
+#   facet_wrap(region~variable,scales='free') +
+#   theme_classic(base_size=14)%+replace% theme(strip.background  = element_blank()) + 
+#   xlab("Dominant stock ") +
+#   ylab("Median biomass") +
+#   theme(axis.text.x = element_text(angle = 60,hjust=1)) +
+#   ggtitle("RAM") +
+#   theme(plot.margin = unit(c(0,0,0,2), "cm"))
+# 
+# figS3
+# 
+# tiff(here::here("R/Figures/RAM_medians.tiff"),width = 7, height=6,units = 'in',res = 250)
+# figS3
+# dev.off()
+# 
+# figS3 <- Both %>%  #now Barange
+#   filter(!stock %in% cleanup_stocks) %>%
+#   filter(datasource=="Barange") %>%
+#   droplevels() %>%
+#   ggplot(aes(x=stock,y=median.var,fill=sp)) +
+#   geom_bar(stat = "identity") + 
+#   scale_fill_manual("Species",values=sacols) +
+#   facet_grid(variable~region,scales='free') +
+#   theme_classic(base_size=14)%+replace% theme(strip.background  = element_blank()) + 
+#   xlab("Dominant stock ") +
+#   ylab("Median value") +
+#   theme(axis.text.x = element_text(angle = 60,hjust=1)) +
+#   ggtitle("Barange et al. (2009)") +
+#   theme(plot.margin = unit(c(0,0,0,2), "cm"))
+# 
+# figS3
+# 
+# tiff(here::here("R/Figures/Barange_medians.tiff"),width = 8, height=8,units = 'in',res = 250)
+# figS3
+# dev.off()
 
 # FIGURE S4: Observed and null WMRs, landings ---------------------------------------
 std.landings <- vector()
