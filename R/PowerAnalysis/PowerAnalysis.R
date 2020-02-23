@@ -94,28 +94,42 @@ outs$truehiCI <- rep(true.d$CI.U,times=length(obslengths)) #length(obslengths)-2
 outs$timescale = factor(outs$timescale, levels=c('less.than.5','five.ten','ten.plus'))
 levels(outs$timescale) <- c("<5 yr","5-10 yr",">10 yr")
 
-twc <- "darkgrey" #"#3182bd" #orange - twc stands for "trustworthy color"
+twc <- "darkgrey" # twc stands for "trustworthy color"
 
 powerplot <- ggplot(outs,aes(x=obslength2,y=diff)) +
-              geom_line(aes(y=truediff),colour="darkgrey")+
+              geom_line(aes(y=truediff),colour='black',lty=2)+
               #geom_ribbon(data=outs,aes(ymin=trueloCI,ymax=truehiCI),
               #alpha=0.5,colour=NA,fill=twc) +
-              geom_line(data=outs,aes(x=obslength2,y=diff),lwd=1,colour=twc) +
+              geom_line(data=outs,aes(x=obslength2,y=diff),lwd=1) +
               geom_ribbon(data=outs,aes(ymin=CI.L,ymax=CI.U),alpha=0.5,fill=twc) +
               facet_wrap(~timescale) +
               xlab("Number of years of observations") +
               ylab("Observed-null distribution \n for WMR (d)") +
               theme_classic(base_size=14) +
-              #theme_dg(base_size=14) +
               theme(strip.background = element_blank())
 
 powerplot
-# tiff("PowerPlot_UCSB.tiff",width = 8,height=4,units = 'in',res = 200)
-# powerplot
-# dev.off()
+# Plot power plot with the original time series
+# Sardine-anchovy palette
+sacols <- c("#3288bd","#d53e4f") #blue = sardine, red = anchovy
+ldat <- data.frame(Year=1:150,Sardine=ts_test$std_sardine,Anchovy=ts_test$std_anchovy) %>%
+  melt(id.vars="Year")
 
-list.of.sims <- list()
-list.of.sims[[1]] <- outs
+tsplot <- ggplot(ldat,aes(x=Year,y=value,colour=variable)) +
+  geom_line(lwd=1) +
+  scale_colour_manual("Species",values=rev(sacols)) +
+  theme_classic(base_size=14) +
+  #theme_dg(base_size=14) +
+  ylab("\n  Standardized \n biomass ")
+
+tiff(filename = here::here("R/Figures/PowerAnalysis.tiff"),
+     width = 8.5,height=4.5,units = 'in',res = 250)
+gridExtra::grid.arrange(tsplot, powerplot)
+dev.off()  
+
+
+# list.of.sims <- list()
+# list.of.sims[[1]] <- outs
 
 ##################################################################################
 # Now try the same thing but with multiple simulations for each obslength --------
@@ -263,34 +277,7 @@ dev.off()
 
 
 
-# Plot the original time series
-# Sardine-anchovy palette
-sacols <- c("#3288bd","#d53e4f") #blue = sardine, red = anchovy
-ldat <- data.frame(Year=1:150,Sardine=ts_test$std_sardine,Anchovy=ts_test$std_anchovy) %>%
-  melt(id.vars="Year")
-  
-tsplot <- ggplot(ldat,aes(x=Year,y=value,colour=variable)) +
-          geom_line(lwd=1) +
-          scale_colour_manual("Species",values=rev(sacols)) +
-          theme_classic(base_size=14) +
-          #theme_dg(base_size=14) +
-          ylab("\n  Standardized \n biomass ")
 
-# tiff("SA_async_example.tiff",width = 8,height = 4,units = 'in',res=200)
-# tsplot
-# dev.off()
-
-# tiff("Example_maxes.tiff",width = 6,height = 4.5,units = 'in',res = 200)
-# ldat %>% group_by(variable) %>% summarize(Max = max(value)) %>%
-#   ggplot(aes(x=variable, y=Max,fill=variable)) + geom_bar(stat='identity') + theme_dg(base_size = 14) + scale_fill_manual("",values=rev(sacols)) +xlab("Variable")
-# dev.off()
-
-tiff(filename = here::here("R/Figures/PowerAnalysis.tiff"),
-     width = 8.5,height=4.5,units = 'in',res = 250)
-
-gridExtra::grid.arrange(tsplot, powerplot)
-
-dev.off()  
 
 
 par(mfrow=c(1,1))

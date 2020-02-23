@@ -1,4 +1,5 @@
-# Mark Q-B matrix comparison
+# Compare influence of Q and B matrices on covariance
+
 vec <- function(x) { #converts matrix to vector
   if(class(x) != "matrix") {
     stop("`x` must be a matrix")
@@ -37,6 +38,7 @@ QQ_Humboldt <- matrix(c(0.19, -0.03, -0.03, 0.37), 2, 2)
 QQ_NEAtlantic <- matrix(c(0.11, -0.15, -0.15, 0.49), 2, 2)
 QQ_KuroshioOyashio <- matrix(c(0.11, 0.10, 0.10, 0.49), 2, 2)
 
+# Set these differently depending on which system you're interested in
 #QQ <- QQ_California
 #QQ <- QQ_Humboldt
 #QQ <- QQ_NEAtlantic
