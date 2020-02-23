@@ -2,7 +2,6 @@
 # Take original time series, compare wavelet modulus ratio distribution between null model (no synchrony)
 # If you have two time series of the same spectral characteristics, randomly starting, how often do you observe asynchrony by accident at each time scale? This can be referred to as the "null model" - how much synchronicity would you see at random.
 
-
 # load libraries and data -------------------------------------------------
 library(fractal) # contains surrogate() fn
 library(ggplot2)
@@ -100,8 +99,8 @@ get_surrogates <- function(obs, nsurrogates){
 
  # ( xx <- get_surrogates(obs = get_obs(dat = RBF,dsource = "Barange",reg = "California",var = "ssb"),
  #                        nsurrogates = 10) )
- # m.null = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1]) # Sometimes this gives a %dopar% error, but it is ok.
-# =======
+ 
+# m.null = get_wmr(anchovy.ts=xx$Anchovy.surrogates[,1],sardine.ts=xx$Sardine.surrogates[,1]) # Sometimes this gives a %dopar% error, but it is ok.
 # 
 get_large_null <- function(dat = RB,dsource = "Barange",reg = "California",var = "ssb",nsims){
   #generate as many surrogates as you need to get your full sims:
