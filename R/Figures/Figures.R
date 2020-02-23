@@ -1,18 +1,19 @@
-# Make all figures and tables (some figures have been modified in adobe illustrator)
-
-load(here::here("R/DataCleanup/allsardineanchovy_3.RData"))# dataframe: alldat (raw data including NAs for missing years)
-load(here::here("R/DataCleanup/RAM_Barange_FAO_States.RData")) # RBF (missing years filled w MARSS states)
-
-source(here::here("R/DataCleanup/Fill_NAs_SA.R")) # FillNAs.ts() function
-source(here::here("R/WMR/NullModel.R"))
-source(here::here("R/PowerAnalysis/Scheuerell_timeseries.R"))
-
+# Make all figures and tables (some figures have been modified in adobe cs)
 library(dplyr)
 library(reshape2)
 library(ggplot2)
 library(beyonce) #devtools::install_github("dill/beyonce")
 library(RCurl)
 library(RColorBrewer)
+
+# Data
+load(here::here("R/DataCleanup/allsardineanchovy_3.RData"))# dataframe: alldat (raw data including NAs for missing years)
+load(here::here("R/DataCleanup/RAM_Barange_FAO_States.RData")) # RBF (missing years filled w MARSS states)
+
+# Functions
+source(here::here("R/DataCleanup/Fill_NAs_SA.R")) # FillNAs.ts() function
+source(here::here("R/WMR/NullModel.R"))
+source(here::here("R/PowerAnalysis/Scheuerell_timeseries.R"))
 
 
 # Test data ---------------------------------------------------------------
@@ -26,73 +27,8 @@ pal <- beyonce_palette(18)[2:6]
 # Sardine-anchovy palette
 sacols <- c("#3288bd","#d53e4f") #blue = sardine, red = anchovy
 
-
-# FIGURE S1: raw time series data ------------------------------------------
-
-mf <- melt(alldat,id.vars = c("datasource", "scientificname", "stock", "year", "sp", "region", "subregion"))
-mf$variable <- recode(mf$variable,ssb="Biomass",rec="Recruitment",landings="Landings")
-mf.new <- mf
-
-figs1 <- mf.new %>%
-  group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
-  mutate(std.value=value/mean(value,na.rm=T)) %>% #as.data.frame() value/mean(value,na.rm=T)
-  filter(std.value<15) %>% 
-  filter(variable %in% c("Biomass","Recruitment","Landings"))  %>%
-  mutate(variable_f = factor(variable, levels=c("Landings","Biomass","Recruitment"))) %>%
-    ggplot(aes(x=year,y=std.value,colour=sp,lty=datasource,group=stock)) +
-    scale_linetype_manual("Data source",values=c(1,2,3)) +
-      geom_line(lwd=0.6) +
-      scale_color_manual("",values=sacols) +
-  facet_grid(variable_f~region,scales="free_y") +
-  ylab("Standardized value") +
-  theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) 
-
-medians <- mf.new %>% 
-  group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
-  filter(variable == "Biomass") %>%
-  summarize(medB = median(value,na.rm=T))
-
-figs1.5 <- mf.new %>%
-  group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
-  filter(variable %in% c("Biomass","Recruitment","Landings"))  %>%
-  mutate(variable_f = factor(variable, levels=c("Landings","Biomass","Recruitment"))) %>%
-  filter(variable == "Biomass") %>%
-  ggplot(aes(x=year,y=value,colour=sp,lty=datasource,group=stock)) +
-  scale_linetype_manual("Data source",values=c(1,2,3)) +
-  geom_line(lwd=0.6) +
-  scale_color_manual("",values=sacols) +
-  facet_grid(variable_f~region,scales="free_y") +
-  ylab("Value") +
-  theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) +
-  geom_hline(data=medians,aes(yintercept =medB ,colour=sp,lty=datasource))
-
-medians.l <- mf.new %>% 
-  group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
-  filter(variable == "Biomass") %>%
-  summarize(medL = median(value,na.rm=T))
-  
-figs1.6 <- mf.new %>%
-    group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
-    filter(variable %in% c("Biomass","Recruitment","Landings"))  %>%
-    mutate(variable_f = factor(variable, levels=c("Landings","Biomass","Recruitment"))) %>%
-    filter(variable == "Landings") %>%
-    ggplot(aes(x=year,y=value,colour=sp,lty=datasource,group=stock)) +
-    scale_linetype_manual("Data source",values=c(1,2,3)) +
-    geom_line(lwd=0.6) +
-    scale_color_manual("",values=sacols) +
-    facet_grid(variable_f~region,scales="free_y") +
-    ylab("Value") +
-    theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) +
-    geom_hline(data=medians.l,aes(yintercept =medL ,colour=sp,lty=datasource))
-
-pdf(here::here("R/Figures/Fig1_S1.pdf"),width = 12, height = 7,useDingbats = F)
-figs1 
-dev.off()
-
-
-
-# FIGURE S2: schematic of spectral analysis --------------------------------
-
+# Figure 1  ----------------------------------
+# This figure is constructed in Adobe CS using the following smaller plots.
 simlength <- 150
 sa.sim <- get.mds.ts(length= simlength,
                      autocorrs = c(0.7,0.7),
@@ -103,35 +39,9 @@ sa.sim <- get.mds.ts(length= simlength,
                      CC = matrix(c(1, -1), ncol = 1))
 x <- 1:simlength
 y <- t(sa.sim)
-scale.exp = 0.5; nscales = get.nscales(x)
-min.scale = get.min.scale(x); max.scale = get.max.scale(x)
-scales = log2Bins(min.scale, max.scale, nscales)
-w = mvcwt(x, y)
-mr = wmr(w)
-
-pdf("Contour_Example.pdf",useDingbats = FALSE,width = 6,height=5)
-  image(mr)
-dev.off()
-
-#Other pieces
-pdf("Contour_Example_ts.pdf",useDingbats = FALSE,width = 4,height=8)
-par(mfrow=c(4,1))
-  plot(x,y[,1],type='l',lwd=2,ylab="Scaled abundance",xlab="Year")
-  lines(x,y[,2],col="darkgrey",lwd=2)
-  legend("topright",legend=c("Sardine","Anchovy"),lwd=c(2,2),col=c("black","darkgrey"),bty='n')
-  wmrs <- get_wmr(anchovy.ts = y[,1],sardine.ts = y[,2])
-  for(i in 1:3){
-    hist(wmrs[[i]],main='',freq = FALSE,col="lightgrey",border="lightgrey",xaxt="n",xaxs="i",yaxs="i",xlab="",ylab="")
-    d <- density(wmrs[[i]],na.rm=T)
-    lines(d,lwd=2)
-  }
-  axis(1,xlim=c(0,1),xaxs="i")
-dev.off()
-
-
-# Figure 1 (schematic) ----------------------------------
-pdf("Short_ts_example.pdf",width = 5, height = 3,useDingbats = FALSE )
 shortlen <- 1:50
+
+pdf("Short_ts_example.pdf",width = 5, height = 3,useDingbats = FALSE )
 plot(x[shortlen],y[shortlen,1],type='l',lwd=2,ylab="Scaled abundance",xlab="Year")
 lines(x[shortlen],y[shortlen,2],col="darkgrey",lwd=2)
 dev.off()
@@ -190,7 +100,7 @@ subset(tp3,newvar=="Recruitment") %>%
                                            "Recruitment"))) %>%
     as.data.frame() )
 
-fig3_option2 <- tp3 %>% 
+fig2 <- tp3 %>% 
       filter(newvar != "Fishing mortality") %>%
       droplevels() %>%
       filter(!is.inf(log.diff)) %>%
@@ -206,17 +116,16 @@ fig3_option2 <- tp3 %>%
       xlab(expression('Log'['10']* '(Anchovy / Sardine)')) + 
       ylab("")
 
-pdf(here::here("R/Figures/Figure3_max_R1_Log10.pdf"),width = 8, height = 5,useDingbats = F)
-fig3_option2
+pdf(here::here("R/Figures/Figure2.pdf"),width = 8, height = 5,useDingbats = F)
+fig2
 dev.off()
 
 
-# FIGURE 4: MARSS covariances ---------------------------------------------
+# Figure 3a: MARSS covariances ---------------------------------------------
 # This is the plot that shows covariances between dominant sardine-anchovy pairs. 
 # The code to do this is in "getMARSSStates.R" - that function can fill ts with MARSS states and also get Q matrix
 
-
-# FIGURE 5: wavelet modulus ratios ----------------------------------------
+# Figure 3b: wavelet modulus ratios ----------------------------------------
 # Distributions for null vs. observed data
 
 # Load data
@@ -291,7 +200,7 @@ compares <- alldat %>%
   distinct(region, datasource)
 
 
-# LANDINGS ----------------------------------------------------------------
+# Landings ----------------------------------------------------------------
 landings.wmrs <- vector()
 for(s in 1:nrow(compares)){ 
   tryCatch ({
@@ -312,7 +221,7 @@ for(s in 1:nrow(compares)){
 }
 
 
-# BIOMASS -----------------------------------------------------------------
+# Biomass -----------------------------------------------------------------
 ssb.wmrs <- vector()
 for(s in 1:nrow(compares)){ 
   tryCatch ({
@@ -329,7 +238,7 @@ for(s in 1:nrow(compares)){
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }
 
-# RECRUITMENT -----------------------------------------------------------------
+# Rec -----------------------------------------------------------------
 rec.wmrs <- vector()
 for(s in 1:nrow(compares)){ 
   tryCatch ({
@@ -350,7 +259,7 @@ for(s in 1:nrow(compares)){
 
 
 
-# FIGURE 5A ---------------------------------------------------------------
+# Figure 3b_top ---------------------------------------------------------------
 #pdf(file.path(figwd,"Fig5A_landings.pdf"),width = 8,height = 10)
 landings.wmrs %>% subset(datasource=="Barange" & nv=="obs") %>% 
   ggplot(aes(x=wmrdens,colour=region,fill=region)) + 
@@ -365,7 +274,7 @@ landings.wmrs %>% subset(datasource=="Barange" & nv=="obs") %>%
 #dev.off()
 
 
-# FIGURE 5B ---------------------------------------------------------------
+# Figure 3b_bottom ---------------------------------------------------------------
 ssb.wmrs %>% subset(datasource=="Barange" & nv=="obs") %>% 
   ggplot(aes(x=wmrdens,colour=region,fill=region)) + 
   geom_density(alpha=0.5,lwd=1.2,trim=F) + 
@@ -379,8 +288,11 @@ ssb.wmrs %>% subset(datasource=="Barange" & nv=="obs") %>%
   ggtitle("Biomass")
 
 
+# Figure 4: P(Type I error) -----------------------------------------------
+# This figure is produced by code in R/PowerAnalysis/PowerAnalysis.R
 
-# SUPPLEMENTAL FIGURES ----------------------------------------------------
+# ESM ---------------------------------------------------------------------
+
 # TABLE S2: Datasets included in the analysis -----------------------------
 load(here::here("R/DataCleanup/allsardineanchovy_3.RData"))
 studydata <- alldat %>% 
@@ -408,9 +320,13 @@ for(s in 1:nrow(compares.RBF)){
   test.table <- rbind(test.table,test)
 }
 
-test.table.out <- test.table %>% select(region, variable, datasource, period, U, N, p = p.value, d = diff, CI.L, CI.U, r = r_p)
+test.table.out <- test.table %>% 
+  select(region, variable, datasource, period, U, N, p = p.value, d = diff, CI.L, CI.U, r = r_p)
 
-test.table.out$period <- recode(test.table.out$period, less.than.5 = "< 5 yr", five.ten = "5-10 yr", ten.plus="10+ yr")
+test.table.out$period <- recode(test.table.out$period, 
+                                less.than.5 = "< 5 yr", 
+                                five.ten = "5-10 yr", 
+                                ten.plus="10+ yr")
 test.table.out$p <- round(test.table.out$p, 3)
 test.table.out$p[test.table.out$p < 0.001] <- "< 0.001"
 test.table.out$d <- round(test.table.out$d, 3)
@@ -422,8 +338,102 @@ test.table.out <- arrange(test.table.out, region, datasource, variable)
 
 write.csv(test.table.out, file = here::here("Figures/TableS1_test_WMR.csv"))
 
+# Figure S1: Raw time series ------------------------------------------
+mf <- melt(alldat,id.vars = c("datasource", "scientificname", "stock", "year", "sp", "region", "subregion"))
+mf$variable <- recode(mf$variable,
+                      ssb="Biomass",
+                      rec="Recruitment",
+                      landings="Landings")
+mf.new <- mf
 
-# FIGURES S1-S3: bar plots ---------------------------------------------------------------
+figs1 <- mf.new %>%
+  group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
+  mutate(std.value=value/mean(value,na.rm=T)) %>% #as.data.frame() value/mean(value,na.rm=T)
+  filter(std.value<15) %>% 
+  filter(variable %in% c("Biomass","Recruitment","Landings"))  %>%
+  mutate(variable_f = factor(variable, levels=c("Landings","Biomass","Recruitment"))) %>%
+  ggplot(aes(x=year,y=std.value,colour=sp,lty=datasource,group=stock)) +
+  scale_linetype_manual("Data source",values=c(1,2,3)) +
+  geom_line(lwd=0.6) +
+  scale_color_manual("",values=sacols) +
+  facet_grid(variable_f~region,scales="free_y") +
+  ylab("Standardized value") +
+  theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) 
+
+medians <- mf.new %>% 
+  group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
+  filter(variable == "Biomass") %>%
+  summarize(medB = median(value,na.rm=T))
+
+figs1.5 <- mf.new %>%
+  group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
+  filter(variable %in% c("Biomass","Recruitment","Landings"))  %>%
+  mutate(variable_f = factor(variable, levels=c("Landings","Biomass","Recruitment"))) %>%
+  filter(variable == "Biomass") %>%
+  ggplot(aes(x=year,y=value,colour=sp,lty=datasource,group=stock)) +
+  scale_linetype_manual("Data source",values=c(1,2,3)) +
+  geom_line(lwd=0.6) +
+  scale_color_manual("",values=sacols) +
+  facet_grid(variable_f~region,scales="free_y") +
+  ylab("Value") +
+  theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) +
+  geom_hline(data=medians,aes(yintercept =medB ,colour=sp,lty=datasource))
+
+medians.l <- mf.new %>% 
+  group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
+  filter(variable == "Biomass") %>%
+  summarize(medL = median(value,na.rm=T))
+
+figs1.6 <- mf.new %>%
+  group_by(datasource,scientificname,stock,sp,region,subregion,variable) %>% 
+  filter(variable %in% c("Biomass","Recruitment","Landings"))  %>%
+  mutate(variable_f = factor(variable, levels=c("Landings","Biomass","Recruitment"))) %>%
+  filter(variable == "Landings") %>%
+  ggplot(aes(x=year,y=value,colour=sp,lty=datasource,group=stock)) +
+  scale_linetype_manual("Data source",values=c(1,2,3)) +
+  geom_line(lwd=0.6) +
+  scale_color_manual("",values=sacols) +
+  facet_grid(variable_f~region,scales="free_y") +
+  ylab("Value") +
+  theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) +
+  geom_hline(data=medians.l,aes(yintercept =medL ,colour=sp,lty=datasource))
+
+pdf(here::here("R/Figures/Fig1_S1.pdf"),width = 12, height = 7,useDingbats = F)
+figs1 
+dev.off()
+
+
+
+# Figure S2: Schematic of spectral analysis --------------------------------
+# Follows from Fig 1
+scale.exp = 0.5; nscales = get.nscales(x)
+min.scale = get.min.scale(x); max.scale = get.max.scale(x)
+scales = log2Bins(min.scale, max.scale, nscales)
+w = mvcwt(x, y)
+mr = wmr(w)
+
+pdf("Contour_Example.pdf",useDingbats = FALSE,width = 6,height=5)
+image(mr)
+dev.off()
+
+#Other pieces
+pdf("Contour_Example_ts.pdf",useDingbats = FALSE,width = 4,height=8)
+par(mfrow=c(4,1))
+plot(x,y[,1],type='l',lwd=2,ylab="Scaled abundance",xlab="Year")
+lines(x,y[,2],col="darkgrey",lwd=2)
+legend("topright",legend=c("Sardine","Anchovy"),lwd=c(2,2),col=c("black","darkgrey"),bty='n')
+wmrs <- get_wmr(anchovy.ts = y[,1],sardine.ts = y[,2])
+for(i in 1:3){
+  hist(wmrs[[i]],main='',freq = FALSE,col="lightgrey",border="lightgrey",xaxt="n",xaxs="i",yaxs="i",xlab="",ylab="")
+  d <- density(wmrs[[i]],na.rm=T)
+  lines(d,lwd=2)
+}
+axis(1,xlim=c(0,1),xaxs="i")
+dev.off()
+
+
+
+
 
 figS3 <- alldat %>%
   filter(datasource == "Barange") %>% #" & stock %in% dom.by.median$stock) %>%
@@ -594,7 +604,7 @@ dev.off()
 # figS3
 # dev.off()
 
-# FIGURE S4: Observed and null WMRs, landings ---------------------------------------
+# Figure S4: Observed and null WMRs, landings ---------------------------------------
 std.landings <- vector()
 for(s in 1:nrow(compares)){ 
   tryCatch ({
@@ -624,7 +634,6 @@ figS4a <-
   theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) +
   ylab("Standardized landings")+
   ggtitle("Landings")
-figS4a
 
 figS4b <- landings.wmrs %>% subset(datasource=="Barange") %>% 
   ggplot(aes(x=wmrdens,colour=region,lty=nv,alpha=nv)) + 
@@ -636,26 +645,11 @@ figS4b <- landings.wmrs %>% subset(datasource=="Barange") %>%
   xlab("Wavelet modulus ratio (WMR)") +
   theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) 
 
-grid.arrange(figS4a,figS4b)
 
 tiff(here::here("R/Figures/FigureS4_WMRobsnull_landings.tiff"),width = 11,height = 7,res=250,units = 'in')
 grid.arrange(figS4a,figS4b)
 dev.off()
 
-
-# Figure S4B for a demo in Fig 2  -----------------------------------
-fig2_wmr <- landings.wmrs %>% subset(datasource=="Barange") %>% 
-  filter(region=="NE Atlantic" & ID == "five.ten") %>%
-  ggplot(aes(x=wmrdens,colour=region,fill=nv)) + 
-  geom_density(lwd=1,trim=FALSE,colour="black",alpha=0.5) + 
-  scale_fill_manual("",values=c("black","yellow")) +
-  ylab("Density") +
-  xlab("Wavelet modulus ratio (WMR)") +
-  theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) 
-
-pdf("Fig2_wmr_example.pdf",width = 4, height = 2,useDingbats = FALSE)
-fig2_wmr
-dev.off()
 
 # FIGURE S5:Observed and null WMRs, biomass --------------------------------------
 
@@ -789,3 +783,18 @@ plot(sard.obs$year,sard.obs$ssb,xlab="year",ylab="SSB",main="Sardine")
 lines(sard.est$Year,sard.est$Sardine.est)
 legend("topleft",legend = c("est","obs"),pch=c(NA,1),lty=c(1,0))
 
+
+# Leftovers ---------------------------------------------------------------
+# Figure XXX for a demo in Fig 1
+fig2_wmr <- landings.wmrs %>% subset(datasource=="Barange") %>% 
+  filter(region=="NE Atlantic" & ID == "five.ten") %>%
+  ggplot(aes(x=wmrdens,colour=region,fill=nv)) + 
+  geom_density(lwd=1,trim=FALSE,colour="black",alpha=0.5) + 
+  scale_fill_manual("",values=c("black","yellow")) +
+  ylab("Density") +
+  xlab("Wavelet modulus ratio (WMR)") +
+  theme_classic(base_size=14) %+replace% theme(strip.background  = element_blank()) 
+
+pdf("Fig2_wmr_example.pdf",width = 4, height = 2,useDingbats = FALSE)
+fig2_wmr
+dev.off()
