@@ -1,4 +1,7 @@
-# Comparability between time series
+# Comparability between sardine and anchovy 
+
+# Data
+load(here::here("R/DataCleanup/allsardineanchovy_3.RData"))# dataframe: alldat (raw data including NAs for missing years)
 
 # Data checks
 all.medians <- alldat %>%
@@ -121,8 +124,7 @@ load(here::here("ProcData/Replacement_RAM_Barange_MEDIAN2.Rdata")) #df: Both
 
 desired_order <- c("Northern Benguela anchovy","Northern Benguela sardine","Southern Benguela anchovy","Southern Benguela sardine","Anchovy South Africa","Sardine South Africa","California anchovy","California sardine","N Anchovy E Pacific","Pacific sardine Pacific Coast","Humboldt anchovy - Central Peru","Humboldt sardine - N Central Peru","Humboldt anchovy - South Peru N Chile","Humboldt sardine - South Peru N Chile","Chilean common sardine","Japanese anchovy","Japanese sardine","Bay of Biscay anchovy","European sardine")
 
-summary <- filter(Both,#stock != "Northern Benguela sardine" & 
-                  #stock != "Humboldt sardine - South Peru N Chile" &
+summary <- filter(Both,
                   stock != "Humboldt anchovy - South Peru N Chile" &
                     stock != "Chilean common sardine" )
 summary$stock2 <- factor(summary$stock,desired_order)
@@ -131,7 +133,7 @@ summary$stock2 <- factor(summary$stock,desired_order)
 tp <- summary %>% 
   select(sp,stock,median.var,variable,region,datasource) # previously: max.var
 
-tp2 <- dcast(tp,region+variable+datasource ~ sp,value.var="median.var",fun.aggregate = max,na.rm=T) # this will give errors but it's ok-- it's just bc of the cases where sardine is present but not anchovy (also: this can be changed btwn max and median depending on how you deinfe "dominant" stocks)
+tp2 <- dcast(tp,region+variable+datasource ~ sp,value.var="median.var",fun.aggregate = max,na.rm=T) # this will give errors but it's ok-- it's just bc of the cases where sardine is present but not anchovy (also: this can be changed btwn max and median depending on how you define "dominant" stocks)
 tp2$Anchovy[which(is.inf(tp2$Anchovy))] <- NA  
 tp2$Sardine[which(is.inf(tp2$Sardine))] <- NA  
 tp3 <- tp2 %>% 
