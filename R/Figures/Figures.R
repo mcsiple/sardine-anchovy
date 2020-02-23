@@ -52,7 +52,7 @@ dev.off()
 
 # Figure 3a: MARSS covariances ---------------------------------------------
 # This is the plot that shows covariances between dominant sardine-anchovy pairs. 
-# The code to do this is in "getMARSSStates.R" - that function can fill ts with MARSS states and also get Q matrix
+# The code to do this is in "EstimateCovariance.R"
 
 # Figure 3b: wavelet modulus ratios ----------------------------------------
 # Distributions for null vs. observed data
@@ -209,7 +209,7 @@ ssb.wmrs %>% subset(datasource=="Barange" & nv=="obs") %>%
   geom_density(alpha=0.5,lwd=1.2,trim=F) + 
   scale_colour_manual(values=pal) +
   scale_fill_manual(values=pal) +
-  facet_wrap(~ID_ord,ncol=1,scales = "free_y") +
+  facet_wrap(~ID_ord,nrow=1,scales = "free_y") +
   ylab("Density") +
   xlab("Wavelet modulus ratio (WMR)") +
   scale_y_reverse() +
