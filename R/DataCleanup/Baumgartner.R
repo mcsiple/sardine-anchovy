@@ -3,9 +3,9 @@
 # Original paper:
 # Baumgartner TR, Soutar A, Ferreira-Bartrina V. 1992. Reconstruction of the history of Pacific sardine and northern anchovy populations over the past two millennia from sediments of the Santa Barbara Basin, California. CalCOFI Rep 33:24–40.
 
-dat <- read.csv(here::here('R','DataCleanup','sardineanchovyBaumgartner.csv')) # units of scale dep are number/1000cm^2/yr
-
-# These are averages across two piston cores (extracted from Fig 4 in Baumgartner et al. 1992 using the ancient software GraphClick.)
+dat <- read.csv(here::here('R','DataCleanup','sardineanchovyBaumgartner.csv')) 
+# units of scale dep are number/1000cm^2/yr
+# These are averages across two piston cores, extracted from Fig 4 in Baumgartner et al. 1992 using the ancient software GraphClick.
 # The sample timescale is 10 years.
 
 library(dplyr)
@@ -22,6 +22,7 @@ ggplot(dat,aes(x=year.approx,y=sdr)) +
 # anchovy_B <- 0.092*SDR + 0.206
 
 dat$biomass <- NA
+
 for(i in 1:nrow(dat)){
   if(dat$sp[i] == "sardine") {dat$biomass[i] <- 0.767*dat$sdr[i] + 0.416} 
   else {dat$biomass[i] <- 0.092*dat$sdr[i] + 0.206} # biomass units: x 10^6
