@@ -87,9 +87,6 @@ for(s in 1:nrow(compares)){
     test$region <- compares$region[s]
     test$datasource <- compares$datasource[s]
     test$variable <- "landings"
-    # NEED TO ADD THESE OR SIMILAR TO FIND OUT WHICH TWO STOCKS ARE BEING COMPARED
-    #test$sardstock <- subset(stocks,region==compares$region[s] & datasource==compares$datasource[s] & sp =="Sardine")$stock
-    #test$anchstock <- subset(stocks,region==compares$region[s] & datasource==compares$datasource[s] & sp =="Anchovy")$stock
     landings.wmrs <- rbind(landings.wmrs,test)
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }

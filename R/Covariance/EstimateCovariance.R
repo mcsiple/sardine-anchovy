@@ -9,7 +9,8 @@ source(here("R/DataCleanup/Fill_NAs_SA.R"))
 load(here("R/DataCleanup/allsardineanchovy_3.RData")) # dataframe alldat
 
 
-# First, simplify data so it's only the "dominant" S and A (highest median biomass)
+# First, simplify data so it's only the "dominant" S and A 
+# Note: Stock with highest median biomass are also the ones w the highest max biomass.
 allfishies <- alldat %>% 
   melt(id.vars=c("datasource",
                  "scientificname",
@@ -28,7 +29,7 @@ dom.by.ssb <- alldat %>%
   filter(is.dominant == 1) %>%
   as.data.frame()
 
-# Dominant stocks by median biomass are the same as the dominant ones by max biomass
+# Dominant stocks
 domfishies <- allfishies %>%
   group_by(region,datasource,variable,sp) %>%
   filter(value==max(value,na.rm=T)) %>%
