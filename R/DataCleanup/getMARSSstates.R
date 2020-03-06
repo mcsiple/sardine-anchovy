@@ -22,7 +22,6 @@ impute.sa <- function(x,thresh=0.3){
 }
 
 
-
 getMARSSstates <- function(data = alldat, region_or_subregion = "California", scale = "Region", data_source = "FAO", variable = "landings",MARSS.cov = FALSE, plot = FALSE, ccf.calc = FALSE,get.mean.instead = FALSE){
   #' @param data (dataframe) big dataframe of sardine and anchovy time series
   #' @param region_or_subregion (character) one of five regions (subregions are possible but not used for paper)
@@ -32,19 +31,16 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
   #' @param MARSS.cov (logical) whether or not to estimate covariance
   #' @param plot (logical) whether to plot the ts
   #' @param ccf.calc (logical) whether to get cross correlation function (haven't used in a while)
-  #' @param get.mean.instead (logical) whether to return mean of the time series? (possibly deprecated)
+  #' @param get.mean.instead (logical) whether to return time series interpolated with long-term mean (deprecated)
   
   if (scale == "Region") {dataset <- filter(data, region == region_or_subregion & datasource==data_source)}
   if (scale == "Subregion") {dataset <- filter(data, subregion == region_or_subregion & datasource==data_source)}   
   
-  #dataset <- subset(dataset,datasource == datasource)
-  #print(dataset)
-  # special case for FAO, which doesn't have stock names, only land areas: (need to make sure this is correct!)
+  # special case for FAO, which doesn't have stock names, only land areas: 
   # if(data_source == "FAO") {dataset$stock <- paste(dataset$scientificname, dataset$region)
   #                           dataset <- dataset %>% subset(!is.na(landings))}
   
-  if(data_source == "RAM"){ 
-  #special allowance bc RAM often has total catch instead of landings
+  if(data_source == "RAM"){ # RAM sometimes has total catch instead of landings-- we use it instead if that's all that's available
     dataset$landings[is.na(dataset$landings)] <- dataset$totalcatch
   }
   
@@ -55,13 +51,12 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
       summarize(max.var=round(max(landings,na.rm=T),2)) %>% 
       as.data.frame()
   } 
-  
   if(variable=="ssb"){
     lt.maxes <- dataset %>% 
       group_by(sp,stock) %>% 
       summarize(max.var=round(max(ssb,na.rm=T),2)) %>% 
       as.data.frame()
-    }
+  }
   if(variable=="rec"){
     lt.maxes <- dataset %>% 
       group_by(sp,stock) %>% 
@@ -106,10 +101,10 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
     anch = dom.a.ts$landings}
   if(variable=="ssb"){
     sar = dom.s.ts$ssb
-  anch = dom.a.ts$ssb}
+    anch = dom.a.ts$ssb}
   if(variable=="rec"){
     sar = dom.s.ts$rec
-  anch = dom.a.ts$rec}
+    anch = dom.a.ts$rec}
   if(variable=="fishing.mortality"){
     sar = dom.s.ts$fishing.mortality
     anch = dom.a.ts$fishing.mortality}
@@ -148,46 +143,14 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
     model.sa$U="zero"
     model.sa$A="zero" # need to double check this value
     
-    # OPTION 1: ESTIMATE B FULLY
-    #model.sa$Q="diagonal and unequal" #switch form back and forth with model structure
-    #B1=matrix(list("b1",0,"b21","b2"),2,2) # email
-    #model.sa$B=B1 # diagonal is the same and off-diags are the same but they are interpreted differently! Subtract 1 from diag to get effect of species on itself (i.e., small diagonal of B means more density dependence). If species are fully density-independent, B_diag = 1) 
-    
-    # OPTION 2: ESTIMATE Q FULLY
+    # Option 1: ESTIMATE B FULLY
+    B1=matrix(list('b1','b12','b21','b2'),2,2) # email
+    model.sa$B=B1 # diagonal is the same and off-diags are the same but they are interpreted differently! Subtract 1 from diag to get effect of species on itself (i.e., small diagonal of B means more density dependence). If species are fully density-independent, B_diag = 1) 
     model.sa$Q = "unconstrained"
-    model.sa$B = "identity"
     
-    kem.sa = MARSS(MAR.obj, model=model.sa, control=list(maxit=1000)) 
+    kem.sa = MARSS(MAR.obj, model=model.sa, control=list(maxit=1e4)) 
     correlation = kem.sa$par$Q[2]/(sqrt(kem.sa$par$Q[3]) * sqrt(kem.sa$par$Q[1]))
-    kem.sa.CIs = MARSSparamCIs(kem.sa,method="parametric",nboot=100)
-    print(kem.sa.CIs)
     
-    # OPTION 1 VALUES
-    # Density dependence
-    # b1.sard <- as.numeric(kem.sa.CIs$par$B)[1] 
-    # b1.sard.lo <- as.numeric(kem.sa.CIs$par.lowCI$B)[1] 
-    # b1.sard.hi <- as.numeric(kem.sa.CIs$par.upCI$B)[1] 
-    # 
-    # b2.anch <- as.numeric(kem.sa.CIs$par$B)[3] 
-    # b2.anch.lo <- as.numeric(kem.sa.CIs$par.lowCI$B)[3] 
-    # b2.anch.hi <- as.numeric(kem.sa.CIs$par.upCI$B)[3] 
-    # 
-    # Interaction
-    # B.12 <- as.numeric(kem.sa.CIs$par$B)[2] 
-    # lo.B12 <- as.numeric(kem.sa.CIs$par.lowCI$B)[2]
-    # hi.B12 <- as.numeric(kem.sa.CIs$par.upCI$B)[2]
-    # 
-    # # Variance
-    # Q1 <- as.numeric(kem.sa.CIs$par$Q)[1]
-    # lo.Q1 <- kem.sa.CIs$par.lowCI$Q[1]
-    # hi.Q1 <- kem.sa.CIs$par.upCI$Q[1]
-    # 
-    # Q2 <- as.numeric(kem.sa.CIs$par$Q)[2]
-    # lo.Q2 <- kem.sa.CIs$par.lowCI$Q[2]
-    # hi.Q2 <- kem.sa.CIs$par.upCI$Q[2]
-    
-    # OPTION 2 VALUES
-    # Variance
     Q1 <- as.numeric(kem.sa.CIs$par$Q)[1]
     lo.Q1 <- kem.sa.CIs$par.lowCI$Q[1]
     hi.Q1 <- kem.sa.CIs$par.upCI$Q[1]
@@ -201,32 +164,20 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
     hi.q12 <- kem.sa.CIs$par.upCI$Q[2]
     
     R <- as.numeric(kem.sa.CIs$par$R)
-      return(list(#Density dependence
-                  # b1.sard = b1.sard,
-                  # b1.sard.lo = b1.sard.lo,
-                  # b1.sard.hi = b1.sard.hi,
-                  # b2.anch = b2.anch,
-                  # b2.anch.lo = b2.anch.lo,
-                  # b2.anch.hi = b2.anch.hi,
-                  # # Interaction
-                  # B.12 = B.12,
-                  # lo.B12 = lo.B12,
-                  # hi.B12 = hi.B12,
-                  #Variance
-                  Q1 = Q1,
-                  lo.Q1 = lo.Q1,
-                  hi.Q1 = hi.Q1,
-                  Q2 = Q2,
-                  lo.Q2 = lo.Q2,
-                  hi.Q2 = hi.Q2,
-                  
-                  # Option 2 addition (basically just adding covariance estimate):
-                  q12 =q12,
-                  lo.q12=lo.q12,
-                  hi.q12=hi.q12,
-                
-                  #Observation error
-                  R = R))
+    return(list(
+      #Variance
+      Q1 = Q1,
+      lo.Q1 = lo.Q1,
+      hi.Q1 = hi.Q1,
+      Q2 = Q2,
+      lo.Q2 = lo.Q2,
+      hi.Q2 = hi.Q2,
+      
+      # Option 2 addition (basically just adding covariance estimate):
+      q12 =q12,
+      lo.q12=lo.q12,
+      hi.q12=hi.q12,
+      R = R))
   }else correlation = "no MARSS correlation calculated"
   
   if(ccf.calc==TRUE){
@@ -247,42 +198,44 @@ getMARSSstates <- function(data = alldat, region_or_subregion = "California", sc
     output <- data.frame(Year = sard.mars[1,],Sardine.est = sard.mars[2,], Anchovy.est = anch.mars[2,],region = region_or_subregion, datasource = data_source, variable = variable)
     return(output)
     
-  
   }else{
-
-  sard.mars <- FillNAs.ts(cbind(dom.s.ts$year,sar),
-                          startyear=min(c(dom.s.ts$year,dom.a.ts$year)),
-                          endyear=max(c(dom.s.ts$year,dom.a.ts$year)))
-                                        
-  anch.mars <- FillNAs.ts(cbind(dom.a.ts$year,anch),
-                          startyear=min(c(dom.s.ts$year,dom.a.ts$year)),
-                          endyear=max(c(dom.s.ts$year,dom.a.ts$year)))
+    sard.mars <- FillNAs.ts(cbind(dom.s.ts$year,sar),
+                            startyear=min(c(dom.s.ts$year,dom.a.ts$year)),
+                            endyear=max(c(dom.s.ts$year,dom.a.ts$year)))
     
-  # replace zeroes with a very low value
-  # sar and anch are rows, columns are years:
-  sard.mars[2,] <- replace(sard.mars[2,], sard.mars[2,]==0, 0.0001)
-  anch.mars[2,] <- replace(anch.mars[2,], anch.mars[2,]==0, 0.0001)
-  
-  MAR.obj <- log(rbind(sard.mars[2,],anch.mars[2,]))    #Landings are log transformed
-  colnames(MAR.obj) <- sard.mars[1,]
-  
-  model.sa=list()
-  model.sa$Q="unconstrained"
-  model.sa$R="diagonal and equal" # new from MDS
-  model.sa$U="zero" # new from MDS
-  
-  kem.sa = MARSS(MAR.obj, model=model.sa, control=list(maxit=1000)) 
-  print(kem.sa,what = "states")
-  
-  #back-transform values
-  sard.estimates <- exp(kem.sa$states[1,])
-  anch.estimates <- exp(kem.sa$states[2,])
-
-  output <- data.frame(Year = sard.mars[1,],Sardine.est = sard.estimates, Anchovy.est = anch.estimates,region = region_or_subregion, datasource = data_source, variable = variable)
-  
-  return(output)}
+    anch.mars <- FillNAs.ts(cbind(dom.a.ts$year,anch),
+                            startyear=min(c(dom.s.ts$year,dom.a.ts$year)),
+                            endyear=max(c(dom.s.ts$year,dom.a.ts$year)))
+    
+    # replace zeroes with a very low value
+    # sar and anch are rows, columns are years:
+    sard.mars[2,] <- replace(sard.mars[2,], sard.mars[2,]==0, 0.0001)
+    anch.mars[2,] <- replace(anch.mars[2,], anch.mars[2,]==0, 0.0001)
+    
+    MAR.obj <- log(rbind(sard.mars[2,],anch.mars[2,]))    #Landings are log transformed
+    colnames(MAR.obj) <- sard.mars[1,]
+    
+    model.sa=list()
+    model.sa$Q="unconstrained"
+    model.sa$R="diagonal and equal" # new from MDS
+    model.sa$U="zero" # new from MDS
+    B1=matrix(list('b1','b12','b21','b2'),2,2) 
+    model.sa$B=B1
+    
+    kem.sa = MARSS(MAR.obj, model=model.sa, control=list(maxit=1000)) 
+    print(kem.sa,what = "states")
+    
+    #back-transform values
+    sard.estimates <- exp(kem.sa$states[1,])
+    anch.estimates <- exp(kem.sa$states[2,])
+    
+    output <- data.frame(Year = sard.mars[1,],Sardine.est = sard.estimates, Anchovy.est = anch.estimates,region = region_or_subregion, datasource = data_source, variable = variable)
+    
+    return(output)}
 }  #End getMARSSstates function
 
 
+#Test
+#getMARSSstates()
 
 
